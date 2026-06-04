@@ -1,0 +1,2 @@
+// Admin coupons module placeholder.
+

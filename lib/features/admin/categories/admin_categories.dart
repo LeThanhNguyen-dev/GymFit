@@ -1,0 +1,2 @@
+// Admin categories module placeholder.
+

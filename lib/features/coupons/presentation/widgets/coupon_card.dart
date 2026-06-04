@@ -1,0 +1,2 @@
+// Coupon widgets placeholder.
+

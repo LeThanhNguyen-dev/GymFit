@@ -1,0 +1,2 @@
+// Search screen placeholder.
+

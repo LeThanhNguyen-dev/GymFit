@@ -1,0 +1,2 @@
+// Shared loading widget placeholder.
+

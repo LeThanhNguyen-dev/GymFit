@@ -1,0 +1,2 @@
+// Cart widgets placeholder.
+

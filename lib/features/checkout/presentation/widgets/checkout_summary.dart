@@ -1,0 +1,2 @@
+// Checkout widgets placeholder.
+

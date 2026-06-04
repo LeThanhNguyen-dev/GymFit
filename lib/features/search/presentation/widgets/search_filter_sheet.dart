@@ -1,0 +1,2 @@
+// Search widgets placeholder.
+
