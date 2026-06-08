@@ -152,6 +152,10 @@ class ProductModel {
     this.totalSold = 0,
     this.viewCount = 0,
     this.metadata = const {},
+    this.category,
+    this.brand,
+    this.images = const [],
+    this.variants = const [],
     this.createdAt,
     this.updatedAt,
   });
@@ -181,26 +185,34 @@ class ProductModel {
   final int totalSold;
   final int viewCount;
   final Map<String, dynamic> metadata;
+  final CategoryModel? category;
+  final BrandModel? brand;
+  final List<ProductImageModel> images;
+  final List<ProductVariantModel> variants;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
   factory ProductModel.fromJson(Map<String, dynamic> json) => ProductModel(
     id: json['id'].toString(),
-    categoryId: json['category_id'].toString(),
+    categoryId: json['category_id']?.toString() ?? '',
     brandId: json['brand_id'] as String?,
     name: json['name'].toString(),
-    slug: json['slug'].toString(),
+    slug: json['slug']?.toString() ?? '',
     sku: json['sku'] as String?,
     shortDescription: json['short_description'] as String?,
     description: json['description'] as String?,
-    basePrice: doubleFromJson(json['base_price']) ?? 0,
+    basePrice: doubleFromJson(json['base_price'] ?? json['price']) ?? 0,
     compareAtPrice: doubleFromJson(json['compare_at_price']),
     costPrice: doubleFromJson(json['cost_price']),
-    status: enumFromSnake(
-      ProductStatus.values,
-      json['status'],
-      ProductStatus.draft,
-    ),
+    status: json.containsKey('is_active')
+        ? ((json['is_active'] as bool? ?? true)
+              ? ProductStatus.active
+              : ProductStatus.inactive)
+        : enumFromSnake(
+            ProductStatus.values,
+            json['status'],
+            ProductStatus.draft,
+          ),
     isFeatured: json['is_featured'] as bool? ?? false,
     isDigital: json['is_digital'] as bool? ?? false,
     requiresShipping: json['requires_shipping'] as bool? ?? true,
@@ -209,11 +221,24 @@ class ProductModel {
     attributes: mapFromJson(json['attributes']),
     seoTitle: json['seo_title'] as String?,
     seoDescription: json['seo_description'] as String?,
-    averageRating: doubleFromJson(json['average_rating']) ?? 0,
+    averageRating:
+        doubleFromJson(json['average_rating'] ?? json['avg_rating']) ?? 0,
     totalReviews: intFromJson(json['total_reviews']) ?? 0,
     totalSold: intFromJson(json['total_sold']) ?? 0,
     viewCount: intFromJson(json['view_count']) ?? 0,
     metadata: mapFromJson(json['metadata']),
+    category: json['category'] is Map
+        ? CategoryModel.fromJson(mapFromJson(json['category']))
+        : null,
+    brand: json['brand'] is Map
+        ? BrandModel.fromJson(mapFromJson(json['brand']))
+        : null,
+    images: mapListFromJson(
+      json['images'],
+    ).map(ProductImageModel.fromJson).toList(),
+    variants: mapListFromJson(
+      json['variants'],
+    ).map(ProductVariantModel.fromJson).toList(),
     createdAt: dateTimeFromJson(json['created_at']),
     updatedAt: dateTimeFromJson(json['updated_at']),
   );
@@ -244,9 +269,19 @@ class ProductModel {
     'total_sold': totalSold,
     'view_count': viewCount,
     'metadata': metadata,
+    'category': category?.toJson(),
+    'brand': brand?.toJson(),
+    'images': images.map((image) => image.toJson()).toList(),
+    'variants': variants.map((variant) => variant.toJson()).toList(),
     'created_at': dateTimeToJson(createdAt),
     'updated_at': dateTimeToJson(updatedAt),
   };
+
+  String? get primaryImageUrl {
+    if (images.isEmpty) return null;
+    final primaryImages = images.where((image) => image.isPrimary);
+    return (primaryImages.isNotEmpty ? primaryImages.first : images.first).url;
+  }
 }
 
 class ProductImageModel {
@@ -279,7 +314,7 @@ class ProductImageModel {
       id: json['id'].toString(),
       productId: json['product_id'].toString(),
       variantId: json['variant_id'] as String?,
-      url: json['url'].toString(),
+      url: (json['url'] ?? json['image_url']).toString(),
       altText: json['alt_text'] as String?,
       isPrimary: json['is_primary'] as bool? ?? false,
       sortOrder: intFromJson(json['sort_order']) ?? 0,
@@ -307,7 +342,7 @@ class ProductVariantModel {
   const ProductVariantModel({
     required this.id,
     required this.productId,
-    required this.sku,
+    this.sku = '',
     required this.price,
     this.name,
     this.optionValues = const {},
@@ -346,21 +381,30 @@ class ProductVariantModel {
     return ProductVariantModel(
       id: json['id'].toString(),
       productId: json['product_id'].toString(),
-      sku: json['sku'].toString(),
-      name: json['name'] as String?,
-      optionValues: mapFromJson(json['option_values']),
+      sku: json['sku']?.toString() ?? '',
+      name: (json['name'] ?? _variantNameFromJson(json)) as String?,
+      optionValues: mapFromJson(json['option_values']).isNotEmpty
+          ? mapFromJson(json['option_values'])
+          : {
+              if (json['size'] != null) 'Size': json['size'],
+              if (json['color'] != null) 'Màu': json['color'],
+            },
       price: doubleFromJson(json['price']) ?? 0,
       compareAtPrice: doubleFromJson(json['compare_at_price']),
       costPrice: doubleFromJson(json['cost_price']),
-      quantity: intFromJson(json['quantity']) ?? 0,
+      quantity: intFromJson(json['quantity'] ?? json['stock']) ?? 0,
       lowStockThreshold: intFromJson(json['low_stock_threshold']) ?? 5,
       weightGrams: intFromJson(json['weight_grams']),
       barcode: json['barcode'] as String?,
-      status: enumFromSnake(
-        VariantStatus.values,
-        json['status'],
-        VariantStatus.active,
-      ),
+      status: json.containsKey('is_active')
+          ? ((json['is_active'] as bool? ?? true)
+                ? VariantStatus.active
+                : VariantStatus.inactive)
+          : enumFromSnake(
+              VariantStatus.values,
+              json['status'],
+              VariantStatus.active,
+            ),
       imageUrl: json['image_url'] as String?,
       metadata: mapFromJson(json['metadata']),
       createdAt: dateTimeFromJson(json['created_at']),
@@ -387,6 +431,22 @@ class ProductVariantModel {
     'created_at': dateTimeToJson(createdAt),
     'updated_at': dateTimeToJson(updatedAt),
   };
+
+  int get stock => quantity;
+  String get optionDisplay => optionValues.entries
+      .where(
+        (entry) => entry.value != null && entry.value.toString().isNotEmpty,
+      )
+      .map((entry) => '${entry.key}: ${entry.value}')
+      .join(', ');
+}
+
+String? _variantNameFromJson(Map<String, dynamic> json) {
+  final values = [
+    json['size']?.toString(),
+    json['color']?.toString(),
+  ].where((value) => value != null && value.isNotEmpty).cast<String>();
+  return values.isEmpty ? null : values.join(' / ');
 }
 
 class InventoryLogModel {
