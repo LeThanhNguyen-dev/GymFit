@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ProfileScreen extends ConsumerWidget {
-  const ProfileScreen({super.key});
+class HomeScreen extends ConsumerWidget {
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Cá nhân')),
+      appBar: AppBar(title: const Text('GymFit')),
       body: const Center(
-        child: Text('Profile screen will be implemented in Task 1.3'),
+        child: Text('Home screen will be implemented by Person 2'),
       ),
     );
   }

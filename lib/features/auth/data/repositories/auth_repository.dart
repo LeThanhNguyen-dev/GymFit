@@ -1,3 +1,162 @@
-// Auth repository.
-//
-// Use Supabase Auth and profile rows behind this boundary.
+import '../../../../core/errors/error_handler.dart';
+import '../../../../core/services/supabase_auth_service.dart';
+import '../models/auth_model.dart';
+
+abstract class IAuthRepository {
+  Future<AuthResult> login(LoginRequest request);
+  Future<AuthResult> register(RegisterRequest request);
+  Future<void> logout();
+  Future<void> forgotPassword(String email);
+  Future<void> updatePassword(String newPassword);
+  AppUser? get currentUser;
+}
+
+class AuthRepository implements IAuthRepository {
+  AuthRepository(this._authService);
+
+  final SupabaseAuthService _authService;
+
+  @override
+  Future<AuthResult> login(LoginRequest request) async {
+    try {
+      final response = await _authService.signInWithPassword(
+        email: request.email,
+        password: request.password,
+      );
+      final user = response.user;
+      if (user == null) {
+        return AuthResultError('Không tìm thấy tài khoản');
+      }
+      return AuthResultSuccess(AppUser(
+        id: user.id,
+        email: user.email ?? '',
+      ));
+    } catch (e) {
+      final message = _parseAuthError(e);
+      if (message.contains('chưa được xác thực')) {
+        return AuthResultEmailNotConfirmed(request.email);
+      }
+      return AuthResultError(message);
+    }
+  }
+
+  @override
+  Future<AuthResult> register(RegisterRequest request) async {
+    try {
+      final response = await _authService.signUp(
+        email: request.email,
+        password: request.password,
+        data: {
+          if (request.fullName != null) 'full_name': request.fullName,
+        },
+      );
+
+      final user = response.user;
+      if (user == null) {
+        return AuthResultError('Đăng ký thất bại');
+      }
+
+      if (response.session == null) {
+        return AuthResultNeedsVerification(
+          AppUser(
+            id: user.id,
+            email: user.email ?? '',
+            fullName: request.fullName,
+          ),
+          user.email ?? request.email,
+        );
+      }
+
+      return AuthResultSuccess(AppUser(
+        id: user.id,
+        email: user.email ?? '',
+        fullName: request.fullName,
+      ));
+    } catch (e) {
+      return AuthResultError(_parseAuthError(e));
+    }
+  }
+
+  @override
+  Future<void> logout() async {
+    await guardSupabase(() => _authService.signOut());
+  }
+
+  @override
+  Future<void> forgotPassword(String email) async {
+    await guardSupabase(() => _authService.resetPasswordForEmail(email));
+  }
+
+  @override
+  Future<void> updatePassword(String newPassword) async {
+    await guardSupabase(() => _authService.updatePassword(newPassword));
+  }
+
+  @override
+  AppUser? get currentUser {
+    final user = _authService.currentUser;
+    if (user == null) return null;
+    return AppUser(id: user.id, email: user.email ?? '');
+  }
+
+  String _parseAuthError(Object error) {
+    final msg = error.toString();
+    if (msg.contains('Invalid login credentials')) {
+      return 'Email hoặc mật khẩu không đúng';
+    }
+    if (msg.contains('Email not confirmed') || msg.contains('email_not_confirmed')) {
+      return 'Email chưa được xác thực. Vui lòng kiểm tra hộp thư.';
+    }
+    if (msg.contains('User already registered')) {
+      return 'Email này đã được đăng ký';
+    }
+    if (msg.contains('Rate limit')) {
+      return 'Quá nhiều yêu cầu. Vui lòng thử lại sau.';
+    }
+    if (msg.contains('Failed host lookup') || msg.contains('SocketException') || msg.contains('No address')) {
+      return 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.';
+    }
+    return msg.replaceFirst('Exception: ', '').replaceFirst('AuthException: ', '');
+  }
+}
+
+sealed class AuthResult {
+  const AuthResult();
+
+  T when<T>({
+    required T Function(AppUser user) success,
+    required T Function(String message) error,
+    required T Function(String email) emailNotConfirmed,
+    required T Function(AppUser user, String email) needsVerification,
+  }) {
+    return switch (this) {
+      final AuthResultSuccess s => success(s.user),
+      final AuthResultError e => error(e.message),
+      final AuthResultEmailNotConfirmed e => emailNotConfirmed(e.email),
+      final AuthResultNeedsVerification n => needsVerification(n.user, n.email),
+    };
+  }
+}
+
+class AuthResultSuccess extends AuthResult {
+  const AuthResultSuccess(this.user);
+  final AppUser user;
+}
+
+class AuthResultError extends AuthResult {
+  const AuthResultError(this.message);
+  final String message;
+}
+
+class AuthResultEmailNotConfirmed extends AuthResult {
+  const AuthResultEmailNotConfirmed(this.email);
+  final String email;
+}
+
+class AuthResultNeedsVerification extends AuthResult {
+  const AuthResultNeedsVerification(this.user, this.email);
+  final AppUser user;
+  final String email;
+}
+
+

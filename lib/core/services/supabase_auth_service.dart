@@ -25,4 +25,16 @@ class SupabaseAuthService {
   }
 
   Future<void> signOut() => _client.auth.signOut();
+
+  Future<void> resetPasswordForEmail(String email) {
+    return _client.auth.resetPasswordForEmail(email);
+  }
+
+  Future<UserResponse> updatePassword(String newPassword) {
+    return _client.auth.updateUser(UserAttributes(password: newPassword));
+  }
+
+  Future<UserResponse> updateUser(UserAttributes attributes) {
+    return _client.auth.updateUser(attributes);
+  }
 }
