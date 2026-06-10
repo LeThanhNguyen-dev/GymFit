@@ -27,6 +27,9 @@ dependencies:
   # Backend
   supabase_flutter: ^2.12.4
   
+  # Deep Links
+  app_links: ^7.0.0
+
   # Utilities
   intl: ^0.19.0
   uuid: ^4.3.0

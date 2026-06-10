@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/screens/auth_screen.dart';
-import '../../features/auth/presentation/screens/reset_password_screen.dart';
 import '../../features/auth/providers/auth_providers.dart';
+import '../services/deep_link_service.dart';
 
 final routerNotifierProvider = Provider<GoRouter>((ref) {
   final notifier = ValueNotifier<bool>(false);
@@ -19,15 +19,17 @@ final routerNotifierProvider = Provider<GoRouter>((ref) {
   });
 
   return GoRouter(
-    initialLocation: '/',
+    navigatorKey: rootNavigatorKey,
+    initialLocation: '/login',
     refreshListenable: notifier,
     redirect: (context, state) {
       final isLoggedIn = notifier.value;
       final path = state.matchedLocation;
 
-      final publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password'];
+      final publicRoutes = ['/login', '/register', '/forgot-password'];
+      final deepLinkRoutes = ['/reset-password', '/verify-success'];
 
-      if (!isLoggedIn && !publicRoutes.contains(path)) {
+      if (!isLoggedIn && !publicRoutes.contains(path) && !deepLinkRoutes.contains(path)) {
         return '/login';
       }
 
@@ -56,7 +58,12 @@ List<RouteBase> _buildRoutes() {
     GoRoute(
       path: '/reset-password',
       name: 'resetPassword',
-      builder: (_, _) => const ResetPasswordScreen(),
+      builder: (_, _) => const AuthScreen(),
+    ),
+    GoRoute(
+      path: '/verify-success',
+      name: 'verifySuccess',
+      builder: (_, _) => const AuthScreen(),
     ),
     ShellRoute(
       builder: (_, _, child) => _MainShell(child: child),
@@ -127,14 +134,26 @@ class _MainShell extends StatelessWidget {
   }
 }
 
-class _PlaceholderScreen extends StatelessWidget {
+class _PlaceholderScreen extends ConsumerWidget {
   const _PlaceholderScreen({required this.title});
   final String title;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: Text(title),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Đăng xuất',
+            onPressed: () async {
+              await ref.read(authProvider.notifier).logout();
+              if (context.mounted) GoRouter.of(context).go('/login');
+            },
+          ),
+        ],
+      ),
       body: Center(child: Text('$title screen - sẽ được implement sau')),
     );
   }
