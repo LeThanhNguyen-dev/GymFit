@@ -10,7 +10,10 @@ final authRepositoryProvider = Provider<IAuthRepository>((ref) {
   if (AppConstants.useMockAuth) {
     return MockAuthRepository();
   }
-  return AuthRepository(ref.watch(supabaseAuthServiceProvider));
+  return AuthRepository(
+    ref.watch(supabaseAuthServiceProvider),
+    ref.watch(supabaseDatabaseServiceProvider),
+  );
 });
 
 enum AuthStatus { uninitialized, authenticated, unauthenticated }
@@ -20,6 +23,7 @@ class AuthStateData {
     this.status = AuthStatus.uninitialized,
     this.user,
     this.error,
+    this.successMessage,
     this.isLoading = false,
     this.emailForVerification,
   });
@@ -27,6 +31,7 @@ class AuthStateData {
   final AuthStatus status;
   final AppUser? user;
   final String? error;
+  final String? successMessage;
   final bool isLoading;
   final String? emailForVerification;
 
@@ -34,6 +39,7 @@ class AuthStateData {
     AuthStatus? status,
     AppUser? user,
     String? error,
+    String? successMessage,
     bool? isLoading,
     String? emailForVerification,
   }) {
@@ -41,6 +47,7 @@ class AuthStateData {
       status: status ?? this.status,
       user: user ?? this.user,
       error: error,
+      successMessage: successMessage,
       isLoading: isLoading ?? this.isLoading,
       emailForVerification: emailForVerification,
     );
@@ -57,10 +64,7 @@ class AuthNotifier extends Notifier<AuthStateData> {
   void _checkCurrentUser() {
     final user = ref.read(authRepositoryProvider).currentUser;
     if (user != null) {
-      state = AuthStateData(
-        status: AuthStatus.authenticated,
-        user: user,
-      );
+      state = AuthStateData(status: AuthStatus.authenticated, user: user);
     } else {
       state = const AuthStateData(status: AuthStatus.unauthenticated);
     }
@@ -69,9 +73,9 @@ class AuthNotifier extends Notifier<AuthStateData> {
   Future<void> login(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
 
-    final result = await ref.read(authRepositoryProvider).login(
-      LoginRequest(email: email, password: password),
-    );
+    final result = await ref
+        .read(authRepositoryProvider)
+        .login(LoginRequest(email: email, password: password));
 
     result.when(
       success: (user) {
@@ -80,7 +84,8 @@ class AuthNotifier extends Notifier<AuthStateData> {
       emailNotConfirmed: (email) {
         state = state.copyWith(
           isLoading: false,
-          error: 'Email chưa được xác thực. Vui lòng kiểm tra hộp thư đến của $email',
+          error:
+              'Email chưa được xác thực. Vui lòng kiểm tra hộp thư đến của $email',
           emailForVerification: email,
         );
       },
@@ -93,22 +98,32 @@ class AuthNotifier extends Notifier<AuthStateData> {
     );
   }
 
-  Future<void> register(String email, String password, {String? fullName}) async {
+  Future<void> register(
+    String email,
+    String password, {
+    String? fullName,
+  }) async {
     state = state.copyWith(isLoading: true, error: null);
 
-    final result = await ref.read(authRepositoryProvider).register(
-      RegisterRequest(email: email, password: password, fullName: fullName),
-    );
+    final result = await ref
+        .read(authRepositoryProvider)
+        .register(
+          RegisterRequest(email: email, password: password, fullName: fullName),
+        );
 
     result.when(
       success: (user) {
-        state = AuthStateData(status: AuthStatus.authenticated, user: user);
+        state = const AuthStateData(
+          status: AuthStatus.unauthenticated,
+          successMessage: 'Đăng ký thành công. Vui lòng đăng nhập.',
+        );
       },
       needsVerification: (user, email) {
         state = AuthStateData(
           status: AuthStatus.unauthenticated,
           user: user,
-          emailForVerification: email,
+          successMessage:
+              'Đăng ký thành công. Vui lòng kiểm tra email xác thực rồi đăng nhập.',
         );
       },
       error: (message) {
@@ -162,7 +177,11 @@ class AuthNotifier extends Notifier<AuthStateData> {
   }
 
   void clearError() {
-    state = state.copyWith(error: null, emailForVerification: null);
+    state = state.copyWith(
+      error: null,
+      successMessage: null,
+      emailForVerification: null,
+    );
   }
 
   void resendVerification() {
@@ -175,4 +194,6 @@ class AuthNotifier extends Notifier<AuthStateData> {
   }
 }
 
-final authProvider = NotifierProvider<AuthNotifier, AuthStateData>(AuthNotifier.new);
+final authProvider = NotifierProvider<AuthNotifier, AuthStateData>(
+  AuthNotifier.new,
+);

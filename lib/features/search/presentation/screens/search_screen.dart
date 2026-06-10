@@ -71,9 +71,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     child: Container(
                       height: 46,
                       decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: TextField(
@@ -84,8 +84,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         onSubmitted: _onSearchSubmitted,
                         decoration: InputDecoration(
                           hintText: 'Tìm kiếm sản phẩm...',
-                          prefixIcon:
-                              const Icon(Icons.search_rounded, size: 20),
+                          prefixIcon: const Icon(
+                            Icons.search_rounded,
+                            size: 20,
+                          ),
                           suffixIcon: query.isNotEmpty
                               ? IconButton(
                                   icon: const Icon(Icons.close, size: 20),
@@ -93,8 +95,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 )
                               : null,
                           border: InputBorder.none,
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                          ),
                         ),
                       ),
                     ),
@@ -118,9 +121,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             .removeSearchTerm(term);
                       },
                       onClearAll: () {
-                        ref
-                            .read(searchHistoryProvider.notifier)
-                            .clearHistory();
+                        ref.read(searchHistoryProvider.notifier).clearHistory();
                       },
                     )
                   : _SearchResultsSection(searchResults: searchResults),
@@ -162,9 +163,7 @@ class _SearchHistorySection extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               'Tìm kiếm sản phẩm yêu thích',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.outline,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.outline),
             ),
           ],
         ),
@@ -181,14 +180,13 @@ class _SearchHistorySection extends StatelessWidget {
             children: [
               Text(
                 'Tìm kiếm gần đây',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
               ),
               TextButton(
                 onPressed: onClearAll,
-                child: const Text('Xóa tất cả',
-                    style: TextStyle(fontSize: 12)),
+                child: const Text('Xóa tất cả', style: TextStyle(fontSize: 12)),
               ),
             ],
           ),
@@ -251,7 +249,8 @@ class _SearchResultsSection extends ConsumerWidget {
                 Text(
                   'Không tìm thấy sản phẩm',
                   style: TextStyle(
-                      color: Theme.of(context).colorScheme.outline),
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
                 ),
               ],
             ),
@@ -268,7 +267,7 @@ class _SearchResultsSection extends ConsumerWidget {
           itemCount: products.length,
           itemBuilder: (context, i) => ProductCard(
             product: products[i],
-            onTap: () => context.push('/product/${products[i].id}'),
+            onTap: () => context.push('/products/${products[i].id}'),
           ),
         );
       },

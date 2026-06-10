@@ -37,7 +37,10 @@ class HomeScreen extends ConsumerWidget {
               title: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
@@ -103,9 +106,14 @@ class HomeScreen extends ConsumerWidget {
                     child: GestureDetector(
                       onTap: () => context.push('/search'),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
@@ -259,7 +267,9 @@ class _BannerCarouselState extends State<_BannerCarousel> {
               decoration: BoxDecoration(
                 color: _current == i
                     ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
+                    : Theme.of(
+                        context,
+                      ).colorScheme.outline.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -331,11 +341,16 @@ class _BannerItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.5),
+                      ),
                     ),
                     child: const Text(
                       'Khám phá ngay',
@@ -395,7 +410,8 @@ class _CategoryChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.push('/products', extra: {'categoryId': category.id}),
+      onTap: () =>
+          context.push('/products', extra: {'categoryId': category.id}),
       child: Column(
         children: [
           Container(
@@ -429,7 +445,9 @@ class _CategoryChip extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 10),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(fontSize: 10),
             ),
           ),
         ],
@@ -510,9 +528,9 @@ class _BrandChip extends StatelessWidget {
             ? Image.network(brand.logoUrl!, height: 36, fit: BoxFit.contain)
             : Text(
                 brand.name,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
       ),
     );
@@ -547,7 +565,7 @@ class _HorizontalProductList extends ConsumerWidget {
             width: 160,
             child: ProductCard(
               product: products[i],
-              onTap: () => context.push('/product/${products[i].id}'),
+              onTap: () => context.push('/products/${products[i].id}'),
             ),
           ),
         ),
@@ -561,10 +579,8 @@ class _HorizontalProductList extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: 4,
       separatorBuilder: (_, s) => const SizedBox(width: 12),
-      itemBuilder: (_, i) => const SizedBox(
-        width: 160,
-        child: ProductCardShimmer(),
-      ),
+      itemBuilder: (_, i) =>
+          const SizedBox(width: 160, child: ProductCardShimmer()),
     );
   }
 }
@@ -609,7 +625,7 @@ class _BestSellersGrid extends ConsumerWidget {
           itemCount: products.length.clamp(0, 4),
           itemBuilder: (context, i) => ProductCard(
             product: products[i],
-            onTap: () => context.push('/product/${products[i].id}'),
+            onTap: () => context.push('/products/${products[i].id}'),
           ),
         ),
       ),
@@ -633,15 +649,12 @@ class _SectionTitle extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           if (onSeeAll != null)
-            TextButton(
-              onPressed: onSeeAll,
-              child: const Text('Xem tất cả'),
-            ),
+            TextButton(onPressed: onSeeAll, child: const Text('Xem tất cả')),
         ],
       ),
     );

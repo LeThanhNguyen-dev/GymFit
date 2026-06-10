@@ -26,8 +26,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final productAsync = ref.watch(productDetailProvider(widget.productId));
-    final isInWishlist =
-        ref.watch(isInWishlistProvider(widget.productId));
+    final isInWishlist = ref.watch(isInWishlistProvider(widget.productId));
     final cartCount = ref.watch(cartCountProvider);
 
     return Scaffold(
@@ -35,7 +34,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         loading: () => const _DetailLoading(),
         error: (e, _) => _DetailError(
           message: e.toString(),
-          onRetry: () => ref.invalidate(productDetailProvider(widget.productId)),
+          onRetry: () =>
+              ref.invalidate(productDetailProvider(widget.productId)),
         ),
         data: (product) {
           if (product == null) {
@@ -125,12 +125,17 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
             background: product.images.isEmpty
                 ? Container(
                     color: colorScheme.surfaceContainerHighest,
-                    child: const Icon(Icons.fitness_center, size: 80, color: Colors.white54),
+                    child: const Icon(
+                      Icons.fitness_center,
+                      size: 80,
+                      color: Colors.white54,
+                    ),
                   )
                 : _ImageCarousel(
                     images: product.images,
                     selectedIndex: _selectedImageIndex,
-                    onPageChanged: (i) => setState(() => _selectedImageIndex = i),
+                    onPageChanged: (i) =>
+                        setState(() => _selectedImageIndex = i),
                   ),
           ),
         ),
@@ -168,16 +173,18 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       ),
                       Text(
                         ' (${product.totalReviews} đánh giá)',
-                        style: Theme.of(context).textTheme.bodySmall
-                            ?.copyWith(color: colorScheme.outline),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.outline,
+                        ),
                       ),
                       const SizedBox(width: 8),
                     ],
                     if (product.totalSold > 0)
                       Text(
                         '• Đã bán ${product.totalSold}',
-                        style: Theme.of(context).textTheme.bodySmall
-                            ?.copyWith(color: colorScheme.outline),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.outline,
+                        ),
                       ),
                   ],
                 ),
@@ -234,8 +241,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                     children: [
                       Text(
                         'Số lượng: ',
-                        style: Theme.of(context).textTheme.bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       _QuantitySelector(
@@ -254,11 +262,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 const SizedBox(height: 12),
                 Text(
                   'Mô tả sản phẩm',
-                  style: Theme.of(context).textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
-                if (product.description != null && product.description!.isNotEmpty)
+                if (product.description != null &&
+                    product.description!.isNotEmpty)
                   AnimatedCrossFade(
                     duration: const Duration(milliseconds: 300),
                     crossFadeState: _descriptionExpanded
@@ -268,13 +278,15 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       product.description!,
                       maxLines: 4,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium
-                          ?.copyWith(height: 1.6),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(height: 1.6),
                     ),
                     secondChild: Text(
                       product.description!,
-                      style: Theme.of(context).textTheme.bodyMedium
-                          ?.copyWith(height: 1.6),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(height: 1.6),
                     ),
                   )
                 else
@@ -290,9 +302,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         _descriptionExpanded = !_descriptionExpanded;
                       });
                     },
-                    child: Text(
-                      _descriptionExpanded ? 'Thu gọn' : 'Xem thêm',
-                    ),
+                    child: Text(_descriptionExpanded ? 'Thu gọn' : 'Xem thêm'),
                   ),
 
                 const SizedBox(height: 16),
@@ -323,8 +333,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 if (product.category != null) ...[
                   Text(
                     'Sản phẩm tương tự',
-                    style: Theme.of(context).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   _RelatedProductsRow(
@@ -442,8 +453,9 @@ class _VariantSelector extends StatelessWidget {
       children: [
         Text(
           'Phiên bản:',
-          style: Theme.of(context).textTheme.bodyMedium
-              ?.copyWith(fontWeight: FontWeight.w600),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -456,13 +468,16 @@ class _VariantSelector extends StatelessWidget {
               onTap: isOutOfStock ? null : () => onSelect(v),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Theme.of(context).colorScheme.primary
                       : isOutOfStock
-                          ? Theme.of(context).colorScheme.surfaceContainerHighest
-                          : Theme.of(context).colorScheme.surface,
+                      ? Theme.of(context).colorScheme.surfaceContainerHighest
+                      : Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isSelected
@@ -474,17 +489,18 @@ class _VariantSelector extends StatelessWidget {
                   v.optionDisplay.isNotEmpty
                       ? v.optionDisplay
                       : v.sku.isNotEmpty
-                          ? v.sku
-                          : 'Loại ${variants.indexOf(v) + 1}',
+                      ? v.sku
+                      : 'Loại ${variants.indexOf(v) + 1}',
                   style: TextStyle(
                     color: isSelected
                         ? Colors.white
                         : isOutOfStock
-                            ? Theme.of(context).colorScheme.outline
-                            : Theme.of(context).colorScheme.onSurface,
+                        ? Theme.of(context).colorScheme.outline
+                        : Theme.of(context).colorScheme.onSurface,
                     fontSize: 13,
-                    decoration:
-                        isOutOfStock ? TextDecoration.lineThrough : null,
+                    decoration: isOutOfStock
+                        ? TextDecoration.lineThrough
+                        : null,
                   ),
                 ),
               ),
@@ -530,7 +546,9 @@ class _QuantitySelector extends StatelessWidget {
         IconButton.filledTonal(
           visualDensity: VisualDensity.compact,
           icon: const Icon(Icons.add),
-          onPressed: quantity >= maxQuantity ? null : () => onChanged(quantity + 1),
+          onPressed: quantity >= maxQuantity
+              ? null
+              : () => onChanged(quantity + 1),
         ),
       ],
     );
@@ -564,7 +582,10 @@ class _RelatedProductsRow extends ConsumerWidget {
         data: (products) {
           if (products.isEmpty) {
             return const Center(
-              child: Text('Không có sản phẩm tương tự.', style: TextStyle(color: Colors.grey)),
+              child: Text(
+                'Không có sản phẩm tương tự.',
+                style: TextStyle(color: Colors.grey),
+              ),
             );
           }
           return ListView.separated(
@@ -574,7 +595,7 @@ class _RelatedProductsRow extends ConsumerWidget {
             itemBuilder: (context, i) => SizedBox(
               width: 140,
               child: GestureDetector(
-                onTap: () => context.push('/product/${products[i].id}'),
+                onTap: () => context.push('/products/${products[i].id}'),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -588,9 +609,9 @@ class _RelatedProductsRow extends ConsumerWidget {
                                 fit: BoxFit.cover,
                               )
                             : Container(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerHighest,
                               ),
                       ),
                     ),
@@ -649,11 +670,13 @@ class ProductDetailBottomBar extends ConsumerWidget {
                     : () async {
                         if (selectedVariant == null) return;
                         try {
-                          await ref.read(cartItemsProvider.notifier).addToCart(
-                            product.id,
-                            selectedVariant!.id,
-                            quantity,
-                          );
+                          await ref
+                              .read(cartItemsProvider.notifier)
+                              .addToCart(
+                                product.id,
+                                selectedVariant!.id,
+                                quantity,
+                              );
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(

@@ -58,6 +58,16 @@ class _AuthFormState extends ConsumerState<AuthForm> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AuthStateData>(authProvider, (previous, next) {
+      if (next.successMessage != null && _isRegister) {
+        setState(() {
+          _isRegister = false;
+          _passwordCtrl.clear();
+          _confirmPasswordCtrl.clear();
+        });
+      }
+    });
+
     final authState = ref.watch(authProvider);
 
     return Form(
@@ -89,7 +99,9 @@ class _AuthFormState extends ConsumerState<AuthForm> {
               prefixIcon: Icons.email_outlined,
               controller: _emailCtrl,
               keyboardType: TextInputType.emailAddress,
-              textInputAction: _isRegister || _showForgotPassword ? TextInputAction.next : TextInputAction.next,
+              textInputAction: _isRegister || _showForgotPassword
+                  ? TextInputAction.next
+                  : TextInputAction.next,
               validator: AppValidators.email,
             ),
           ),
@@ -100,11 +112,16 @@ class _AuthFormState extends ConsumerState<AuthForm> {
                 label: 'Mật khẩu',
                 hintText: 'Nhập mật khẩu của bạn',
                 prefixIcon: Icons.lock_outlined,
-                suffixIcon: _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                onSuffixTap: () => setState(() => _obscurePassword = !_obscurePassword),
+                suffixIcon: _obscurePassword
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                onSuffixTap: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
                 obscureText: _obscurePassword,
                 controller: _passwordCtrl,
-                textInputAction: _isRegister ? TextInputAction.next : TextInputAction.done,
+                textInputAction: _isRegister
+                    ? TextInputAction.next
+                    : TextInputAction.done,
                 validator: _showForgotPassword ? null : AppValidators.password,
               ),
             ),
@@ -115,12 +132,16 @@ class _AuthFormState extends ConsumerState<AuthForm> {
                 label: 'Xác nhận mật khẩu',
                 hintText: 'Nhập lại mật khẩu',
                 prefixIcon: Icons.lock_outlined,
-                suffixIcon: _obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                onSuffixTap: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                suffixIcon: _obscureConfirm
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                onSuffixTap: () =>
+                    setState(() => _obscureConfirm = !_obscureConfirm),
                 obscureText: _obscureConfirm,
                 controller: _confirmPasswordCtrl,
                 textInputAction: TextInputAction.done,
-                validator: (value) => AppValidators.confirmPassword(value, _passwordCtrl.text),
+                validator: (value) =>
+                    AppValidators.confirmPassword(value, _passwordCtrl.text),
               ),
             ),
           if (!_showForgotPassword && !_isRegister)
@@ -130,7 +151,9 @@ class _AuthFormState extends ConsumerState<AuthForm> {
                 onPressed: () => setState(() => _showForgotPassword = true),
                 child: Text(
                   'Quên mật khẩu?',
-                  style: AppTextStyles.labelLarge.copyWith(color: AppColors.primary),
+                  style: AppTextStyles.labelLarge.copyWith(
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ),
@@ -145,7 +168,26 @@ class _AuthFormState extends ConsumerState<AuthForm> {
                 ),
                 child: Text(
                   authState.error!,
-                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.error),
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.error,
+                  ),
+                ),
+              ),
+            ),
+          if (authState.successMessage != null)
+            Padding(
+              padding: EdgeInsets.only(bottom: AppSpacing.md),
+              child: Container(
+                padding: EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryContainer.withAlpha(40),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                ),
+                child: Text(
+                  authState.successMessage!,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ),
@@ -156,10 +198,7 @@ class _AuthFormState extends ConsumerState<AuthForm> {
             onPressed: _submit,
           ),
           SizedBox(height: AppSpacing.md),
-          if (_showForgotPassword)
-            _buildBackToLogin()
-          else
-            _buildSwitchMode(),
+          if (_showForgotPassword) _buildBackToLogin() else _buildSwitchMode(),
         ],
       ),
     );
@@ -173,14 +212,13 @@ class _AuthFormState extends ConsumerState<AuthForm> {
   Widget _buildForgotPasswordHeader() {
     return Column(
       children: [
-        Text(
-          'Quên mật khẩu',
-          style: AppTextStyles.headlineSmall,
-        ),
+        Text('Quên mật khẩu', style: AppTextStyles.headlineSmall),
         SizedBox(height: AppSpacing.xs),
         Text(
           'Nhập email của bạn để nhận link đặt lại mật khẩu',
-          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.onSurfaceVariant),
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.onSurfaceVariant,
+          ),
           textAlign: TextAlign.center,
         ),
       ],
@@ -193,7 +231,9 @@ class _AuthFormState extends ConsumerState<AuthForm> {
       children: [
         Text(
           'Quay lại',
-          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.onSurfaceVariant),
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.onSurfaceVariant,
+          ),
         ),
         SizedBox(width: AppSpacing.xxs),
         GestureDetector(
@@ -233,7 +273,9 @@ class _AuthFormState extends ConsumerState<AuthForm> {
                   'Đăng nhập',
                   textAlign: TextAlign.center,
                   style: AppTextStyles.labelLarge.copyWith(
-                    color: !_isRegister ? AppColors.onPrimary : AppColors.onSurfaceVariant,
+                    color: !_isRegister
+                        ? AppColors.onPrimary
+                        : AppColors.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -253,7 +295,9 @@ class _AuthFormState extends ConsumerState<AuthForm> {
                   'Đăng ký',
                   textAlign: TextAlign.center,
                   style: AppTextStyles.labelLarge.copyWith(
-                    color: _isRegister ? AppColors.onPrimary : AppColors.onSurfaceVariant,
+                    color: _isRegister
+                        ? AppColors.onPrimary
+                        : AppColors.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -270,7 +314,9 @@ class _AuthFormState extends ConsumerState<AuthForm> {
       children: [
         Text(
           _isRegister ? 'Đã có tài khoản?' : 'Chưa có tài khoản?',
-          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.onSurfaceVariant),
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.onSurfaceVariant,
+          ),
         ),
         SizedBox(width: AppSpacing.xxs),
         GestureDetector(

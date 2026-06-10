@@ -1,5 +1,7 @@
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/error_handler.dart';
 import '../../../../core/services/supabase_auth_service.dart';
+import '../../../../core/services/supabase_database_service.dart';
 import '../models/auth_model.dart';
 
 abstract class IAuthRepository {
@@ -12,9 +14,10 @@ abstract class IAuthRepository {
 }
 
 class AuthRepository implements IAuthRepository {
-  AuthRepository(this._authService);
+  AuthRepository(this._authService, this._databaseService);
 
   final SupabaseAuthService _authService;
+  final SupabaseDatabaseService _databaseService;
 
   @override
   Future<AuthResult> login(LoginRequest request) async {
@@ -25,12 +28,19 @@ class AuthRepository implements IAuthRepository {
       );
       final user = response.user;
       if (user == null) {
-        return AuthResultError('Không tìm thấy tài khoản');
+        return const AuthResultError('Không tìm thấy tài khoản');
       }
-      return AuthResultSuccess(AppUser(
+
+      final fullName = user.userMetadata?['full_name']?.toString();
+      await _upsertUserProfile(
         id: user.id,
-        email: user.email ?? '',
-      ));
+        email: user.email ?? request.email,
+        fullName: fullName,
+      );
+
+      return AuthResultSuccess(
+        AppUser(id: user.id, email: user.email ?? '', fullName: fullName),
+      );
     } catch (e) {
       final message = _parseAuthError(e);
       if (message.contains('chưa được xác thực')) {
@@ -46,32 +56,39 @@ class AuthRepository implements IAuthRepository {
       final response = await _authService.signUp(
         email: request.email,
         password: request.password,
-        data: {
-          if (request.fullName != null) 'full_name': request.fullName,
-        },
+        data: {if (request.fullName != null) 'full_name': request.fullName},
       );
 
       final user = response.user;
       if (user == null) {
-        return AuthResultError('Đăng ký thất bại');
+        return const AuthResultError('Đăng ký thất bại');
       }
 
       if (response.session == null) {
         return AuthResultNeedsVerification(
           AppUser(
             id: user.id,
-            email: user.email ?? '',
+            email: user.email ?? request.email,
             fullName: request.fullName,
           ),
           user.email ?? request.email,
         );
       }
 
-      return AuthResultSuccess(AppUser(
+      await _upsertUserProfile(
         id: user.id,
-        email: user.email ?? '',
+        email: user.email ?? request.email,
         fullName: request.fullName,
-      ));
+      );
+
+      await _authService.signOut();
+      return AuthResultSuccess(
+        AppUser(
+          id: user.id,
+          email: user.email ?? request.email,
+          fullName: request.fullName,
+        ),
+      );
     } catch (e) {
       return AuthResultError(_parseAuthError(e));
     }
@@ -96,7 +113,30 @@ class AuthRepository implements IAuthRepository {
   AppUser? get currentUser {
     final user = _authService.currentUser;
     if (user == null) return null;
-    return AppUser(id: user.id, email: user.email ?? '');
+    return AppUser(
+      id: user.id,
+      email: user.email ?? '',
+      fullName: user.userMetadata?['full_name']?.toString(),
+    );
+  }
+
+  Future<void> _upsertUserProfile({
+    required String id,
+    required String email,
+    String? fullName,
+  }) {
+    final now = DateTime.now().toUtc().toIso8601String();
+    final trimmedName = fullName?.trim();
+
+    return _databaseService.table(AppConstants.usersTable).upsert({
+      'id': id,
+      'email': email,
+      'full_name': trimmedName == null || trimmedName.isEmpty
+          ? null
+          : trimmedName,
+      'last_login_at': now,
+      'updated_at': now,
+    });
   }
 
   String _parseAuthError(Object error) {
@@ -104,7 +144,8 @@ class AuthRepository implements IAuthRepository {
     if (msg.contains('Invalid login credentials')) {
       return 'Email hoặc mật khẩu không đúng';
     }
-    if (msg.contains('Email not confirmed') || msg.contains('email_not_confirmed')) {
+    if (msg.contains('Email not confirmed') ||
+        msg.contains('email_not_confirmed')) {
       return 'Email chưa được xác thực. Vui lòng kiểm tra hộp thư.';
     }
     if (msg.contains('User already registered')) {
@@ -113,10 +154,14 @@ class AuthRepository implements IAuthRepository {
     if (msg.contains('Rate limit')) {
       return 'Quá nhiều yêu cầu. Vui lòng thử lại sau.';
     }
-    if (msg.contains('Failed host lookup') || msg.contains('SocketException') || msg.contains('No address')) {
+    if (msg.contains('Failed host lookup') ||
+        msg.contains('SocketException') ||
+        msg.contains('No address')) {
       return 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.';
     }
-    return msg.replaceFirst('Exception: ', '').replaceFirst('AuthException: ', '');
+    return msg
+        .replaceFirst('Exception: ', '')
+        .replaceFirst('AuthException: ', '');
   }
 }
 
@@ -158,5 +203,3 @@ class AuthResultNeedsVerification extends AuthResult {
   final AppUser user;
   final String email;
 }
-
-

@@ -5,6 +5,21 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/screens/auth_screen.dart';
 import '../../features/auth/presentation/screens/reset_password_screen.dart';
 import '../../features/auth/providers/auth_providers.dart';
+import '../../features/cart/presentation/screens/cart_screen.dart';
+import '../../features/checkout/data/models/checkout_model.dart';
+import '../../features/checkout/presentation/screens/checkout_screen.dart';
+import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/orders/presentation/screens/order_detail_screen.dart';
+import '../../features/orders/presentation/screens/orders_screen.dart';
+import '../../features/payments/presentation/screens/payment_screen.dart';
+import '../../features/products/presentation/screens/product_detail_screen.dart';
+import '../../features/products/presentation/screens/product_list_screen.dart';
+import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/search/presentation/screens/search_screen.dart';
+import '../../features/shipping/presentation/screens/shipping_tracking_screen.dart';
+import '../../features/voucher/presentation/screens/voucher_list_screen.dart';
+import '../../features/wishlist/presentation/screens/wishlist_screen.dart';
+import 'route_names.dart';
 
 final routerNotifierProvider = Provider<GoRouter>((ref) {
   final notifier = ValueNotifier<bool>(false);
@@ -19,20 +34,25 @@ final routerNotifierProvider = Provider<GoRouter>((ref) {
   });
 
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: RouteNames.homePath,
     refreshListenable: notifier,
     redirect: (context, state) {
       final isLoggedIn = notifier.value;
       final path = state.matchedLocation;
 
-      final publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password'];
+      const publicRoutes = [
+        RouteNames.loginPath,
+        RouteNames.registerPath,
+        RouteNames.forgotPasswordPath,
+        RouteNames.resetPasswordPath,
+      ];
 
       if (!isLoggedIn && !publicRoutes.contains(path)) {
-        return '/login';
+        return RouteNames.loginPath;
       }
 
       if (isLoggedIn && publicRoutes.contains(path)) {
-        return '/';
+        return RouteNames.homePath;
       }
 
       return null;
@@ -44,42 +64,114 @@ final routerNotifierProvider = Provider<GoRouter>((ref) {
 List<RouteBase> _buildRoutes() {
   return [
     GoRoute(
-      path: '/login',
-      name: 'login',
+      path: RouteNames.loginPath,
+      name: RouteNames.login,
       builder: (_, _) => const AuthScreen(),
     ),
     GoRoute(
-      path: '/forgot-password',
-      name: 'forgotPassword',
+      path: RouteNames.registerPath,
+      name: RouteNames.register,
       builder: (_, _) => const AuthScreen(),
     ),
     GoRoute(
-      path: '/reset-password',
-      name: 'resetPassword',
+      path: RouteNames.forgotPasswordPath,
+      name: RouteNames.forgotPassword,
+      builder: (_, _) => const AuthScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.resetPasswordPath,
+      name: RouteNames.resetPassword,
       builder: (_, _) => const ResetPasswordScreen(),
     ),
     ShellRoute(
       builder: (_, _, child) => _MainShell(child: child),
       routes: [
         GoRoute(
-          path: '/',
-          name: 'home',
-          builder: (_, _) => const _PlaceholderScreen(title: 'Home'),
+          path: RouteNames.homePath,
+          name: RouteNames.home,
+          builder: (_, _) => const HomeScreen(),
         ),
         GoRoute(
-          path: '/cart',
-          name: 'cart',
-          builder: (_, _) => const _PlaceholderScreen(title: 'Cart'),
+          path: RouteNames.cartPath,
+          name: RouteNames.cart,
+          builder: (_, _) => const CartScreen(),
         ),
         GoRoute(
-          path: '/wishlist',
-          name: 'wishlist',
-          builder: (_, _) => const _PlaceholderScreen(title: 'Wishlist'),
+          path: RouteNames.checkoutPath,
+          name: RouteNames.checkout,
+          builder: (_, state) => CheckoutScreen(
+            initialData: state.extra is CheckoutData
+                ? state.extra! as CheckoutData
+                : null,
+          ),
         ),
         GoRoute(
-          path: '/profile',
-          name: 'profile',
-          builder: (_, _) => const _PlaceholderScreen(title: 'Profile'),
+          path: RouteNames.orderHistoryPath,
+          name: RouteNames.orderHistory,
+          builder: (_, _) => const OrdersScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.orderDetailPath,
+          name: RouteNames.orderDetail,
+          builder: (_, state) =>
+              OrderDetailScreen(orderId: state.pathParameters['id'] ?? ''),
+        ),
+        GoRoute(
+          path: '${RouteNames.paymentPath}/:orderId',
+          name: RouteNames.payment,
+          builder: (_, state) =>
+              PaymentScreen(orderId: state.pathParameters['orderId'] ?? ''),
+        ),
+        GoRoute(
+          path: RouteNames.shippingTrackingPath,
+          name: RouteNames.shippingTracking,
+          builder: (_, state) => ShippingTrackingScreen(
+            orderId: state.pathParameters['orderId'] ?? '',
+          ),
+        ),
+        GoRoute(
+          path: RouteNames.voucherListPath,
+          name: RouteNames.voucherList,
+          builder: (_, state) {
+            final amount = state.extra;
+            return VoucherListScreen(
+              orderAmount: amount is num ? amount.toDouble() : 0,
+            );
+          },
+        ),
+        GoRoute(
+          path: RouteNames.productListPath,
+          name: RouteNames.productList,
+          builder: (_, state) {
+            final extra = state.extra;
+            final filters = extra is Map ? extra : const {};
+            return ProductListScreen(
+              categoryId: filters['categoryId']?.toString(),
+              brandId: filters['brandId']?.toString(),
+              title: filters['title']?.toString(),
+            );
+          },
+        ),
+        GoRoute(
+          path: RouteNames.productDetailPath,
+          name: RouteNames.productDetail,
+          builder: (_, state) =>
+              ProductDetailScreen(productId: state.pathParameters['id'] ?? ''),
+        ),
+        GoRoute(
+          path: RouteNames.searchPath,
+          name: RouteNames.search,
+          builder: (_, _) => const SearchScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.wishlistPath,
+          name: RouteNames.wishlist,
+          builder: (_, _) => const WishlistScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.profilePath,
+          name: RouteNames.profile,
+          builder: (_, _) => const ProfileScreen(),
         ),
       ],
     ),
@@ -88,6 +180,7 @@ List<RouteBase> _buildRoutes() {
 
 class _MainShell extends StatelessWidget {
   const _MainShell({required this.child});
+
   final Widget child;
 
   @override
@@ -99,20 +192,36 @@ class _MainShell extends StatelessWidget {
         onDestinationSelected: (index) {
           switch (index) {
             case 1:
-              GoRouter.of(context).go('/cart');
+              GoRouter.of(context).go(RouteNames.cartPath);
             case 2:
-              GoRouter.of(context).go('/wishlist');
+              GoRouter.of(context).go(RouteNames.wishlistPath);
             case 3:
-              GoRouter.of(context).go('/profile');
+              GoRouter.of(context).go(RouteNames.profilePath);
             default:
-              GoRouter.of(context).go('/');
+              GoRouter.of(context).go(RouteNames.homePath);
           }
         },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Trang chủ'),
-          NavigationDestination(icon: Icon(Icons.shopping_cart_outlined), selectedIcon: Icon(Icons.shopping_cart), label: 'Giỏ hàng'),
-          NavigationDestination(icon: Icon(Icons.favorite_outline), selectedIcon: Icon(Icons.favorite), label: 'Yêu thích'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Cá nhân'),
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Trang chủ',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.shopping_cart_outlined),
+            selectedIcon: Icon(Icons.shopping_cart),
+            label: 'Giỏ hàng',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.favorite_outline),
+            selectedIcon: Icon(Icons.favorite),
+            label: 'Yêu thích',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Cá nhân',
+          ),
         ],
       ),
     );
@@ -120,22 +229,9 @@ class _MainShell extends StatelessWidget {
 
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    if (location == '/cart') return 1;
-    if (location == '/wishlist') return 2;
-    if (location == '/profile') return 3;
+    if (location == RouteNames.cartPath) return 1;
+    if (location == RouteNames.wishlistPath) return 2;
+    if (location == RouteNames.profilePath) return 3;
     return 0;
-  }
-}
-
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen({required this.title});
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(child: Text('$title screen - sẽ được implement sau')),
-    );
   }
 }

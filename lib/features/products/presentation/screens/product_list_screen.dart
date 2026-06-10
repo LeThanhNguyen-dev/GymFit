@@ -62,7 +62,8 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
     final selectedCategory = ref.watch(selectedCategoryProvider);
     final selectedBrand = ref.watch(selectedBrandProvider);
 
-    final screenTitle = widget.title ??
+    final screenTitle =
+        widget.title ??
         selectedCategory?.name ??
         selectedBrand?.name ??
         'Tất cả sản phẩm';
@@ -80,7 +81,9 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
       body: Column(
         children: [
           // Active Filters Row
-          if (selectedCategory != null || selectedBrand != null || state.minPrice != null)
+          if (selectedCategory != null ||
+              selectedBrand != null ||
+              state.minPrice != null)
             _ActiveFiltersRow(
               state: state,
               onClearCategory: () {
@@ -92,7 +95,9 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                 ref.read(productListProvider.notifier).updateBrand(null);
               },
               onClearPrice: () {
-                ref.read(productListProvider.notifier).updatePriceRange(null, null);
+                ref
+                    .read(productListProvider.notifier)
+                    .updatePriceRange(null, null);
               },
             ),
 
@@ -104,36 +109,37 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
             child: state.isLoading
                 ? _buildShimmerGrid()
                 : state.errorMessage != null
-                    ? _buildError(state.errorMessage!)
-                    : state.products.isEmpty
-                        ? _buildEmpty()
-                        : RefreshIndicator(
-                            onRefresh: () async =>
-                                ref.read(productListProvider.notifier).loadProducts(),
-                            child: GridView.builder(
-                              controller: _scrollController,
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 0.72,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                              ),
-                              itemCount:
-                                  state.products.length + (state.isLoadMoreRunning ? 2 : 0),
-                              itemBuilder: (context, i) {
-                                if (i >= state.products.length) {
-                                  return const ProductCardShimmer();
-                                }
-                                final product = state.products[i];
-                                return ProductCard(
-                                  product: product,
-                                  onTap: () => context.push('/product/${product.id}'),
-                                );
-                              },
-                            ),
+                ? _buildError(state.errorMessage!)
+                : state.products.isEmpty
+                ? _buildEmpty()
+                : RefreshIndicator(
+                    onRefresh: () async =>
+                        ref.read(productListProvider.notifier).loadProducts(),
+                    child: GridView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.72,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
                           ),
+                      itemCount:
+                          state.products.length +
+                          (state.isLoadMoreRunning ? 2 : 0),
+                      itemBuilder: (context, i) {
+                        if (i >= state.products.length) {
+                          return const ProductCardShimmer();
+                        }
+                        final product = state.products[i];
+                        return ProductCard(
+                          product: product,
+                          onTap: () => context.push('/products/${product.id}'),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
@@ -164,7 +170,8 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 16),
           FilledButton(
-            onPressed: () => ref.read(productListProvider.notifier).loadProducts(),
+            onPressed: () =>
+                ref.read(productListProvider.notifier).loadProducts(),
             child: const Text('Thử lại'),
           ),
         ],
@@ -221,15 +228,9 @@ class _ActiveFiltersRow extends StatelessWidget {
       child: Row(
         children: [
           if (state.categoryId != null)
-            _FilterChip(
-              label: 'Danh mục',
-              onRemove: onClearCategory,
-            ),
+            _FilterChip(label: 'Danh mục', onRemove: onClearCategory),
           if (state.brandId != null)
-            _FilterChip(
-              label: 'Thương hiệu',
-              onRemove: onClearBrand,
-            ),
+            _FilterChip(label: 'Thương hiệu', onRemove: onClearBrand),
           if (state.minPrice != null || state.maxPrice != null)
             _FilterChip(
               label:
@@ -303,17 +304,17 @@ class _SortRow extends ConsumerWidget {
       child: Row(
         children: options.entries.map((entry) {
           final isSelected =
-              state.sortBy == entry.value.$1 && state.ascending == entry.value.$2;
+              state.sortBy == entry.value.$1 &&
+              state.ascending == entry.value.$2;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(
               label: Text(entry.key, style: const TextStyle(fontSize: 12)),
               selected: isSelected,
               onSelected: (_) {
-                ref.read(productListProvider.notifier).updateSort(
-                  entry.value.$1,
-                  entry.value.$2,
-                );
+                ref
+                    .read(productListProvider.notifier)
+                    .updateSort(entry.value.$1, entry.value.$2);
               },
             ),
           );
@@ -369,9 +370,9 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
               children: [
                 Text(
                   'Bộ lọc',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 TextButton(
                   onPressed: () {
@@ -391,8 +392,10 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Danh mục',
-                      style: Theme.of(context).textTheme.titleSmall),
+                  Text(
+                    'Danh mục',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                   const SizedBox(height: 8),
                   categoriesAsync.when(
                     loading: () => const CircularProgressIndicator(),
@@ -400,19 +403,25 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                     data: (cats) => Wrap(
                       spacing: 8,
                       children: cats
-                          .map((c) => ChoiceChip(
-                                label: Text(c.name),
-                                selected: selectedCategory?.id == c.id,
-                                onSelected: (_) {
-                                  ref.read(selectedCategoryProvider.notifier).select(c);
-                                },
-                              ))
+                          .map(
+                            (c) => ChoiceChip(
+                              label: Text(c.name),
+                              selected: selectedCategory?.id == c.id,
+                              onSelected: (_) {
+                                ref
+                                    .read(selectedCategoryProvider.notifier)
+                                    .select(c);
+                              },
+                            ),
+                          )
                           .toList(),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text('Thương hiệu',
-                      style: Theme.of(context).textTheme.titleSmall),
+                  Text(
+                    'Thương hiệu',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                   const SizedBox(height: 8),
                   brandsAsync.when(
                     loading: () => const CircularProgressIndicator(),
@@ -420,27 +429,37 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                     data: (brands) => Wrap(
                       spacing: 8,
                       children: brands
-                          .map((b) => ChoiceChip(
-                                label: Text(b.name),
-                                selected: selectedBrand?.id == b.id,
-                                onSelected: (_) {
-                                  ref.read(selectedBrandProvider.notifier).select(b);
-                                },
-                              ))
+                          .map(
+                            (b) => ChoiceChip(
+                              label: Text(b.name),
+                              selected: selectedBrand?.id == b.id,
+                              onSelected: (_) {
+                                ref
+                                    .read(selectedBrandProvider.notifier)
+                                    .select(b);
+                              },
+                            ),
+                          )
                           .toList(),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text('Khoảng giá',
-                      style: Theme.of(context).textTheme.titleSmall),
+                  Text(
+                    'Khoảng giá',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(formatCurrency(_minPrice),
-                          style: Theme.of(context).textTheme.bodySmall),
-                      Text(formatCurrency(_maxPrice),
-                          style: Theme.of(context).textTheme.bodySmall),
+                      Text(
+                        formatCurrency(_minPrice),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      Text(
+                        formatCurrency(_maxPrice),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ],
                   ),
                   RangeSlider(
@@ -461,19 +480,26 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
             ),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(20, 8, 20, MediaQuery.of(context).padding.bottom + 16),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              8,
+              20,
+              MediaQuery.of(context).padding.bottom + 16,
+            ),
             child: FilledButton(
               onPressed: () {
-                ref.read(productListProvider.notifier).updateCategory(
-                  selectedCategory?.id,
-                );
-                ref.read(productListProvider.notifier).updateBrand(
-                  selectedBrand?.id,
-                );
-                ref.read(productListProvider.notifier).updatePriceRange(
-                  _minPrice > 0 ? _minPrice : null,
-                  _maxPrice < 5000000 ? _maxPrice : null,
-                );
+                ref
+                    .read(productListProvider.notifier)
+                    .updateCategory(selectedCategory?.id);
+                ref
+                    .read(productListProvider.notifier)
+                    .updateBrand(selectedBrand?.id);
+                ref
+                    .read(productListProvider.notifier)
+                    .updatePriceRange(
+                      _minPrice > 0 ? _minPrice : null,
+                      _maxPrice < 5000000 ? _maxPrice : null,
+                    );
                 Navigator.pop(context);
               },
               style: FilledButton.styleFrom(

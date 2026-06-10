@@ -4,13 +4,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../address/providers/address_providers.dart';
 import '../../../payments/presentation/screens/payment_screen.dart';
+import '../../data/models/checkout_model.dart';
 import '../../providers/checkout_providers.dart';
 
 class CheckoutScreen extends ConsumerWidget {
-  const CheckoutScreen({super.key});
+  const CheckoutScreen({super.key, this.initialData});
+
+  final CheckoutData? initialData;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (initialData != null && ref.read(checkoutDataProvider) == null) {
+      Future.microtask(() {
+        ref.read(checkoutDataProvider.notifier).setData(initialData);
+      });
+    }
+
     ref.listen(defaultAddressProvider, (_, next) {
       final current = ref.read(selectedAddressProvider);
       final address = next.value;
