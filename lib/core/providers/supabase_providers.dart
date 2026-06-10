@@ -6,7 +6,11 @@ import '../services/supabase_database_service.dart';
 import '../services/supabase_storage_service.dart';
 
 final supabaseClientProvider = Provider<SupabaseClient>((ref) {
-  return Supabase.instance.client;
+  try {
+    return Supabase.instance.client;
+  } catch (_) {
+    throw StateError('Supabase chưa được khởi tạo');
+  }
 });
 
 final supabaseAuthProvider = Provider((ref) {

@@ -1,6 +1,8 @@
 class AppConstants {
   const AppConstants._();
 
+  static const useMockAuth = true;
+
   static const supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
     defaultValue: 'https://oigcpptcdbixpnwqycav.supabase.co',
