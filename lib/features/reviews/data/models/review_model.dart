@@ -1,103 +1,108 @@
 import '../../../../core/models/model_converters.dart';
-import '../../../../shared/enums/database_enums.dart';
 
 class ReviewModel {
   const ReviewModel({
     required this.id,
-    required this.productId,
     required this.userId,
+    required this.productId,
+    required this.orderId,
     required this.rating,
-    this.orderItemId,
-    this.title,
-    this.body,
-    this.status = ReviewStatus.pending,
+    this.comment,
+    this.status = 'pending',
     this.isVerifiedPurchase = false,
-    this.helpfulCount = 0,
-    this.reply,
-    this.repliedAt,
-    this.repliedBy,
+    this.user,
+    this.images = const [],
     this.createdAt,
     this.updatedAt,
   });
 
   final String id;
-  final String productId;
   final String userId;
-  final String? orderItemId;
+  final String productId;
+  final String orderId;
   final int rating;
-  final String? title;
-  final String? body;
-  final ReviewStatus status;
+  final String? comment;
+  final String status;
   final bool isVerifiedPurchase;
-  final int helpfulCount;
-  final String? reply;
-  final DateTime? repliedAt;
-  final String? repliedBy;
+  final ReviewUserModel? user;
+  final List<ReviewImageModel> images;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  factory ReviewModel.fromJson(Map<String, dynamic> json) => ReviewModel(
-    id: json['id'].toString(),
-    productId: json['product_id'].toString(),
-    userId: json['user_id'].toString(),
-    orderItemId: json['order_item_id'] as String?,
-    rating: intFromJson(json['rating']) ?? 1,
-    title: json['title'] as String?,
-    body: json['body'] as String?,
-    status: enumFromSnake(
-      ReviewStatus.values,
-      json['status'],
-      ReviewStatus.pending,
-    ),
-    isVerifiedPurchase: json['is_verified_purchase'] as bool? ?? false,
-    helpfulCount: intFromJson(json['helpful_count']) ?? 0,
-    reply: json['reply'] as String?,
-    repliedAt: dateTimeFromJson(json['replied_at']),
-    repliedBy: json['replied_by'] as String?,
-    createdAt: dateTimeFromJson(json['created_at']),
-    updatedAt: dateTimeFromJson(json['updated_at']),
-  );
+  factory ReviewModel.fromJson(Map<String, dynamic> json) {
+    final relationUser = json['user'] ?? json['profile'] ?? json['profiles'];
+    final relationImages = json['images'] ?? json['review_images'];
+
+    return ReviewModel(
+      id: json['id'].toString(),
+      userId: json['user_id'].toString(),
+      productId: json['product_id'].toString(),
+      orderId: json['order_id']?.toString() ?? '',
+      rating: intFromJson(json['rating']) ?? 1,
+      comment: (json['comment'] ?? json['body']) as String?,
+      status: json['status']?.toString() ?? 'pending',
+      isVerifiedPurchase: json['is_verified_purchase'] as bool? ?? false,
+      user: relationUser is Map
+          ? ReviewUserModel.fromJson(mapFromJson(relationUser))
+          : null,
+      images: mapListFromJson(
+        relationImages,
+      ).map(ReviewImageModel.fromJson).toList(),
+      createdAt: dateTimeFromJson(json['created_at']),
+      updatedAt: dateTimeFromJson(json['updated_at']),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'product_id': productId,
     'user_id': userId,
-    'order_item_id': orderItemId,
+    'product_id': productId,
+    'order_id': orderId,
     'rating': rating,
-    'title': title,
-    'body': body,
-    'status': enumToSnake(status),
+    'comment': comment,
+    'status': status,
     'is_verified_purchase': isVerifiedPurchase,
-    'helpful_count': helpfulCount,
-    'reply': reply,
-    'replied_at': dateTimeToJson(repliedAt),
-    'replied_by': repliedBy,
     'created_at': dateTimeToJson(createdAt),
     'updated_at': dateTimeToJson(updatedAt),
   };
+}
+
+class ReviewUserModel {
+  const ReviewUserModel({required this.id, this.fullName, this.avatarUrl});
+
+  final String id;
+  final String? fullName;
+  final String? avatarUrl;
+
+  factory ReviewUserModel.fromJson(Map<String, dynamic> json) {
+    return ReviewUserModel(
+      id: json['id']?.toString() ?? json['user_id']?.toString() ?? '',
+      fullName:
+          (json['full_name'] ?? json['name'] ?? json['display_name'])
+              as String?,
+      avatarUrl: (json['avatar_url'] ?? json['avatar']) as String?,
+    );
+  }
 }
 
 class ReviewImageModel {
   const ReviewImageModel({
     required this.id,
     required this.reviewId,
-    required this.url,
-    this.sortOrder = 0,
+    required this.imageUrl,
     this.createdAt,
   });
 
   final String id;
   final String reviewId;
-  final String url;
-  final int sortOrder;
+  final String imageUrl;
   final DateTime? createdAt;
 
   factory ReviewImageModel.fromJson(Map<String, dynamic> json) {
     return ReviewImageModel(
       id: json['id'].toString(),
       reviewId: json['review_id'].toString(),
-      url: json['url'].toString(),
-      sortOrder: intFromJson(json['sort_order']) ?? 0,
+      imageUrl: (json['image_url'] ?? json['url']).toString(),
       createdAt: dateTimeFromJson(json['created_at']),
     );
   }
@@ -105,8 +110,27 @@ class ReviewImageModel {
   Map<String, dynamic> toJson() => {
     'id': id,
     'review_id': reviewId,
-    'url': url,
-    'sort_order': sortOrder,
+    'image_url': imageUrl,
     'created_at': dateTimeToJson(createdAt),
   };
+}
+
+class ReviewSummary {
+  const ReviewSummary({
+    required this.avgRating,
+    required this.totalReviews,
+    required this.distribution,
+  });
+
+  final double avgRating;
+  final int totalReviews;
+  final Map<int, int> distribution;
+
+  factory ReviewSummary.empty() {
+    return const ReviewSummary(
+      avgRating: 0,
+      totalReviews: 0,
+      distribution: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
+    );
+  }
 }

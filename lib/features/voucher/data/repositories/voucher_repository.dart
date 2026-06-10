@@ -68,4 +68,34 @@ class VoucherRepository {
         })
         .eq('id', voucherId);
   }
+
+  Future<List<VoucherModel>> getAdminVouchers() async {
+    final rows = await _client
+        .from(AppConstants.vouchersTable)
+        .select()
+        .order('created_at', ascending: false);
+
+    return rows.map((row) => VoucherModel.fromJson(row)).toList();
+  }
+
+  Future<VoucherModel> saveVoucher(
+    Map<String, dynamic> data, {
+    String? id,
+  }) async {
+    final payload = {...data, 'updated_at': DateTime.now().toIso8601String()};
+    final row = id == null
+        ? await _client
+              .from(AppConstants.vouchersTable)
+              .insert(payload)
+              .select()
+              .single()
+        : await _client
+              .from(AppConstants.vouchersTable)
+              .update(payload)
+              .eq('id', id)
+              .select()
+              .single();
+
+    return VoucherModel.fromJson(row);
+  }
 }
