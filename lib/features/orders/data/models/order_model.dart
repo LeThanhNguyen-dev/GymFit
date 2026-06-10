@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 import '../../../../core/models/model_converters.dart';
 import '../../../../shared/enums/database_enums.dart';
 
@@ -31,6 +33,10 @@ class OrderModel {
     this.deliveredAt,
     this.cancelledAt,
     this.cancelReason,
+    this.items = const [],
+    this.payment,
+    this.shippingTracking = const [],
+    this.statusHistory = const [],
     this.createdAt,
     this.updatedAt,
   });
@@ -63,6 +69,10 @@ class OrderModel {
   final DateTime? deliveredAt;
   final DateTime? cancelledAt;
   final String? cancelReason;
+  final List<OrderItemModel> items;
+  final PaymentModel? payment;
+  final List<ShippingTrackingModel> shippingTracking;
+  final List<OrderStatusHistoryModel> statusHistory;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -99,6 +109,20 @@ class OrderModel {
     deliveredAt: dateTimeFromJson(json['delivered_at']),
     cancelledAt: dateTimeFromJson(json['cancelled_at']),
     cancelReason: json['cancel_reason'] as String?,
+    items: mapListFromJson(
+      json['items'] ?? json['order_items'],
+    ).map(OrderItemModel.fromJson).toList(),
+    payment: (json['payment'] ?? _firstRelation(json['payments'])) is Map
+        ? PaymentModel.fromJson(
+            mapFromJson(json['payment'] ?? _firstRelation(json['payments'])),
+          )
+        : null,
+    shippingTracking: mapListFromJson(
+      json['shipping_tracking'],
+    ).map(ShippingTrackingModel.fromJson).toList(),
+    statusHistory: mapListFromJson(
+      json['status_history'] ?? json['order_status_history'],
+    ).map(OrderStatusHistoryModel.fromJson).toList(),
     createdAt: dateTimeFromJson(json['created_at']),
     updatedAt: dateTimeFromJson(json['updated_at']),
   );
@@ -132,9 +156,113 @@ class OrderModel {
     'delivered_at': dateTimeToJson(deliveredAt),
     'cancelled_at': dateTimeToJson(cancelledAt),
     'cancel_reason': cancelReason,
+    'items': items.map((item) => item.toJson()).toList(),
+    'payment': payment?.toJson(),
+    'shipping_tracking': shippingTracking
+        .map((tracking) => tracking.toJson())
+        .toList(),
+    'status_history': statusHistory.map((item) => item.toJson()).toList(),
     'created_at': dateTimeToJson(createdAt),
     'updated_at': dateTimeToJson(updatedAt),
   };
+
+  bool get canCancel =>
+      status == OrderStatus.pending || status == OrderStatus.confirmed;
+
+  String get statusText => switch (status) {
+    OrderStatus.pending => 'Cho xac nhan',
+    OrderStatus.confirmed => 'Da xac nhan',
+    OrderStatus.processing => 'Dang xu ly',
+    OrderStatus.shipped => 'Dang giao',
+    OrderStatus.delivered => 'Da giao',
+    OrderStatus.cancelled => 'Da huy',
+    OrderStatus.refunded => 'Da hoan tien',
+    OrderStatus.partiallyRefunded => 'Hoan tien mot phan',
+  };
+
+  Color get statusColor => switch (status) {
+    OrderStatus.pending => Colors.orange,
+    OrderStatus.confirmed => Colors.blue,
+    OrderStatus.processing => Colors.indigo,
+    OrderStatus.shipped => Colors.purple,
+    OrderStatus.delivered => Colors.green,
+    OrderStatus.cancelled => Colors.red,
+    OrderStatus.refunded || OrderStatus.partiallyRefunded => Colors.teal,
+  };
+
+  OrderModel copyWith({
+    String? id,
+    String? orderNumber,
+    String? userId,
+    OrderStatus? status,
+    String? shippingFullName,
+    String? shippingPhone,
+    String? shippingAddress1,
+    String? shippingAddress2,
+    String? shippingWard,
+    String? shippingDistrict,
+    String? shippingCity,
+    String? shippingProvince,
+    String? shippingCountry,
+    String? shippingPostalCode,
+    double? subtotal,
+    double? discountAmount,
+    double? shippingFee,
+    double? taxAmount,
+    double? totalAmount,
+    String? voucherId,
+    String? voucherCode,
+    String? customerNote,
+    String? adminNote,
+    DateTime? confirmedAt,
+    DateTime? shippedAt,
+    DateTime? deliveredAt,
+    DateTime? cancelledAt,
+    String? cancelReason,
+    List<OrderItemModel>? items,
+    PaymentModel? payment,
+    List<ShippingTrackingModel>? shippingTracking,
+    List<OrderStatusHistoryModel>? statusHistory,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return OrderModel(
+      id: id ?? this.id,
+      orderNumber: orderNumber ?? this.orderNumber,
+      userId: userId ?? this.userId,
+      status: status ?? this.status,
+      shippingFullName: shippingFullName ?? this.shippingFullName,
+      shippingPhone: shippingPhone ?? this.shippingPhone,
+      shippingAddress1: shippingAddress1 ?? this.shippingAddress1,
+      shippingAddress2: shippingAddress2 ?? this.shippingAddress2,
+      shippingWard: shippingWard ?? this.shippingWard,
+      shippingDistrict: shippingDistrict ?? this.shippingDistrict,
+      shippingCity: shippingCity ?? this.shippingCity,
+      shippingProvince: shippingProvince ?? this.shippingProvince,
+      shippingCountry: shippingCountry ?? this.shippingCountry,
+      shippingPostalCode: shippingPostalCode ?? this.shippingPostalCode,
+      subtotal: subtotal ?? this.subtotal,
+      discountAmount: discountAmount ?? this.discountAmount,
+      shippingFee: shippingFee ?? this.shippingFee,
+      taxAmount: taxAmount ?? this.taxAmount,
+      totalAmount: totalAmount ?? this.totalAmount,
+      voucherId: voucherId ?? this.voucherId,
+      voucherCode: voucherCode ?? this.voucherCode,
+      customerNote: customerNote ?? this.customerNote,
+      adminNote: adminNote ?? this.adminNote,
+      confirmedAt: confirmedAt ?? this.confirmedAt,
+      shippedAt: shippedAt ?? this.shippedAt,
+      deliveredAt: deliveredAt ?? this.deliveredAt,
+      cancelledAt: cancelledAt ?? this.cancelledAt,
+      cancelReason: cancelReason ?? this.cancelReason,
+      items: items ?? this.items,
+      payment: payment ?? this.payment,
+      shippingTracking: shippingTracking ?? this.shippingTracking,
+      statusHistory: statusHistory ?? this.statusHistory,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }
 
 class OrderItemModel {
@@ -203,6 +331,8 @@ class OrderItemModel {
     'is_reviewed': isReviewed,
     'created_at': dateTimeToJson(createdAt),
   };
+
+  String get variantInfo => variantName ?? sku ?? '';
 }
 
 class OrderStatusHistoryModel {
@@ -343,6 +473,24 @@ class PaymentModel {
     'created_at': dateTimeToJson(createdAt),
     'updated_at': dateTimeToJson(updatedAt),
   };
+
+  String get methodDisplay => switch (method) {
+    PaymentMethod.cod => 'Thanh toan khi nhan hang',
+    PaymentMethod.momo => 'Vi Momo',
+    PaymentMethod.vnpay => 'VNPay',
+    PaymentMethod.bankTransfer => 'Chuyen khoan',
+    PaymentMethod.creditCard || PaymentMethod.debitCard => 'The ngan hang',
+    _ => method.name,
+  };
+
+  String get statusDisplay => switch (status) {
+    PaymentStatus.pending => 'Cho thanh toan',
+    PaymentStatus.paid => 'Thanh cong',
+    PaymentStatus.failed => 'That bai',
+    PaymentStatus.refunded => 'Da hoan tien',
+    PaymentStatus.partiallyRefunded => 'Hoan tien mot phan',
+    PaymentStatus.chargeback => 'Khieu nai hoan tien',
+  };
 }
 
 class ShippingTrackingModel {
@@ -417,4 +565,20 @@ class ShippingTrackingModel {
     'created_at': dateTimeToJson(createdAt),
     'updated_at': dateTimeToJson(updatedAt),
   };
+
+  String get statusDisplay => switch (status) {
+    ShippingStatus.pending => 'Dang chuan bi',
+    ShippingStatus.pickedUp => 'Da lay hang',
+    ShippingStatus.inTransit => 'Dang van chuyen',
+    ShippingStatus.outForDelivery => 'Dang giao hang',
+    ShippingStatus.delivered => 'Da giao',
+    ShippingStatus.failedAttempt => 'Giao khong thanh cong',
+    ShippingStatus.returned => 'Hoan hang',
+    ShippingStatus.lost => 'That lac',
+  };
+}
+
+Object? _firstRelation(Object? value) {
+  if (value is List && value.isNotEmpty) return value.first;
+  return value;
 }
