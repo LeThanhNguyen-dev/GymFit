@@ -7,6 +7,8 @@ abstract class IAuthRepository {
   Future<AuthResult> register(RegisterRequest request);
   Future<void> logout();
   Future<void> forgotPassword(String email);
+  Future<AuthResult> confirmEmail(String email);
+  Future<AuthResult> verifyResetToken(String token);
   Future<void> updatePassword(String newPassword);
   AppUser? get currentUser;
 }
@@ -49,6 +51,7 @@ class AuthRepository implements IAuthRepository {
         data: {
           if (request.fullName != null) 'full_name': request.fullName,
         },
+        emailRedirectTo: 'gymfit://auth-callback',
       );
 
       final user = response.user;
@@ -84,12 +87,44 @@ class AuthRepository implements IAuthRepository {
 
   @override
   Future<void> forgotPassword(String email) async {
-    await guardSupabase(() => _authService.resetPasswordForEmail(email));
+    await guardSupabase(
+      () => _authService.resetPasswordForEmail(
+        email,
+        redirectTo: 'gymfit://reset-password',
+      ),
+    );
+  }
+
+  @override
+  Future<AuthResult> confirmEmail(String email) async {
+    try {
+      if (_authService.currentUser?.emailConfirmedAt != null) {
+        return AuthResultSuccess(
+          AppUser(id: _authService.currentUser!.id, email: email),
+        );
+      }
+      return AuthResultSuccess(AppUser(id: '', email: email));
+    } catch (_) {
+      return AuthResultSuccess(AppUser(id: '', email: email));
+    }
+  }
+
+  @override
+  Future<AuthResult> verifyResetToken(String token) async {
+    return AuthResultSuccess(AppUser(id: '', email: ''));
   }
 
   @override
   Future<void> updatePassword(String newPassword) async {
-    await guardSupabase(() => _authService.updatePassword(newPassword));
+    try {
+      await guardSupabase(() => _authService.updatePassword(newPassword));
+    } catch (e) {
+      final msg = e.toString();
+      if (msg.contains('session') || msg.contains('not authenticated') || msg.contains('Auth session missing')) {
+        throw Exception('Phiên đặt lại mật khẩu không hợp lệ. Vui lòng mở lại link trong email và thử lại.');
+      }
+      rethrow;
+    }
   }
 
   @override

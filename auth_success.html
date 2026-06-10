@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Xác thực thành công - GymFit</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f0f;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: #1a1a2e;
+      border-radius: 24px;
+      padding: 48px 40px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .icon {
+      width: 80px;
+      height: 80px;
+      background: rgba(0,230,118,0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+    }
+    .icon svg { width: 40px; height: 40px; }
+    h1 {
+      color: #ffffff;
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    p {
+      color: #94a3b8;
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    .note {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 24px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .note p {
+      color: #64748b;
+      font-size: 13px;
+      margin-bottom: 0;
+    }
+    .brand {
+      color: #00e676;
+      font-weight: 800;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">GYM FIT</div>
+    <div class="icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#00e676" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>
+    </div>
+    <h1>Xác thực email thành công</h1>
+    <p>Email của bạn đã được xác thực.<br>Bạn có thể quay lại ứng dụng và đăng nhập.</p>
+    <div class="note">
+      <p><strong>Vui lòng đóng tab này</strong> và quay lại ứng dụng GymFit để tiếp tục.</p>
+    </div>
+  </div>
+  <script>
+    history.pushState(null, null, location.href);
+    window.onpopstate = function () {
+      history.pushState(null, null, location.href);
+    };
+    try {
+      var code = new URLSearchParams(location.search).get('code');
+      if (code) {
+        setTimeout(function() {
+          window.location.href = 'intent://auth-callback?code=' + encodeURIComponent(code) + '#Intent;scheme=gymfit;package=com.example.gymfit;end';
+        }, 500);
+      }
+    } catch(e) {}
+  </script>
+</body>
+</html>
