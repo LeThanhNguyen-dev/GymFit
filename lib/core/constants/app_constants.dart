@@ -1,7 +1,7 @@
 class AppConstants {
   const AppConstants._();
 
-  static const useMockAuth = false;
+  static const useMockAuth = false;  // chỉnh true để teesst thôi nhé còn không thì để false
 
   static const supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',

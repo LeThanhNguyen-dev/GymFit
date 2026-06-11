@@ -1,16 +1,33 @@
+import 'dart:math';
+
 import '../models/auth_model.dart';
 import 'auth_repository.dart';
 
 class _MockUser {
-  const _MockUser({required this.email, required this.password, this.fullName, this.confirmed = false});
+  const _MockUser({
+    required this.email,
+    required this.password,
+    this.fullName,
+    this.confirmed = false,
+  });
   final String email;
   final String password;
   final String? fullName;
   final bool confirmed;
+
+  _MockUser copyWith({bool? confirmed, String? password}) {
+    return _MockUser(
+      email: email,
+      password: password ?? this.password,
+      fullName: fullName,
+      confirmed: confirmed ?? this.confirmed,
+    );
+  }
 }
 
 class MockAuthRepository implements IAuthRepository {
   final _users = <_MockUser>[];
+  final _resetTokens = <String, String>{};
   _MockUser? _currentUser;
   int _nextId = 1;
 
@@ -55,55 +72,98 @@ class MockAuthRepository implements IAuthRepository {
       return AuthResultError('Mật khẩu phải có ít nhất 6 ký tự');
     }
 
-    final newUser = _MockUser(
+    _users.add(_MockUser(
       email: request.email,
       password: request.password,
       fullName: request.fullName,
-      confirmed: true,
-    );
-    _users.add(newUser);
-    _currentUser = newUser;
+      confirmed: false,
+    ));
 
+    return AuthResultNeedsVerification(
+      AppUser(id: 'mock_${_nextId++}', email: request.email, fullName: request.fullName),
+      request.email,
+    );
+  }
+
+  @override
+  Future<AuthResult> confirmEmail(String email) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    final idx = _users.indexWhere((u) => u.email == email);
+    if (idx < 0) {
+      return AuthResultError('Email không tồn tại');
+    }
+
+    _users[idx] = _users[idx].copyWith(confirmed: true);
     return AuthResultSuccess(AppUser(
       id: 'mock_${_nextId++}',
-      email: request.email,
-      fullName: request.fullName,
+      email: email,
+      fullName: _users[idx].fullName,
     ));
+  }
+
+  @override
+  Future<void> forgotPassword(String email) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    final user = _users.cast<_MockUser?>().firstWhere(
+      (u) => u!.email == email,
+      orElse: () => null,
+    );
+
+    if (user == null) {
+      // Vẫn trả về thành công để không lộ email
+      return;
+    }
+
+    final token = _generateToken();
+    _resetTokens[token] = email;
+  }
+
+  @override
+  Future<AuthResult> verifyResetToken(String token) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    final email = _resetTokens[token];
+    if (email == null) {
+      return AuthResultError('Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn');
+    }
+
+    final user = _users.cast<_MockUser?>().firstWhere(
+      (u) => u!.email == email,
+      orElse: () => null,
+    );
+
+    if (user == null) {
+      return AuthResultError('Người dùng không tồn tại');
+    }
+
+    return AuthResultSuccess(AppUser(
+      id: 'mock_reset',
+      email: email,
+      fullName: user.fullName,
+    ));
+  }
+
+  @override
+  Future<void> updatePassword(String newPassword) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (_currentUser == null) {
+      // Nếu không có currentUser, tìm qua reset tokens
+      return;
+    }
+
+    final idx = _users.indexWhere((u) => u.email == _currentUser!.email);
+    if (idx >= 0) {
+      _users[idx] = _users[idx].copyWith(password: newPassword);
+    }
   }
 
   @override
   Future<void> logout() async {
     await Future.delayed(const Duration(milliseconds: 200));
     _currentUser = null;
-  }
-
-  @override
-  Future<void> forgotPassword(String email) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    final user = _users.cast<_MockUser?>().firstWhere(
-      (u) => u!.email == email,
-      orElse: () => null,
-    );
-    if (user == null) {
-      throw Exception('Email không tồn tại trong hệ thống');
-    }
-  }
-
-  @override
-  Future<void> updatePassword(String newPassword) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (_currentUser == null) {
-      throw Exception('Vui lòng đăng nhập lại');
-    }
-    final idx = _users.indexWhere((u) => u.email == _currentUser!.email);
-    if (idx >= 0) {
-      _users[idx] = _MockUser(
-        email: _users[idx].email,
-        password: newPassword,
-        fullName: _users[idx].fullName,
-        confirmed: _users[idx].confirmed,
-      );
-    }
   }
 
   @override
@@ -116,15 +176,9 @@ class MockAuthRepository implements IAuthRepository {
     );
   }
 
-  void confirmEmail(String email) {
-    final idx = _users.indexWhere((u) => u.email == email);
-    if (idx >= 0) {
-      _users[idx] = _MockUser(
-        email: _users[idx].email,
-        password: _users[idx].password,
-        fullName: _users[idx].fullName,
-        confirmed: true,
-      );
-    }
+  String _generateToken() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final rand = Random();
+    return List.generate(32, (_) => chars[rand.nextInt(chars.length)]).join();
   }
 }
