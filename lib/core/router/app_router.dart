@@ -18,6 +18,8 @@ import '../../features/search/presentation/screens/search_screen.dart';
 import '../../features/shipping/presentation/screens/shipping_tracking_screen.dart';
 import '../../features/voucher/presentation/screens/voucher_list_screen.dart';
 import '../../features/wishlist/presentation/screens/wishlist_screen.dart';
+import '../../features/profile/presentation/screens/edit_profile_screen.dart';
+import '../../features/profile/presentation/screens/address_list_screen.dart';
 import 'route_names.dart';
 import '../services/deep_link_service.dart';
 
@@ -172,6 +174,22 @@ List<RouteBase> _buildRoutes() {
         ),
       ],
     ),
+    // User profile sub-routes (no bottom nav)
+    GoRoute(
+      path: RouteNames.editProfilePath,
+      name: RouteNames.editProfile,
+      builder: (_, _) => const EditProfileScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.addressListPath,
+      name: RouteNames.addressList,
+      builder: (_, _) => const AddressListScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.addAddressPath,
+      name: RouteNames.addAddress,
+      builder: (_, _) => const AddressListScreen(),
+    ),
   ];
 }
 
@@ -233,27 +251,3 @@ class _MainShell extends StatelessWidget {
   }
 }
 
-class _PlaceholderScreen extends ConsumerWidget {
-  const _PlaceholderScreen({required this.title});
-  final String title;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Đăng xuất',
-            onPressed: () async {
-              await ref.read(authProvider.notifier).logout();
-              if (context.mounted) GoRouter.of(context).go('/login');
-            },
-          ),
-        ],
-      ),
-      body: Center(child: Text('$title screen - sẽ được implement sau')),
-    );
-  }
-}
