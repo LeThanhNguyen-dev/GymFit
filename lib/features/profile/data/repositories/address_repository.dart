@@ -6,10 +6,7 @@ import '../models/address_model.dart';
 const _addressTable = 'addresses';
 
 class AddressRepository {
-  AddressRepository(
-    this._authService,
-    this._databaseService,
-  );
+  AddressRepository(this._authService, this._databaseService);
 
   final SupabaseAuthService _authService;
   final SupabaseDatabaseService _databaseService;
@@ -51,10 +48,7 @@ class AddressRepository {
     }
 
     final inserted = await guardSupabase(
-      () => _databaseService.insert(
-        _addressTable,
-        address.toInsertJson(),
-      ),
+      () => _databaseService.insert(_addressTable, address.toInsertJson()),
     );
     return AddressModel.fromJson(inserted);
   }
@@ -89,15 +83,10 @@ class AddressRepository {
     if (authUser == null) throw Exception('Bạn cần đăng nhập trước');
 
     await guardSupabase(() async {
-      await _databaseService
-          .table(_addressTable)
-          .update({'is_default': false})
-          .eq('user_id', authUser.id);
-
-      await _databaseService
-          .table(_addressTable)
-          .update({'is_default': true, 'updated_at': DateTime.now().toUtc().toIso8601String()})
-          .eq('id', addressId);
+      await _databaseService.rpc(
+        'set_default_address',
+        params: {'p_address_id': addressId},
+      );
     });
   }
 }

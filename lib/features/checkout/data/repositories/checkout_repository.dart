@@ -13,6 +13,8 @@ class CheckoutRepository {
       throw StateError('Gio hang dang trong.');
     }
 
+    await _validateStock(request);
+
     final response = await _client.rpc(
       'create_checkout_order',
       params: {
@@ -74,5 +76,34 @@ class CheckoutRepository {
     final city = row?['city']?.toString().toLowerCase() ?? '';
     if (city.contains('ho chi minh') || city.contains('hcm')) return 20000;
     return 30000;
+  }
+
+  Future<void> _validateStock(CheckoutRequest request) async {
+    final variantIds = request.checkoutData.cartItems
+        .map((item) => item.variantId)
+        .toSet()
+        .toList();
+
+    final rows = await _client
+        .from('product_variants')
+        .select('id, stock, quantity')
+        .inFilter('id', variantIds);
+
+    final stockByVariant = <String, int>{
+      for (final row in rows)
+        row['id'].toString():
+            ((row['stock'] ?? row['quantity']) as num?)?.toInt() ?? 0,
+    };
+
+    for (final item in request.checkoutData.cartItems) {
+      final stock = stockByVariant[item.variantId];
+      if (stock == null) {
+        throw StateError('Khong tim thay phien ban san pham trong gio hang.');
+      }
+      if (item.quantity > stock) {
+        final name = item.product?.name ?? 'San pham';
+        throw StateError('$name khong du ton kho de dat hang.');
+      }
+    }
   }
 }

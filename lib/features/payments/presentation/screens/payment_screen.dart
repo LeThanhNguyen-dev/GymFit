@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/route_names.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/enums/database_enums.dart';
 import '../../providers/payment_providers.dart';
-import 'payment_status_screen.dart';
 
 class PaymentScreen extends ConsumerWidget {
   const PaymentScreen({required this.orderId, super.key});
@@ -70,18 +71,13 @@ class PaymentScreen extends ConsumerWidget {
                   onPressed: processing.isLoading
                       ? null
                       : () async {
-                          final navigator = Navigator.of(context);
                           final result = await ref
                               .read(paymentProcessingProvider.notifier)
                               .process(payment);
                           if (!context.mounted) return;
-                          navigator.pushReplacement(
-                            MaterialPageRoute<void>(
-                              builder: (_) => PaymentStatusScreen(
-                                payment: result,
-                                orderId: orderId,
-                              ),
-                            ),
+                          context.pushReplacementNamed(
+                            RouteNames.paymentStatus,
+                            extra: {'payment': result, 'orderId': orderId},
                           );
                         },
                   child: processing.isLoading

@@ -7,6 +7,13 @@ class SupabaseDatabaseService {
 
   SupabaseQueryBuilder table(String tableName) => _client.from(tableName);
 
+  Future<dynamic> rpc(
+    String functionName, {
+    Map<String, dynamic> params = const {},
+  }) {
+    return _client.rpc(functionName, params: params);
+  }
+
   Future<List<Map<String, dynamic>>> select(
     String tableName, {
     String columns = '*',

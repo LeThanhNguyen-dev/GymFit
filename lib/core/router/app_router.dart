@@ -8,9 +8,11 @@ import '../../features/cart/presentation/screens/cart_screen.dart';
 import '../../features/checkout/data/models/checkout_model.dart';
 import '../../features/checkout/presentation/screens/checkout_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/orders/data/models/order_model.dart';
 import '../../features/orders/presentation/screens/order_detail_screen.dart';
 import '../../features/orders/presentation/screens/orders_screen.dart';
 import '../../features/payments/presentation/screens/payment_screen.dart';
+import '../../features/payments/presentation/screens/payment_status_screen.dart';
 import '../../features/products/presentation/screens/product_detail_screen.dart';
 import '../../features/products/presentation/screens/product_list_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
@@ -46,7 +48,9 @@ final routerNotifierProvider = Provider<GoRouter>((ref) {
       final publicRoutes = ['/login', '/register', '/forgot-password'];
       final deepLinkRoutes = ['/reset-password', '/verify-success'];
 
-      if (!isLoggedIn && !publicRoutes.contains(path) && !deepLinkRoutes.contains(path)) {
+      if (!isLoggedIn &&
+          !publicRoutes.contains(path) &&
+          !deepLinkRoutes.contains(path)) {
         return '/login';
       }
 
@@ -114,6 +118,27 @@ List<RouteBase> _buildRoutes() {
           name: RouteNames.orderDetail,
           builder: (_, state) =>
               OrderDetailScreen(orderId: state.pathParameters['id'] ?? ''),
+        ),
+        GoRoute(
+          path: RouteNames.paymentStatusPath,
+          name: RouteNames.paymentStatus,
+          builder: (_, state) {
+            final extra = state.extra;
+            if (extra is Map &&
+                extra['payment'] is PaymentModel &&
+                extra['orderId'] is String) {
+              return PaymentStatusScreen(
+                payment: extra['payment'] as PaymentModel,
+                orderId: extra['orderId'] as String,
+              );
+            }
+
+            return const Scaffold(
+              body: Center(
+                child: Text('Khong co du lieu trang thai thanh toan.'),
+              ),
+            );
+          },
         ),
         GoRoute(
           path: '${RouteNames.paymentPath}/:orderId',
@@ -190,6 +215,11 @@ List<RouteBase> _buildRoutes() {
       name: RouteNames.addAddress,
       builder: (_, _) => const AddressListScreen(),
     ),
+    GoRoute(
+      path: RouteNames.editAddressPath,
+      name: RouteNames.editAddress,
+      builder: (_, _) => const AddressListScreen(),
+    ),
   ];
 }
 
@@ -250,4 +280,3 @@ class _MainShell extends StatelessWidget {
     return 0;
   }
 }
-
