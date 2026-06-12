@@ -18,9 +18,17 @@ class RegisterRequest {
 }
 
 class AppUser {
-  const AppUser({required this.id, required this.email, this.fullName});
+  const AppUser({
+    required this.id,
+    required this.email,
+    this.fullName,
+    this.role = 'customer',
+    this.sellerStatus = 'none',
+  });
 
   final String id;
   final String email;
   final String? fullName;
+  final String role;
+  final String sellerStatus;
 }

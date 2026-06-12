@@ -176,6 +176,17 @@ class MockAuthRepository implements IAuthRepository {
     );
   }
 
+  @override
+  Future<AppUser?> fetchProfile() async {
+    if (_currentUser == null) return null;
+    return currentUser;
+  }
+
+  @override
+  Future<void> requestSeller() async {
+    // mock: no-op
+  }
+
   String _generateToken() {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     final rand = Random();

@@ -1,8 +1,9 @@
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/error_handler.dart';
 import '../../../../core/services/supabase_auth_service.dart';
 import '../../../../core/services/supabase_database_service.dart';
 import '../models/auth_model.dart';
+
+const _profileTable = 'profiles';
 
 abstract class IAuthRepository {
   Future<AuthResult> login(LoginRequest request);
@@ -12,7 +13,9 @@ abstract class IAuthRepository {
   Future<AuthResult> confirmEmail(String email);
   Future<AuthResult> verifyResetToken(String token);
   Future<void> updatePassword(String newPassword);
+  Future<void> requestSeller();
   AppUser? get currentUser;
+  Future<AppUser?> fetchProfile();
 }
 
 class AuthRepository implements IAuthRepository {
@@ -28,21 +31,27 @@ class AuthRepository implements IAuthRepository {
         email: request.email,
         password: request.password,
       );
-      final user = response.user;
-      if (user == null) {
+      final authUser = response.user;
+      if (authUser == null) {
         return const AuthResultError('Không tìm thấy tài khoản');
       }
 
-      final fullName = user.userMetadata?['full_name']?.toString();
-      await _upsertUserProfile(
-        id: user.id,
-        email: user.email ?? request.email,
-        fullName: fullName,
+      final now = DateTime.now().toUtc().toIso8601String();
+      final profile = await _ensureProfile(
+        id: authUser.id,
+        email: authUser.email ?? request.email,
+        fullName: authUser.userMetadata?['full_name']?.toString(),
+        lastLoginAt: now,
+        updatedAt: now,
       );
 
-      return AuthResultSuccess(
-        AppUser(id: user.id, email: user.email ?? '', fullName: fullName),
-      );
+      return AuthResultSuccess(AppUser(
+        id: authUser.id,
+        email: authUser.email ?? request.email,
+        fullName: profile['full_name']?.toString(),
+        role: profile['role']?.toString() ?? 'customer',
+        sellerStatus: profile['seller_status']?.toString() ?? 'none',
+      ));
     } catch (e) {
       final message = _parseAuthError(e);
       if (message.contains('chưa được xác thực')) {
@@ -64,36 +73,47 @@ class AuthRepository implements IAuthRepository {
         emailRedirectTo: 'gymfit://auth-callback',
       );
 
-      final user = response.user;
-      if (user == null) {
+      final authUser = response.user;
+      if (authUser == null) {
         return const AuthResultError('Đăng ký thất bại');
+      }
+
+      final now = DateTime.now().toUtc().toIso8601String();
+      try {
+        await _databaseService.upsert(_profileTable, {
+          'id': authUser.id,
+          'email': authUser.email ?? request.email,
+          if (request.fullName != null) 'full_name': request.fullName,
+          'role': 'customer',
+          'seller_status': 'none',
+          'created_at': now,
+          'updated_at': now,
+        }, onConflict: 'id');
+      } catch (_) {
+        // profile creation may fail (RLS), first login will ensure it exists
       }
 
       if (response.session == null) {
         return AuthResultNeedsVerification(
           AppUser(
-            id: user.id,
-            email: user.email ?? request.email,
+            id: authUser.id,
+            email: authUser.email ?? request.email,
             fullName: request.fullName,
+            role: 'customer',
+            sellerStatus: 'none',
           ),
-          user.email ?? request.email,
+          authUser.email ?? request.email,
         );
       }
 
-      await _upsertUserProfile(
-        id: user.id,
-        email: user.email ?? request.email,
-        fullName: request.fullName,
-      );
-
       await _authService.signOut();
-      return AuthResultSuccess(
-        AppUser(
-          id: user.id,
-          email: user.email ?? request.email,
-          fullName: request.fullName,
-        ),
-      );
+      return AuthResultSuccess(AppUser(
+        id: authUser.id,
+        email: authUser.email ?? request.email,
+        fullName: request.fullName,
+        role: 'customer',
+        sellerStatus: 'none',
+      ));
     } catch (e) {
       return AuthResultError(_parseAuthError(e));
     }
@@ -147,33 +167,97 @@ class AuthRepository implements IAuthRepository {
   }
 
   @override
+  Future<void> requestSeller() async {
+    final authUser = _authService.currentUser;
+    if (authUser == null) throw Exception('Bạn cần đăng nhập trước');
+    final now = DateTime.now().toUtc().toIso8601String();
+    await guardSupabase(() => _databaseService.upsert(_profileTable, {
+      'id': authUser.id,
+      'seller_status': 'pending',
+      'updated_at': now,
+    }, onConflict: 'id'));
+  }
+
+  @override
   AppUser? get currentUser {
-    final user = _authService.currentUser;
-    if (user == null) return null;
+    final authUser = _authService.currentUser;
+    if (authUser == null) return null;
     return AppUser(
-      id: user.id,
-      email: user.email ?? '',
-      fullName: user.userMetadata?['full_name']?.toString(),
+      id: authUser.id,
+      email: authUser.email ?? '',
+      fullName: authUser.userMetadata?['full_name']?.toString(),
     );
   }
 
-  Future<void> _upsertUserProfile({
+  @override
+  Future<AppUser?> fetchProfile() async {
+    final authUser = _authService.currentUser;
+    if (authUser == null) return null;
+    try {
+      final rows = await _databaseService
+          .table(_profileTable)
+          .select()
+          .eq('id', authUser.id)
+          .limit(1);
+      if (rows.isEmpty) return null;
+      final row = rows.first;
+      return AppUser(
+        id: authUser.id,
+        email: row['email']?.toString() ?? authUser.email ?? '',
+        fullName: row['full_name']?.toString(),
+        role: row['role']?.toString() ?? 'customer',
+        sellerStatus: row['seller_status']?.toString() ?? 'none',
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>> _ensureProfile({
     required String id,
     required String email,
     String? fullName,
-  }) {
-    final now = DateTime.now().toUtc().toIso8601String();
-    final trimmedName = fullName?.trim();
+    String? lastLoginAt,
+    String? updatedAt,
+  }) async {
+    try {
+      final rows = await _databaseService
+          .table(_profileTable)
+          .select()
+          .eq('id', id)
+          .limit(1);
+      if (rows.isNotEmpty) {
+        final existing = Map<String, dynamic>.from(rows.first);
+        final now = DateTime.now().toUtc().toIso8601String();
+        await _databaseService.upsert(_profileTable, {
+          'id': id,
+          'email': email,
+          'last_login_at': lastLoginAt ?? now,
+          'updated_at': updatedAt ?? now,
+        }, onConflict: 'id');
+        return existing;
+      }
+    } catch (_) {}
 
-    return _databaseService.table(AppConstants.usersTable).upsert({
+    final now = DateTime.now().toUtc().toIso8601String();
+    await _databaseService.upsert(_profileTable, {
       'id': id,
       'email': email,
-      'full_name': trimmedName == null || trimmedName.isEmpty
-          ? null
-          : trimmedName,
-      'last_login_at': now,
-      'updated_at': now,
-    });
+      if (fullName != null) 'full_name': fullName,
+      'role': 'customer',
+      'seller_status': 'none',
+      'last_login_at': lastLoginAt ?? now,
+      'created_at': now,
+      'updated_at': updatedAt ?? now,
+    }, onConflict: 'id');
+
+    return {
+      'id': id,
+      'email': email,
+      'full_name': fullName,
+      'role': 'customer',
+      'seller_status': 'none',
+    };
   }
 
   String _parseAuthError(Object error) {

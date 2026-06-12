@@ -143,15 +143,19 @@ class AuthNotifier extends Notifier<AuthStateData> {
     );
   }
 
-  void _checkCurrentUser() {
+  Future<void> _checkCurrentUser() async {
     if (_pendingAction != null) return;
     if (state.resetToken != null) return;
     try {
       final supabaseUser = Supabase.instance.client.auth.currentUser;
       if (supabaseUser != null) {
+        AppUser? user;
+        try {
+          user = await ref.read(authRepositoryProvider).fetchProfile();
+        } catch (_) {}
         state = AuthStateData(
           status: AuthStatus.authenticated,
-          user: AppUser(
+          user: user ?? AppUser(
             id: supabaseUser.id,
             email: supabaseUser.email ?? '',
             fullName: supabaseUser.userMetadata?['full_name'] as String?,
@@ -213,6 +217,7 @@ class AuthNotifier extends Notifier<AuthStateData> {
         state = AuthStateData(
           status: AuthStatus.emailVerification,
           user: user,
+          emailForVerification: email,
           successMessage:
               'Đăng ký thành công. Vui lòng kiểm tra email xác thực rồi đăng nhập.',
         );
@@ -357,6 +362,24 @@ class AuthNotifier extends Notifier<AuthStateData> {
     state = const AuthStateData(status: AuthStatus.unauthenticated);
   }
 
+  Future<void> requestSeller() async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await ref.read(authRepositoryProvider).requestSeller();
+      final updated = await ref.read(authRepositoryProvider).fetchProfile();
+      if (updated != null) {
+        state = AuthStateData(status: AuthStatus.authenticated, user: updated);
+      } else {
+        state = state.copyWith(isLoading: false, successMessage: 'Yêu cầu đã được gửi');
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+
   void clearError() {
     state = state.copyWith(error: null);
   }
@@ -376,3 +399,7 @@ class AuthNotifier extends Notifier<AuthStateData> {
 final authProvider = NotifierProvider<AuthNotifier, AuthStateData>(
   AuthNotifier.new,
 );
+
+final requestSellerProvider = Provider<void Function()>((ref) {
+  return () => ref.read(authProvider.notifier).requestSeller();
+});

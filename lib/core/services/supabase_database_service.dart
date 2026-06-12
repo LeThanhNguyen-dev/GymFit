@@ -41,4 +41,17 @@ class SupabaseDatabaseService {
   Future<void> deleteById(String tableName, Object id) async {
     await _client.from(tableName).delete().eq('id', id);
   }
+
+  Future<Map<String, dynamic>?> upsert(
+    String tableName,
+    Map<String, dynamic> values, {
+    String? onConflict,
+  }) async {
+    final result = await _client
+        .from(tableName)
+        .upsert(values, onConflict: onConflict)
+        .select();
+    if (result.isNotEmpty) return Map<String, dynamic>.from(result.first);
+    return null;
+  }
 }
