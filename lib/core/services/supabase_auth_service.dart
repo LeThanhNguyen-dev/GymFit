@@ -20,9 +20,27 @@ class SupabaseAuthService {
     required String email,
     required String password,
     Map<String, dynamic>? data,
+    String? emailRedirectTo,
   }) {
-    return _client.auth.signUp(email: email, password: password, data: data);
+    return _client.auth.signUp(
+      email: email,
+      password: password,
+      data: data,
+      emailRedirectTo: emailRedirectTo,
+    );
   }
 
   Future<void> signOut() => _client.auth.signOut();
+
+  Future<void> resetPasswordForEmail(String email, {String? redirectTo}) {
+    return _client.auth.resetPasswordForEmail(email, redirectTo: redirectTo);
+  }
+
+  Future<UserResponse> updatePassword(String newPassword) {
+    return _client.auth.updateUser(UserAttributes(password: newPassword));
+  }
+
+  Future<UserResponse> updateUser(UserAttributes attributes) {
+    return _client.auth.updateUser(attributes);
+  }
 }
