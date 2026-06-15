@@ -62,7 +62,8 @@ class ProductRepository {
       query = query.lte('base_price', maxPrice);
     }
     if (search != null && search.trim().isNotEmpty) {
-      query = query.ilike('name', '%${search.trim()}%');
+      query = query.textSearch('name', search.trim(),
+          type: TextSearchType.websearch);
     }
 
     query = sortBy == null || sortBy.isEmpty
@@ -142,7 +143,7 @@ class ProductRepository {
         .from(AppConstants.productsTable)
         .select(_productSelect)
         .eq('is_active', true)
-        .ilike('name', '%${text.trim()}%')
+        .textSearch('name', text.trim(), type: TextSearchType.websearch)
         .order('created_at', ascending: false);
 
     return rows.map((row) => ProductModel.fromJson(row)).toList();
