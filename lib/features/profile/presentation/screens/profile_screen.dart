@@ -75,6 +75,7 @@ class ProfileScreen extends ConsumerWidget {
     AuthStateData authState,
   ) {
     return ListView(
+      physics: const ClampingScrollPhysics(),
       padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
       children: [
         const SizedBox(height: AppSpacing.lg),

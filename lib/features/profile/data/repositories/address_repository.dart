@@ -47,9 +47,16 @@ class AddressRepository {
       throw Exception('Bạn cần đăng nhập trước');
     }
 
-    final inserted = await guardSupabase(
-      () => _databaseService.insert(_addressTable, address.toInsertJson()),
-    );
+    final userId = _authService.currentUser!.id;
+    final inserted = await guardSupabase(() async {
+      if (address.isDefault) {
+        await _databaseService
+            .table(_addressTable)
+            .update({'is_default': false})
+            .eq('user_id', userId);
+      }
+      return await _databaseService.insert(_addressTable, address.toInsertJson());
+    });
     return AddressModel.fromJson(inserted);
   }
 
@@ -58,13 +65,20 @@ class AddressRepository {
       throw Exception('Bạn cần đăng nhập trước');
     }
 
-    final updated = await guardSupabase(
-      () => _databaseService.updateById(
+    final updated = await guardSupabase(() async {
+      if (address.isDefault) {
+        await _databaseService
+            .table(_addressTable)
+            .update({'is_default': false})
+            .eq('user_id', _authService.currentUser!.id)
+            .neq('id', address.id);
+      }
+      return await _databaseService.updateById(
         _addressTable,
         address.id,
         address.toUpdateJson(),
-      ),
-    );
+      );
+    });
     return AddressModel.fromJson(updated);
   }
 
@@ -83,10 +97,14 @@ class AddressRepository {
     if (authUser == null) throw Exception('Bạn cần đăng nhập trước');
 
     await guardSupabase(() async {
-      await _databaseService.rpc(
-        'set_default_address',
-        params: {'p_address_id': addressId},
-      );
+      await _databaseService
+          .table(_addressTable)
+          .update({'is_default': false})
+          .eq('user_id', authUser.id);
+      await _databaseService
+          .table(_addressTable)
+          .update({'is_default': true, 'updated_at': DateTime.now().toUtc().toIso8601String()})
+          .eq('id', addressId);
     });
   }
 }

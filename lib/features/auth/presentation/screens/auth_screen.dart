@@ -128,8 +128,8 @@ class AuthScreen extends ConsumerWidget {
           label: cooldown > 0 ? 'Gửi lại ($cooldown giây)' : 'Gửi lại email xác thực',
           onPressed: cooldown > 0
               ? null
-              : () {
-                  ref.read(authProvider.notifier).resendVerification(email);
+              : () async {
+                  await ref.read(authProvider.notifier).resendVerification(email);
                 },
         ),
       ],
