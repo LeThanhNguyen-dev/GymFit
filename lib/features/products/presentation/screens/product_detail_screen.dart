@@ -395,12 +395,46 @@ class _ImageCarouselState extends State<_ImageCarousel> {
           controller: _controller,
           onPageChanged: widget.onPageChanged,
           itemCount: widget.images.length,
-          itemBuilder: (_, i) => Image.network(
-            widget.images[i].url,
-            fit: BoxFit.cover,
-            errorBuilder: (ctx, e, st) => Container(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              child: const Icon(Icons.broken_image_outlined, size: 60),
+          itemBuilder: (context, i) => GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                PageRouteBuilder(
+                  opaque: false,
+                  barrierColor: Colors.black.withValues(alpha: 0.9),
+                  pageBuilder: (context, _, __) {
+                    return Scaffold(
+                      backgroundColor: Colors.transparent,
+                      appBar: AppBar(
+                        backgroundColor: Colors.transparent,
+                        iconTheme: const IconThemeData(color: Colors.white),
+                        elevation: 0,
+                      ),
+                      body: PageView.builder(
+                        itemCount: widget.images.length,
+                        controller: PageController(initialPage: i),
+                        itemBuilder: (context, j) => InteractiveViewer(
+                          minScale: 0.5,
+                          maxScale: 4.0,
+                          child: Center(
+                            child: Image.network(
+                              widget.images[j].url,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+            child: Image.network(
+              widget.images[i].url,
+              fit: BoxFit.cover,
+              errorBuilder: (ctx, e, st) => Container(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: const Icon(Icons.broken_image_outlined, size: 60),
+              ),
             ),
           ),
         ),
