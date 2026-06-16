@@ -7,6 +7,7 @@ import '../../../cart/providers/cart_providers.dart';
 import '../../../wishlist/providers/wishlist_providers.dart';
 import '../../data/models/product_model.dart';
 import '../../providers/product_providers.dart';
+import '../../providers/comparison_providers.dart';
 
 class ProductDetailScreen extends ConsumerStatefulWidget {
   const ProductDetailScreen({super.key, required this.productId});
@@ -77,6 +78,21 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
             Stack(
               clipBehavior: Clip.none,
               children: [
+                IconButton(
+                  icon: const Icon(Icons.compare_arrows),
+                  onPressed: () {
+                    final isAdded = ref.read(comparisonProvider.notifier).addProduct(product);
+                    if (isAdded) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Đã thêm vào danh sách so sánh')),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Không thể thêm (tối đa 3 sản phẩm hoặc đã tồn tại)')),
+                      );
+                    }
+                  },
+                ),
                 IconButton(
                   icon: const Icon(Icons.shopping_bag_outlined),
                   onPressed: () => context.push('/cart'),
@@ -204,14 +220,17 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
                 // ── Variant Selector ──────────────────────────────────
                 if (product.variants.isNotEmpty) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   _VariantSelector(
                     variants: product.variants,
                     selectedVariant: _selectedVariant,
-                    onSelect: (v) => setState(() {
-                      _selectedVariant = v;
-                      _quantity = 1;
-                    }),
+                    basePrice: product.basePrice,
+                    onSelect: (v) {
+                      setState(() {
+                        _selectedVariant = v;
+                        _quantity = 1;
+                      });
+                    },
                   ),
                   const SizedBox(height: 8),
                   if (!isOutOfStock)
@@ -474,11 +493,13 @@ class _VariantSelector extends StatelessWidget {
     required this.variants,
     required this.selectedVariant,
     required this.onSelect,
+    required this.basePrice,
   });
 
   final List<ProductVariantModel> variants;
   final ProductVariantModel? selectedVariant;
   final ValueChanged<ProductVariantModel> onSelect;
+  final num basePrice;
 
   @override
   Widget build(BuildContext context) {
@@ -519,23 +540,41 @@ class _VariantSelector extends StatelessWidget {
                         : Theme.of(context).colorScheme.outlineVariant,
                   ),
                 ),
-                child: Text(
-                  v.optionDisplay.isNotEmpty
-                      ? v.optionDisplay
-                      : v.sku.isNotEmpty
-                      ? v.sku
-                      : 'Loại ${variants.indexOf(v) + 1}',
-                  style: TextStyle(
-                    color: isSelected
-                        ? Colors.white
-                        : isOutOfStock
-                        ? Theme.of(context).colorScheme.outline
-                        : Theme.of(context).colorScheme.onSurface,
-                    fontSize: 13,
-                    decoration: isOutOfStock
-                        ? TextDecoration.lineThrough
-                        : null,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      v.optionDisplay.isNotEmpty
+                          ? v.optionDisplay
+                          : v.sku.isNotEmpty
+                          ? v.sku
+                          : 'Loại ${variants.indexOf(v) + 1}',
+                      style: TextStyle(
+                        color: isSelected
+                            ? Colors.white
+                            : isOutOfStock
+                            ? Theme.of(context).colorScheme.outline
+                            : Theme.of(context).colorScheme.onSurface,
+                        fontSize: 13,
+                        decoration: isOutOfStock
+                            ? TextDecoration.lineThrough
+                            : null,
+                      ),
+                    ),
+                    if (v.price != null && v.price != basePrice) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        '(${v.price! > basePrice ? '+' : '-'}${formatCurrency(v.price! > basePrice ? v.price! - basePrice : basePrice - v.price!)})',
+                        style: TextStyle(
+                          color: isSelected
+                              ? Colors.white.withValues(alpha: 0.8)
+                              : Theme.of(context).colorScheme.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             );

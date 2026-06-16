@@ -23,6 +23,7 @@ import '../../features/wishlist/presentation/screens/wishlist_screen.dart';
 import '../../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../../features/profile/presentation/screens/address_list_screen.dart';
 import '../../features/reviews/presentation/screens/review_form_screen.dart';
+import '../../features/products/presentation/screens/compare_screen.dart';
 import 'route_names.dart';
 import '../services/deep_link_service.dart';
 
@@ -192,6 +193,11 @@ List<RouteBase> _buildRoutes() {
           path: RouteNames.wishlistPath,
           name: RouteNames.wishlist,
           builder: (_, _) => const WishlistScreen(),
+        ),
+        GoRoute(
+          path: '/compare',
+          name: 'compare',
+          builder: (_, _) => const CompareScreen(),
         ),
         GoRoute(
           path: RouteNames.profilePath,

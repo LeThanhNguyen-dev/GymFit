@@ -6,6 +6,7 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../providers/brand_providers.dart';
 import '../../providers/category_providers.dart';
 import '../../providers/product_providers.dart';
+import '../../providers/comparison_providers.dart';
 import '../widgets/product_card.dart';
 
 class ProductListScreen extends ConsumerStatefulWidget {
@@ -78,6 +79,13 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
           ),
         ],
       ),
+      floatingActionButton: ref.watch(comparisonProvider).isNotEmpty
+          ? FloatingActionButton.extended(
+              onPressed: () => context.push('/compare'),
+              icon: const Icon(Icons.compare_arrows),
+              label: Text('So sánh (${ref.watch(comparisonProvider).length})'),
+            )
+          : null,
       body: Column(
         children: [
           // Active Filters Row

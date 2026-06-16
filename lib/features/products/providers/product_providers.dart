@@ -1,8 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/core_providers.dart';
 import '../../../core/providers/supabase_providers.dart';
 import '../data/models/product_model.dart';
 import '../data/repositories/product_repository.dart';
+import '../services/product_cache_service.dart';
+
+final productCacheServiceProvider = Provider<ProductCacheService>((ref) {
+  return ProductCacheService(
+    ref.watch(sharedPreferencesProvider),
+    ref.watch(connectivityProvider),
+  );
+});
 
 final productRepositoryProvider = Provider<ProductRepository>((ref) {
   return ProductRepository(ref.watch(supabaseClientProvider));
@@ -11,7 +20,16 @@ final productRepositoryProvider = Provider<ProductRepository>((ref) {
 final featuredProductsProvider =
     FutureProvider.autoDispose<List<ProductModel>>((ref) async {
   final repo = ref.watch(productRepositoryProvider);
-  return repo.getFeaturedProducts(limit: 10);
+  final cacheService = ref.watch(productCacheServiceProvider);
+  
+  if (await cacheService.isOffline()) {
+    final cached = cacheService.getFeatured();
+    if (cached != null) return cached;
+  }
+  
+  final products = await repo.getFeaturedProducts(limit: 10);
+  await cacheService.saveFeatured(products);
+  return products;
 });
 
 final bestSellersProvider =
@@ -23,7 +41,31 @@ final bestSellersProvider =
 final newArrivalsProvider =
     FutureProvider.autoDispose<List<ProductModel>>((ref) async {
   final repo = ref.watch(productRepositoryProvider);
-  return repo.getNewArrivals(limit: 10);
+  final cacheService = ref.watch(productCacheServiceProvider);
+  
+  if (await cacheService.isOffline()) {
+    final cached = cacheService.getNewArrivals();
+    if (cached != null) return cached;
+  }
+
+  final products = await repo.getNewArrivals(limit: 10);
+  await cacheService.saveNewArrivals(products);
+  return products;
+});
+
+final recommendedProductsProvider =
+    FutureProvider.autoDispose<List<ProductModel>>((ref) async {
+  final repo = ref.watch(productRepositoryProvider);
+  final cacheService = ref.watch(productCacheServiceProvider);
+  
+  if (await cacheService.isOffline()) {
+    final cached = cacheService.getRecommended();
+    if (cached != null) return cached;
+  }
+
+  final products = await repo.getRecommendedProducts(limit: 10);
+  await cacheService.saveRecommended(products);
+  return products;
 });
 
 final productDetailProvider = FutureProvider.family
