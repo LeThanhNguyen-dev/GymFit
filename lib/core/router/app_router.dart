@@ -23,6 +23,15 @@ import '../../features/wishlist/presentation/screens/wishlist_screen.dart';
 import '../../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../../features/profile/presentation/screens/address_list_screen.dart';
 import '../../features/reviews/presentation/screens/review_form_screen.dart';
+import '../../features/admin/dashboard/admin_dashboard.dart';
+import '../../features/admin/products/admin_products.dart';
+import '../../features/admin/orders/admin_orders.dart';
+import '../../features/admin/categories/admin_categories.dart';
+import '../../features/admin/brands/admin_brands.dart';
+import '../../features/admin/coupons/admin_coupons.dart';
+import '../../features/admin/reviews/admin_reviews.dart';
+import '../../features/admin/dashboard/presentation/inventory_screen.dart';
+import '../../features/admin/users/admin_users.dart';
 import 'route_names.dart';
 import '../services/deep_link_service.dart';
 
@@ -57,6 +66,13 @@ final routerNotifierProvider = Provider<GoRouter>((ref) {
 
       if (isLoggedIn && publicRoutes.contains(path)) {
         return RouteNames.homePath;
+      }
+
+      if (path.startsWith('/admin')) {
+        final user = authState.user;
+        if (user == null || user.role != 'admin') {
+          return RouteNames.homePath;
+        }
       }
 
       return null;
@@ -238,6 +254,57 @@ List<RouteBase> _buildRoutes() {
       path: RouteNames.editAddressPath,
       name: RouteNames.editAddress,
       builder: (_, _) => const AddressListScreen(),
+    ),
+    // Admin Routes
+    GoRoute(
+      path: RouteNames.adminPath,
+      name: RouteNames.admin,
+      redirect: (_, __) => RouteNames.adminDashboardPath,
+    ),
+    GoRoute(
+      path: RouteNames.adminDashboardPath,
+      name: RouteNames.adminDashboard,
+      builder: (_, _) => const AdminDashboardScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.adminProductsPath,
+      name: RouteNames.adminProducts,
+      builder: (_, _) => const AdminProductsScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.adminCategoriesPath,
+      name: RouteNames.adminCategories,
+      builder: (_, _) => const AdminCategoriesScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.adminBrandsPath,
+      name: RouteNames.adminBrands,
+      builder: (_, _) => const AdminBrandsScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.adminOrdersPath,
+      name: RouteNames.adminOrders,
+      builder: (_, _) => const AdminOrdersScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.adminVouchersPath,
+      name: RouteNames.adminVouchers,
+      builder: (_, _) => const AdminCouponsScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.adminInventoryPath,
+      name: RouteNames.adminInventory,
+      builder: (_, _) => const InventoryScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.adminUsersPath,
+      name: RouteNames.adminUsers,
+      builder: (_, _) => const AdminUsersScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.adminReviewsPath,
+      name: RouteNames.adminReviews,
+      builder: (_, _) => const AdminReviewsScreen(),
     ),
   ];
 }
