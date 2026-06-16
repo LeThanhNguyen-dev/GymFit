@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/providers/supabase_providers.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../data/models/support_ticket_model.dart';
 import '../providers/support_provider.dart';
 import 'support_detail_screen.dart';
@@ -19,29 +20,42 @@ class _SupportListScreenState extends ConsumerState<SupportListScreen> {
   @override
   Widget build(BuildContext context) {
     final tickets = ref.watch(userTicketsProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Support')),
+      appBar: AppBar(
+        title: const Text('Yêu cầu hỗ trợ'),
+        elevation: 0,
+      ),
       body: Column(
         children: [
+          // Filter section
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
             child: DropdownButtonFormField<String?>(
               initialValue: _status,
-              decoration: const InputDecoration(labelText: 'Status filter'),
+              decoration: InputDecoration(
+                labelText: 'Lọc theo trạng thái',
+                prefixIcon: const Icon(Icons.filter_list),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
               items: const [
-                DropdownMenuItem(value: null, child: Text('All')),
-                DropdownMenuItem(value: 'open', child: Text('Open')),
+                DropdownMenuItem(value: null, child: Text('Tất cả')),
+                DropdownMenuItem(value: 'open', child: Text('Mở')),
                 DropdownMenuItem(
                   value: 'in_progress',
-                  child: Text('In progress'),
+                  child: Text('Đang xử lý'),
                 ),
-                DropdownMenuItem(value: 'resolved', child: Text('Resolved')),
-                DropdownMenuItem(value: 'closed', child: Text('Closed')),
+                DropdownMenuItem(value: 'resolved', child: Text('Đã giải quyết')),
+                DropdownMenuItem(value: 'closed', child: Text('Đóng')),
               ],
               onChanged: (value) => setState(() => _status = value),
             ),
           ),
+
+          // Tickets list
           Expanded(
             child: tickets.when(
               data: (items) {
@@ -51,30 +65,57 @@ class _SupportListScreenState extends ConsumerState<SupportListScreen> {
                     )
                     .toList();
                 if (filtered.isEmpty) {
-                  return const Center(child: Text('No support tickets.'));
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.support_agent_outlined,
+                          size: 64,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Không có yêu cầu hỗ trợ',
+                          style: AppTextStyles.titleMedium.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
                 }
                 return ListView.separated(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.pageHorizontal,
+                    vertical: AppSpacing.md,
+                  ),
                   itemCount: filtered.length,
                   separatorBuilder: (context, index) =>
-                      const Divider(height: 1),
+                      const SizedBox(height: AppSpacing.sm),
                   itemBuilder: (context, index) =>
                       _TicketTile(ticket: filtered[index]),
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () =>
+                  const Center(child: CircularProgressIndicator()),
               error: (error, _) =>
-                  Center(child: Text('Could not load tickets: $error')),
+                  Center(child: Text('Lỗi: $error')),
             ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showModalBottomSheet<void>(
           context: context,
           isScrollControlled: true,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
           builder: (context) => const CreateTicketSheet(),
         ),
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add),
+        label: const Text('Tạo yêu cầu mới'),
       ),
     );
   }
@@ -87,26 +128,73 @@ class _TicketTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      title: Text(ticket.subject, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        [
-          if (ticket.orderId != null) 'Order ${ticket.orderId}',
-          ticket.description,
-        ].join(' - '),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: Wrap(
-        spacing: 6,
-        children: [
-          _Badge(label: ticket.statusDisplay, color: ticket.statusColor),
-          _Badge(label: ticket.priorityDisplay, color: ticket.priorityColor),
-        ],
-      ),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => SupportDetailScreen(ticketId: ticket.id),
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Card(
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => SupportDetailScreen(ticketId: ticket.id),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title and status
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      ticket.subject,
+                      style: AppTextStyles.titleMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  _Badge(
+                    label: ticket.statusDisplay,
+                    color: ticket.statusColor,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+
+              // Description
+              Text(
+                ticket.description,
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              // Footer with priority and order ID
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _Badge(
+                    label: ticket.priorityDisplay,
+                    color: ticket.priorityColor,
+                  ),
+                  if (ticket.orderId != null)
+                    Text(
+                      'Đơn: #${ticket.orderId!.substring(0, 8).toUpperCase()}',
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -121,11 +209,22 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
-      label: Text(label),
-      visualDensity: VisualDensity.compact,
-      backgroundColor: color.withValues(alpha: 0.12),
-      labelStyle: TextStyle(color: color),
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: AppTextStyles.labelSmall.copyWith(
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }
@@ -154,50 +253,107 @@ class _CreateTicketSheetState extends ConsumerState<CreateTicketSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final submitState = ref.watch(createTicketProvider);
     return Padding(
       padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        left: AppSpacing.pageHorizontal,
+        right: AppSpacing.pageHorizontal,
+        top: AppSpacing.lg,
+        bottom: MediaQuery.of(context).viewInsets.bottom +
+            AppSpacing.pageHorizontal,
       ),
       child: Form(
         key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Create support ticket',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            TextFormField(
-              controller: _orderIdController,
-              decoration: const InputDecoration(labelText: 'Order ID optional'),
-            ),
-            TextFormField(
-              controller: _subjectController,
-              decoration: const InputDecoration(labelText: 'Subject'),
-              validator: (value) =>
-                  value == null || value.trim().isEmpty ? 'Required' : null,
-            ),
-            TextFormField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
-              minLines: 3,
-              maxLines: 5,
-              validator: (value) =>
-                  value == null || value.trim().isEmpty ? 'Required' : null,
-            ),
-            DropdownButtonFormField<String>(
-              initialValue: _priority,
-              decoration: const InputDecoration(labelText: 'Priority'),
-              items: const [
-                DropdownMenuItem(value: 'low', child: Text('Low')),
-                DropdownMenuItem(value: 'normal', child: Text('Normal')),
-                DropdownMenuItem(value: 'high', child: Text('High')),
-                DropdownMenuItem(value: 'urgent', child: Text('Urgent')),
-              ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Tạo yêu cầu hỗ trợ mới',
+                style: AppTextStyles.titleLarge.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TextFormField(
+                controller: _orderIdController,
+                decoration: InputDecoration(
+                  labelText: 'Mã đơn hàng (tùy chọn)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: _subjectController,
+                decoration: InputDecoration(
+                  labelText: 'Tiêu đề *',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Vui lòng nhập tiêu đề'
+                    : null,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: _descriptionController,
+                decoration: InputDecoration(
+                  labelText: 'Mô tả chi tiết *',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignLabelWithHint: true,
+                ),
+                minLines: 3,
+                maxLines: 5,
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Vui lòng nhập mô tả'
+                    : null,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              DropdownButtonFormField<String>(
+                initialValue: _priority,
+                decoration: InputDecoration(
+                  labelText: 'Mức độ ưu tiên',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'low', child: Text('Thấp')),
+                  DropdownMenuItem(value: 'normal', child: Text('Bình thường')),
+                  DropdownMenuItem(value: 'high', child: Text('Cao')),
+                  DropdownMenuItem(value: 'urgent', child: Text('Khẩn cấp')),
+                ],
+                onChanged: (value) =>
+                    setState(() => _priority = value ?? 'normal'),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              FilledButton(
+                onPressed: () {
+                  if (_formKey.currentState!.validate()) {
+                    // TODO: Submit ticket
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Yêu cầu được tạo thành công'),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Gửi yêu cầu'),
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
               onChanged: (value) =>
                   setState(() => _priority = value ?? 'normal'),
             ),

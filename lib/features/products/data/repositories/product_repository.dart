@@ -9,9 +9,7 @@ class ProductRepository {
   final SupabaseClient _client;
 
   static const String _productSelect =
-      '*, category:categories(id, name, slug), '
-      'brand:brands(id, name, slug), images:product_images(*), '
-      'variants:product_variants(*)';
+      'id, category_id, brand_id, name, slug, sku, short_description, description, base_price, compare_at_price, cost_price, status, is_featured, is_digital, requires_shipping, weight_grams, tags, attributes, seo_title, seo_description, average_rating, total_reviews, total_sold, view_count, metadata, created_at, updated_at, category:categories(id, name, slug), brand:brands(id, name, slug), images:product_images(*), variants:product_variants(*)';
 
   Future<ProductModel?> getProductById(String productId) async {
     final row = await _client
@@ -46,8 +44,7 @@ class ProductRepository {
   }) async {
     dynamic query = _client
         .from(AppConstants.productsTable)
-        .select(_productSelect)
-        .eq('is_active', true);
+        .select(_productSelect);
 
     if (categoryId != null && categoryId.isNotEmpty) {
       query = query.eq('category_id', categoryId);
@@ -80,7 +77,6 @@ class ProductRepository {
     final rows = await _client
         .from(AppConstants.productsTable)
         .select(_productSelect)
-        .eq('is_active', true)
         .eq('is_featured', true)
         .order('created_at', ascending: false)
         .limit(limit);
@@ -92,7 +88,6 @@ class ProductRepository {
     final rows = await _client
         .from(AppConstants.productsTable)
         .select(_productSelect)
-        .eq('is_active', true)
         .order('total_sold', ascending: false)
         .limit(limit);
 
@@ -103,7 +98,6 @@ class ProductRepository {
     final rows = await _client
         .from(AppConstants.productsTable)
         .select(_productSelect)
-        .eq('is_active', true)
         .order('created_at', ascending: false)
         .limit(limit);
 
@@ -118,10 +112,9 @@ class ProductRepository {
     final rows = await _client
         .from(AppConstants.productsTable)
         .select(_productSelect)
-        .eq('is_active', true)
         .eq('category_id', categoryId)
         .neq('id', productId)
-        .order('avg_rating', ascending: false)
+        .order('average_rating', ascending: false)
         .limit(limit);
 
     return rows.map((row) => ProductModel.fromJson(row)).toList();
@@ -142,7 +135,6 @@ class ProductRepository {
     final rows = await _client
         .from(AppConstants.productsTable)
         .select(_productSelect)
-        .eq('is_active', true)
         .textSearch('name', text.trim(), type: TextSearchType.websearch)
         .order('created_at', ascending: false);
 

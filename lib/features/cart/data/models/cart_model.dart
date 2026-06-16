@@ -25,21 +25,28 @@ class CartItemModel {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  factory CartItemModel.fromJson(Map<String, dynamic> json) => CartItemModel(
-    id: json['id'].toString(),
-    userId: json['user_id'].toString(),
-    productId: json['product_id'].toString(),
-    variantId: json['variant_id'].toString(),
-    quantity: intFromJson(json['quantity']) ?? 1,
-    product: json['product'] is Map
-        ? ProductModel.fromJson(mapFromJson(json['product']))
-        : null,
-    variant: json['variant'] is Map
-        ? ProductVariantModel.fromJson(mapFromJson(json['variant']))
-        : null,
-    createdAt: dateTimeFromJson(json['created_at'] ?? json['added_at']),
-    updatedAt: dateTimeFromJson(json['updated_at']),
-  );
+  factory CartItemModel.fromJson(Map<String, dynamic> json) {
+    final variantData = json['variant'] is Map ? mapFromJson(json['variant']) : null;
+    final productData = variantData?['product'] is Map
+        ? variantData!['product']
+        : json['product'];
+
+    return CartItemModel(
+      id: json['id'].toString(),
+      userId: json['user_id'].toString(),
+      productId: json['product_id'].toString(),
+      variantId: json['variant_id'].toString(),
+      quantity: intFromJson(json['quantity']) ?? 1,
+      product: productData is Map
+          ? ProductModel.fromJson(mapFromJson(productData))
+          : null,
+      variant: variantData != null && variantData is Map
+          ? ProductVariantModel.fromJson(variantData)
+          : null,
+      createdAt: dateTimeFromJson(json['created_at'] ?? json['added_at']),
+      updatedAt: dateTimeFromJson(json['updated_at']),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
