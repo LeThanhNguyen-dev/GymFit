@@ -204,15 +204,11 @@ class ProductModel {
     basePrice: doubleFromJson(json['base_price'] ?? json['price']) ?? 0,
     compareAtPrice: doubleFromJson(json['compare_at_price']),
     costPrice: doubleFromJson(json['cost_price']),
-    status: json.containsKey('is_active')
-        ? ((json['is_active'] as bool? ?? true)
-              ? ProductStatus.active
-              : ProductStatus.inactive)
-        : enumFromSnake(
-            ProductStatus.values,
-            json['status'],
-            ProductStatus.draft,
-          ),
+    status: enumFromSnake(
+      ProductStatus.values,
+      json['status'],
+      ProductStatus.draft,
+    ),
     isFeatured: json['is_featured'] as bool? ?? false,
     isDigital: json['is_digital'] as bool? ?? false,
     requiresShipping: json['requires_shipping'] as bool? ?? true,
@@ -396,15 +392,11 @@ class ProductVariantModel {
       lowStockThreshold: intFromJson(json['low_stock_threshold']) ?? 5,
       weightGrams: intFromJson(json['weight_grams']),
       barcode: json['barcode'] as String?,
-      status: json.containsKey('is_active')
-          ? ((json['is_active'] as bool? ?? true)
-                ? VariantStatus.active
-                : VariantStatus.inactive)
-          : enumFromSnake(
-              VariantStatus.values,
-              json['status'],
-              VariantStatus.active,
-            ),
+      status: enumFromSnake(
+        VariantStatus.values,
+        json['status'],
+        VariantStatus.active,
+      ),
       imageUrl: json['image_url'] as String?,
       metadata: mapFromJson(json['metadata']),
       createdAt: dateTimeFromJson(json['created_at']),

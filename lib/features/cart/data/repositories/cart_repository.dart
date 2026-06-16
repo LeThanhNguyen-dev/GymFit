@@ -11,9 +11,14 @@ class CartRepository {
   final ProductRepository _productRepository;
 
   static const _cartSelect =
-      '*, product:products(*, category:categories(id, name, slug), '
-      'brand:brands(id, name, slug), images:product_images(*)), '
-      'variant:product_variants(*)';
+      '*, variant:product_variants(id, price, stock, sku, images, metadata, '
+      'product:products(id, category_id, brand_id, name, slug, base_price, '
+      'compare_at_price, cost_price, status, is_featured, is_digital, '
+      'requires_shipping, weight_grams, tags, attributes, seo_title, '
+      'seo_description, average_rating, total_reviews, total_sold, view_count, '
+      'metadata, created_at, updated_at, '
+      'category:categories(id, name, slug), '
+      'brand:brands(id, name, slug), images:product_images(*)))';
 
   Future<List<CartItemModel>> getCartItems(String userId) async {
     final rows = await _client
