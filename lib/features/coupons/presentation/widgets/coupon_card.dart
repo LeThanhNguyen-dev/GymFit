@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/enums/database_enums.dart';
 import '../../data/models/coupon_model.dart';
 
 class CouponCard extends StatelessWidget {

@@ -8,9 +8,12 @@ import '../../../../core/validators/app_validators.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../providers/auth_providers.dart';
+import '../screens/auth_screen.dart';
 
 class AuthForm extends ConsumerStatefulWidget {
-  const AuthForm({super.key});
+  const AuthForm({super.key, this.initialPage});
+
+  final AuthPageType? initialPage;
 
   @override
   ConsumerState<AuthForm> createState() => _AuthFormState();
@@ -24,7 +27,16 @@ class _AuthFormState extends ConsumerState<AuthForm> {
   final _nameCtrl = TextEditingController();
 
   bool _isRegister = false;
-  bool _showForgotPassword = false;
+  late bool _showForgotPassword;
+
+  @override
+  void initState() {
+    super.initState();
+    _showForgotPassword = widget.initialPage == AuthPageType.forgotPassword;
+    if (widget.initialPage == AuthPageType.register) {
+      _isRegister = true;
+    }
+  }
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
 

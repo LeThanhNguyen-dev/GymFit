@@ -208,18 +208,25 @@ class AuthRepository implements IAuthRepository {
           .select()
           .eq('id', authUser.id)
           .limit(1);
-      if (rows.isEmpty) return null;
-      final row = rows.first;
-      return AppUser(
-        id: authUser.id,
-        email: row['email']?.toString() ?? authUser.email ?? '',
-        fullName: row['full_name']?.toString(),
-        role: row['role']?.toString() ?? 'customer',
-        sellerStatus: row['seller_status']?.toString() ?? 'none',
-      );
-    } catch (_) {
-      return null;
-    }
+      if (rows.isNotEmpty) {
+        final row = rows.first;
+        return AppUser(
+          id: authUser.id,
+          email: row['email']?.toString() ?? authUser.email ?? '',
+          fullName: row['full_name']?.toString(),
+          role: row['role']?.toString() ?? 'customer',
+          sellerStatus: row['seller_status']?.toString() ?? 'none',
+        );
+      }
+    } catch (_) {}
+    final metadata = {...?authUser.appMetadata, ...?authUser.userMetadata};
+    return AppUser(
+      id: authUser.id,
+      email: authUser.email ?? '',
+      fullName: authUser.userMetadata?['full_name'] as String?,
+      role: metadata['role'] as String? ?? 'customer',
+      sellerStatus: metadata['seller_status'] as String? ?? 'none',
+    );
   }
 
   Future<Map<String, dynamic>> _ensureProfile({

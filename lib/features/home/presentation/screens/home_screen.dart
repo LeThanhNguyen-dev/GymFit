@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../cart/providers/cart_providers.dart';
+import '../../../../core/widgets/navbar.dart';
 import '../../../products/data/models/product_model.dart';
 import '../../../products/providers/brand_providers.dart';
 import '../../../products/providers/category_providers.dart';
 import '../../../products/providers/product_providers.dart';
 import '../../../products/presentation/widgets/product_card.dart';
+import '../../providers/banner_providers.dart';
+import '../../data/models/banner_model.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -25,6 +28,7 @@ class HomeScreen extends ConsumerWidget {
           ref.invalidate(newArrivalsProvider);
           ref.invalidate(categoryListProvider);
           ref.invalidate(brandListProvider);
+          ref.invalidate(bannerListProvider);
         },
         child: CustomScrollView(
           slivers: [
@@ -136,12 +140,28 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
 
+                  // ── Navigation Bar ──────────────────────────────────────
+                  NavBar(
+                    onCategorySelected: (slug) {
+                      context.push('/products?category=$slug');
+                    },
+                  ),
+
                   // ── Banner Carousel ──────────────────────────────────────
                   const _BannerCarousel(),
 
                   // ── Categories ──────────────────────────────────────────
                   const _SectionTitle(title: 'Danh mục'),
                   const _CategoriesSection(),
+
+                  // ── Recommended Products ─────────────────────────────────
+                  _SectionTitle(
+                    title: 'Dành riêng cho bạn',
+                    onSeeAll: () => context.push('/products'),
+                  ),
+                  const _HorizontalProductList(
+                    providerType: _ProductProviderType.recommended,
+                  ),
 
                   // ── Featured Products ────────────────────────────────────
                   _SectionTitle(
@@ -195,27 +215,7 @@ class _BannerCarousel extends StatefulWidget {
 class _BannerCarouselState extends State<_BannerCarousel> {
   final PageController _controller = PageController();
   int _current = 0;
-
-  final List<_BannerData> _banners = const [
-    _BannerData(
-      title: 'Bộ sưu tập Hè 2026',
-      subtitle: 'Giảm đến 40%',
-      gradient: [Color(0xFF667EEA), Color(0xFF764BA2)],
-      icon: Icons.fitness_center,
-    ),
-    _BannerData(
-      title: 'Nike & Adidas',
-      subtitle: 'Thương hiệu hàng đầu',
-      gradient: [Color(0xFFFF6B6B), Color(0xFFEE5A24)],
-      icon: Icons.sports_gymnastics,
-    ),
-    _BannerData(
-      title: 'Thực phẩm bổ sung',
-      subtitle: 'Tăng cơ, giảm mỡ',
-      gradient: [Color(0xFF11998E), Color(0xFF38EF7D)],
-      icon: Icons.local_pharmacy_outlined,
-    ),
-  ];
+  List<BannerModel> _banners = [];
 
   @override
   void initState() {
@@ -225,7 +225,7 @@ class _BannerCarouselState extends State<_BannerCarousel> {
   }
 
   void _autoScroll() {
-    if (!mounted) return;
+    if (!mounted || _banners.isEmpty) return;
     final next = (_current + 1) % _banners.length;
     _controller.animateToPage(
       next,
@@ -243,133 +243,183 @@ class _BannerCarouselState extends State<_BannerCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          height: 180,
-          child: PageView.builder(
-            controller: _controller,
-            onPageChanged: (i) => setState(() => _current = i),
-            itemCount: _banners.length,
-            itemBuilder: (_, i) => _BannerItem(data: _banners[i]),
+    return Consumer(
+      builder: (context, ref, child) {
+        final bannerAsync = ref.watch(bannerListProvider);
+        return bannerAsync.when(
+          loading: () => const SizedBox(
+            height: 180,
+            child: Center(child: CircularProgressIndicator()),
           ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-            _banners.length,
-            (i) => AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: _current == i ? 20 : 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: _current == i
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(
-                        context,
-                      ).colorScheme.outline.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ),
-        ),
-      ],
+          error: (err, stack) => const SizedBox(height: 180),
+          data: (banners) {
+            _banners = banners;
+            if (_banners.isEmpty) return const SizedBox.shrink();
+            
+            return Column(
+              children: [
+                SizedBox(
+                  height: 180,
+                  child: PageView.builder(
+                    controller: _controller,
+                    onPageChanged: (i) => setState(() => _current = i),
+                    itemCount: _banners.length,
+                    itemBuilder: (context, i) {
+                      final banner = _banners[i];
+                      return GestureDetector(
+                        onTap: banner.targetRoute != null
+                            ? () => context.push(banner.targetRoute!)
+                            : null,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            gradient: banner.startColor != null && banner.endColor != null
+                                ? LinearGradient(
+                                    colors: [banner.startColor!, banner.endColor!],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : null,
+                            color: banner.startColor ?? Theme.of(context).colorScheme.primary,
+                            boxShadow: [
+                              BoxShadow(
+                                color: (banner.startColor ?? Theme.of(context).colorScheme.primary).withValues(alpha: 0.3),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Stack(
+                            children: [
+                              // Decorative circles
+                              Positioned(
+                                right: -20,
+                                top: -20,
+                                child: Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                right: 40,
+                                bottom: -30,
+                                child: Container(
+                                  width: 80,
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                  ),
+                                ),
+                              ),
+                              // Content
+                              Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          if (banner.subtitle != null) ...[
+                                            Text(
+                                              banner.subtitle!,
+                                              style: TextStyle(
+                                                color: Colors.white.withValues(alpha: 0.8),
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                          ],
+                                          Text(
+                                            banner.title,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.bold,
+                                              height: 1.2,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 8,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              'Mua ngay',
+                                              style: TextStyle(
+                                                color: banner.startColor ?? Theme.of(context).colorScheme.primary,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (banner.imageUrl != null)
+                                      Image.network(
+                                        banner.imageUrl!,
+                                        width: 80,
+                                        height: 80,
+                                        fit: BoxFit.contain,
+                                      )
+                                    else if (banner.icon != null)
+                                      Icon(
+                                        banner.icon,
+                                        size: 80,
+                                        color: Colors.white.withValues(alpha: 0.2),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    _banners.length,
+                    (i) => AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: _current == i ? 24 : 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: _current == i
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
 
-class _BannerData {
-  const _BannerData({
-    required this.title,
-    required this.subtitle,
-    required this.gradient,
-    required this.icon,
-  });
-  final String title;
-  final String subtitle;
-  final List<Color> gradient;
-  final IconData icon;
-}
-
-class _BannerItem extends StatelessWidget {
-  const _BannerItem({required this.data});
-  final _BannerData data;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(colors: data.gradient),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -20,
-              bottom: -20,
-              child: Icon(
-                data.icon,
-                size: 140,
-                color: Colors.white.withValues(alpha: 0.12),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    data.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    data.subtitle,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.5),
-                      ),
-                    ),
-                    child: const Text(
-                      'Khám phá ngay',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ── Categories Section ───────────────────────────────────────────────────────
 
@@ -539,7 +589,7 @@ class _BrandChip extends StatelessWidget {
 
 // ── Horizontal Product List ───────────────────────────────────────────────────
 
-enum _ProductProviderType { featured, newArrivals }
+enum _ProductProviderType { featured, newArrivals, recommended }
 
 class _HorizontalProductList extends ConsumerWidget {
   const _HorizontalProductList({required this.providerType});
@@ -547,9 +597,11 @@ class _HorizontalProductList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncProducts = providerType == _ProductProviderType.featured
-        ? ref.watch(featuredProductsProvider)
-        : ref.watch(newArrivalsProvider);
+    final asyncProducts = switch (providerType) {
+      _ProductProviderType.featured => ref.watch(featuredProductsProvider),
+      _ProductProviderType.newArrivals => ref.watch(newArrivalsProvider),
+      _ProductProviderType.recommended => ref.watch(recommendedProductsProvider),
+    };
 
     return SizedBox(
       height: 230,

@@ -104,6 +104,17 @@ class ProductRepository {
     return rows.map((row) => ProductModel.fromJson(row)).toList();
   }
 
+  Future<List<ProductModel>> getRecommendedProducts({int limit = 10}) async {
+    final rows = await _client
+        .from(AppConstants.productsTable)
+        .select(_productSelect)
+        // using average_rating instead of avg_rating as per other methods
+        .order('average_rating', ascending: false)
+        .limit(limit);
+
+    return rows.map((row) => ProductModel.fromJson(row)).toList();
+  }
+
   Future<List<ProductModel>> getRelatedProducts(
     String productId,
     String categoryId, {
@@ -135,10 +146,23 @@ class ProductRepository {
     final rows = await _client
         .from(AppConstants.productsTable)
         .select(_productSelect)
+        .eq('is_active', true)
         .textSearch('name', text.trim(), type: TextSearchType.websearch)
         .order('created_at', ascending: false);
 
     return rows.map((row) => ProductModel.fromJson(row)).toList();
+  }
+
+  Future<List<String>> getSearchSuggestions(String text) async {
+    if (text.trim().isEmpty) return [];
+    final rows = await _client
+        .from(AppConstants.productsTable)
+        .select('name')
+        .eq('is_active', true)
+        .ilike('name', '%${text.trim()}%')
+        .limit(5);
+
+    return rows.map((row) => row['name'] as String).toList();
   }
 
   Future<List<ProductModel>> getAdminProducts({String? search}) async {

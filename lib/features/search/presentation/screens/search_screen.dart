@@ -16,6 +16,7 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchController = TextEditingController();
   final _focusNode = FocusNode();
+  bool _hasSubmitted = false;
 
   @override
   void initState() {
@@ -35,11 +36,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void _onSearchSubmitted(String query) {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return;
+    setState(() => _hasSubmitted = true);
     ref.read(searchHistoryProvider.notifier).addSearchTerm(trimmed);
     ref.read(searchQueryProvider.notifier).set(trimmed);
   }
 
   void _onSearchChanged(String value) {
+    setState(() => _hasSubmitted = false);
     ref.read(searchQueryProvider.notifier).set(value);
   }
 
@@ -106,14 +109,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
             ),
 
-            // ── Body: History or Results ──────────────────────────────
+            // ── Body: History, Suggestions or Results ──────────────────────────────
             Expanded(
               child: query.isEmpty
                   ? _SearchHistorySection(
                       history: history,
                       onTapHistory: (term) {
                         _searchController.text = term;
-                        ref.read(searchQueryProvider.notifier).set(term);
+                        _onSearchSubmitted(term);
                       },
                       onRemoveHistory: (term) {
                         ref
@@ -124,11 +127,50 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ref.read(searchHistoryProvider.notifier).clearHistory();
                       },
                     )
-                  : _SearchResultsSection(searchResults: searchResults),
+                  : (!_hasSubmitted
+                      ? _SearchSuggestionsSection(
+                          onTapSuggestion: (term) {
+                            _searchController.text = term;
+                            _onSearchSubmitted(term);
+                          },
+                        )
+                      : _SearchResultsSection(searchResults: searchResults)),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Search Suggestions Section ────────────────────────────────────────────────
+class _SearchSuggestionsSection extends ConsumerWidget {
+  const _SearchSuggestionsSection({required this.onTapSuggestion});
+  final ValueChanged<String> onTapSuggestion;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final suggestionsAsync = ref.watch(searchSuggestionsProvider);
+
+    return suggestionsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => const SizedBox.shrink(),
+      data: (suggestions) {
+        if (suggestions.isEmpty) {
+          return const Center(child: Text('Không tìm thấy gợi ý nào.'));
+        }
+        return ListView.builder(
+          itemCount: suggestions.length,
+          itemBuilder: (context, index) {
+            final term = suggestions[index];
+            return ListTile(
+              leading: const Icon(Icons.search, color: Colors.grey),
+              title: Text(term),
+              onTap: () => onTapSuggestion(term),
+            );
+          },
+        );
+      },
     );
   }
 }

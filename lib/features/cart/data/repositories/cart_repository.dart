@@ -11,7 +11,7 @@ class CartRepository {
   final ProductRepository _productRepository;
 
   static const _cartSelect =
-      '*, variant:product_variants(id, price, stock, sku, images, metadata, '
+      '*, variant:product_variants(id, price, stock, sku, metadata, '
       'product:products(id, category_id, brand_id, name, slug, base_price, '
       'compare_at_price, cost_price, status, is_featured, is_digital, '
       'requires_shipping, weight_grams, tags, attributes, seo_title, '

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/enums/database_enums.dart';
 import '../../data/models/coupon_model.dart';
 import '../widgets/coupon_card.dart';
 
@@ -15,7 +16,7 @@ class CouponsScreen extends StatefulWidget {
 
 class _CouponsScreenState extends State<CouponsScreen> {
   // Mock data for coupons - Replace with real provider data
-  static const List<VoucherModel> mockCoupons = [
+  static final List<VoucherModel> mockCoupons = [
     VoucherModel(
       id: '1',
       code: 'SAVE20',
@@ -33,7 +34,7 @@ class _CouponsScreenState extends State<CouponsScreen> {
       code: 'FLAT50K',
       name: 'Giảm 50.000đ',
       description: 'Giảm 50.000đ cho đơn hàng từ 200.000đ',
-      type: VoucherType.fixed,
+      type: VoucherType.fixedAmount,
       discountValue: 50000,
       scope: VoucherScope.global,
       minOrderAmount: 200000,
@@ -98,7 +99,7 @@ class _CouponsScreenState extends State<CouponsScreen> {
                 ),
               ),
             ),
-            const SliverToBoxAdapter(height: AppSpacing.md),
+            SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
 
             // Coupons list
             SliverPadding(
@@ -115,7 +116,7 @@ class _CouponsScreenState extends State<CouponsScreen> {
                 ),
               ),
             ),
-            const SliverToBoxAdapter(height: AppSpacing.pageHorizontal),
+            SliverToBoxAdapter(child: SizedBox(height: AppSpacing.pageHorizontal)),
           ],
         ),
       ),

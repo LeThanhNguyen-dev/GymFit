@@ -3,14 +3,8 @@ class AppConstants {
 
   static const useMockAuth = false;  // chỉnh true để teesst thôi nhé còn không thì để false
 
-  static const supabaseUrl = String.fromEnvironment(
-    'SUPABASE_URL',
-    defaultValue: 'https://oigcpptcdbixpnwqycav.supabase.co',
-  );
-  static const supabaseAnonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-    defaultValue: 'sb_publishable_jG80ZvjVqynLskXnGnq-Hg_DLUg0cha',
-  );
+  static const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  static const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
   static const productsTable = 'products';
   static const usersTable = 'users';
@@ -27,6 +21,7 @@ class AppConstants {
   static const shippingTrackingTable = 'shipping_tracking';
   static const supportTicketsTable = 'support_tickets';
   static const aiRecommendationLogsTable = 'ai_recommendation_logs';
+  static const shopRegistrationsTable = 'shop_registrations';
 
   static const productImagesBucket = 'product-images';
   static const avatarImagesBucket = 'avatars';

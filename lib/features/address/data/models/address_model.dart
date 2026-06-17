@@ -42,6 +42,18 @@ class AddressModel {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+  String get fullAddress {
+    final parts = <String>[
+      addressLine1,
+      if (addressLine2 != null) addressLine2!,
+      if (ward != null) ward!,
+      if (district != null) district!,
+      city,
+      if (province != null) province!,
+    ];
+    return parts.join(', ');
+  }
+
   factory AddressModel.fromJson(Map<String, dynamic> json) => AddressModel(
     id: json['id'].toString(),
     userId: json['user_id'].toString(),
@@ -83,4 +95,46 @@ class AddressModel {
     'created_at': dateTimeToJson(createdAt),
     'updated_at': dateTimeToJson(updatedAt),
   };
+
+  AddressModel copyWith({
+    String? id,
+    String? userId,
+    AddressType? type,
+    String? fullName,
+    String? phone,
+    String? addressLine1,
+    String? addressLine2,
+    String? ward,
+    String? district,
+    String? city,
+    String? province,
+    String? country,
+    String? postalCode,
+    bool? isDefault,
+    double? latitude,
+    double? longitude,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return AddressModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      type: type ?? this.type,
+      fullName: fullName ?? this.fullName,
+      phone: phone ?? this.phone,
+      addressLine1: addressLine1 ?? this.addressLine1,
+      addressLine2: addressLine2 ?? this.addressLine2,
+      ward: ward ?? this.ward,
+      district: district ?? this.district,
+      city: city ?? this.city,
+      province: province ?? this.province,
+      country: country ?? this.country,
+      postalCode: postalCode ?? this.postalCode,
+      isDefault: isDefault ?? this.isDefault,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }

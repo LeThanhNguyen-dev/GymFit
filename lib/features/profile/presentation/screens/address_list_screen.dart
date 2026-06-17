@@ -12,15 +12,15 @@ import '../../../../shared/widgets/app_error_widget.dart';
 import '../../../../shared/widgets/app_loading.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_text_field.dart';
-import '../../data/models/address_model.dart';
-import '../../providers/profile_providers.dart';
+import '../../../address/data/models/address_model.dart';
+import '../../../address/providers/address_providers.dart';
 
 class AddressListScreen extends ConsumerWidget {
   const AddressListScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final addressesAsync = ref.watch(addressListProvider);
+    final addressesAsync = ref.watch(userAddressesProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -35,7 +35,7 @@ class AddressListScreen extends ConsumerWidget {
         loading: () => const AppLoading(),
         error: (error, _) => AppErrorWidget(
           message: error.toString(),
-          onRetry: () => ref.invalidate(addressListProvider),
+          onRetry: () => ref.invalidate(userAddressesProvider),
         ),
         data: (addresses) {
           if (addresses.isEmpty) {
@@ -88,7 +88,7 @@ class AddressListScreen extends ConsumerWidget {
             } else {
               await repo.createAddress(address);
             }
-            ref.invalidate(addressListProvider);
+            ref.invalidate(userAddressesProvider);
             if (context.mounted) {
               showAppSnackbar(context,
                   message: existing != null
@@ -124,7 +124,7 @@ class AddressListScreen extends ConsumerWidget {
       try {
         final repo = ref.read(addressRepositoryProvider);
         await repo.deleteAddress(address.id);
-        ref.invalidate(addressListProvider);
+        ref.invalidate(userAddressesProvider);
         if (context.mounted) {
           showAppSnackbar(context,
               message: 'Đã xóa địa chỉ', type: SnackbarType.success);
@@ -146,8 +146,8 @@ class AddressListScreen extends ConsumerWidget {
   ) async {
     try {
       final repo = ref.read(addressRepositoryProvider);
-      await repo.setDefaultAddress(address.id);
-      ref.invalidate(addressListProvider);
+      await repo.setDefaultAddress(address.id, address.userId);
+      ref.invalidate(userAddressesProvider);
       if (context.mounted) {
         showAppSnackbar(context,
             message: 'Đã đặt làm mặc định', type: SnackbarType.success);

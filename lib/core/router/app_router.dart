@@ -23,6 +23,33 @@ import '../../features/wishlist/presentation/screens/wishlist_screen.dart';
 import '../../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../../features/profile/presentation/screens/address_list_screen.dart';
 import '../../features/reviews/presentation/screens/review_form_screen.dart';
+import '../../features/admin/dashboard/admin_dashboard_screen.dart';
+import '../../features/admin/products/admin_products.dart';
+import '../../features/admin/orders/admin_orders_screen.dart';
+import '../../features/admin/categories/admin_categories.dart';
+import '../../features/admin/brands/admin_brands.dart';
+import '../../features/admin/coupons/admin_coupons.dart';
+import '../../features/admin/reviews/admin_reviews.dart';
+import '../../features/admin/dashboard/presentation/inventory_screen.dart';
+import '../../features/admin/users/admin_users_screen.dart';
+import '../../features/admin/users/admin_user_detail_screen.dart';
+import '../../features/admin/shops/admin_shops_screen.dart';
+import '../../features/admin/shops/admin_shop_detail_screen.dart';
+import '../../features/admin/shops/admin_product_moderation_screen.dart';
+import '../../features/admin/orders/admin_order_detail_screen.dart';
+import '../../features/admin/finance/admin_finance_screen.dart';
+import '../../features/admin/settings/admin_settings_screen.dart';
+import '../../features/products/presentation/screens/compare_screen.dart';
+import '../../features/register_shop/presentation/screens/register_shop_screen.dart';
+import '../../features/register_shop/data/models/shop_registration_model.dart';
+import '../../features/store/presentation/screens/store_shell.dart';
+import '../../features/store/presentation/screens/store_dashboard/dashboard_screen.dart';
+import '../../features/store/presentation/screens/store_products/product_list_screen.dart' as store_products;
+import '../../features/store/presentation/screens/store_products/product_form_screen.dart' as store_products;
+import '../../features/store/presentation/screens/store_orders/order_list_screen.dart' as store_orders;
+import '../../features/store/presentation/screens/store_orders/order_detail_screen.dart' as store_orders;
+import '../../features/store/presentation/screens/store_finance/finance_screen.dart';
+import '../../features/store/presentation/screens/store_settings/settings_screen.dart';
 import 'route_names.dart';
 import '../services/deep_link_service.dart';
 
@@ -56,7 +83,28 @@ final routerNotifierProvider = Provider<GoRouter>((ref) {
       }
 
       if (isLoggedIn && publicRoutes.contains(path)) {
+        final user = authState.user;
+        if (user != null) {
+          if (user.role == 'admin') return RouteNames.adminDashboardPath;
+          if (user.role == 'storeowner' || user.sellerStatus == 'approved') {
+            return RouteNames.storeDashboardPath;
+          }
+        }
         return RouteNames.homePath;
+      }
+
+      if (path.startsWith('/admin')) {
+        final user = authState.user;
+        if (user == null || user.role != 'admin') {
+          return RouteNames.homePath;
+        }
+      }
+
+      if (path.startsWith('/store')) {
+        final user = authState.user;
+        if (user == null || (user.role != 'storeowner' && user.sellerStatus != 'approved')) {
+          return RouteNames.homePath;
+        }
       }
 
       return null;
@@ -75,7 +123,12 @@ List<RouteBase> _buildRoutes() {
     GoRoute(
       path: RouteNames.registerPath,
       name: RouteNames.register,
-      builder: (_, _) => const AuthScreen(),
+      builder: (_, _) => const AuthScreen(initialPage: AuthPageType.register),
+    ),
+    GoRoute(
+      path: RouteNames.forgotPasswordPath,
+      name: RouteNames.forgotPassword,
+      builder: (_, _) => const AuthScreen(initialPage: AuthPageType.forgotPassword),
     ),
     GoRoute(
       path: '/reset-password',
@@ -136,7 +189,7 @@ List<RouteBase> _buildRoutes() {
 
             return const Scaffold(
               body: Center(
-                child: Text('Khong co du lieu trang thai thanh toan.'),
+                child: Text('Payment data not available.'),
               ),
             );
           },
@@ -194,6 +247,11 @@ List<RouteBase> _buildRoutes() {
           builder: (_, _) => const WishlistScreen(),
         ),
         GoRoute(
+          path: '/compare',
+          name: 'compare',
+          builder: (_, _) => const CompareScreen(),
+        ),
+        GoRoute(
           path: RouteNames.profilePath,
           name: RouteNames.profile,
           builder: (_, _) => const ProfileScreen(),
@@ -212,7 +270,7 @@ List<RouteBase> _buildRoutes() {
               );
             }
             return const Scaffold(
-              body: Center(child: Text('Thiếu thông tin để viết đánh giá.')),
+              body: Center(child: Text('Missing review information.')),
             );
           },
         ),
@@ -239,7 +297,147 @@ List<RouteBase> _buildRoutes() {
       name: RouteNames.editAddress,
       builder: (_, _) => const AddressListScreen(),
     ),
+    GoRoute(
+      path: RouteNames.registerShopPath,
+      name: RouteNames.registerShop,
+      builder: (_, state) {
+        final extra = state.extra;
+        return RegisterShopScreen(
+          existingRegistration: extra is ShopRegistrationModel ? extra : null,
+        );
+      },
+    ),
+    // Admin Shell + Routes
+    ShellRoute(
+      builder: (_, _, child) => _AdminShell(child: child),
+      routes: [
+        GoRoute(path: RouteNames.adminPath, name: RouteNames.admin, redirect: (_, _) => RouteNames.adminDashboardPath),
+        // 6 main tabs
+        GoRoute(path: RouteNames.adminDashboardPath, name: RouteNames.adminDashboard, builder: (_, _) => const AdminDashboardScreen()),
+        GoRoute(path: RouteNames.adminShopsPath, name: RouteNames.adminShops, builder: (_, _) => const AdminShopsScreen()),
+        GoRoute(path: RouteNames.adminUsersPath, name: RouteNames.adminUsers, builder: (_, _) => const AdminUsersScreen()),
+        GoRoute(path: RouteNames.adminOrdersPath, name: RouteNames.adminOrders, builder: (_, _) => const AdminOrdersScreen()),
+        GoRoute(path: RouteNames.adminFinancePath, name: RouteNames.adminFinance, builder: (_, _) => const AdminFinanceScreen()),
+        GoRoute(path: RouteNames.adminSettingsPath, name: RouteNames.adminSettings, builder: (_, _) => const AdminSettingsScreen()),
+        // Sub-screens (detail pages)
+        GoRoute(path: RouteNames.adminShopDetailPath, name: RouteNames.adminShopDetail, builder: (_, state) => AdminShopDetailScreen(shopId: state.pathParameters['id'] ?? '')),
+        GoRoute(path: RouteNames.adminUserDetailPath, name: RouteNames.adminUserDetail, builder: (_, state) => AdminUserDetailScreen(userId: state.pathParameters['id'] ?? '')),
+        GoRoute(path: RouteNames.adminOrderDetailPath, name: RouteNames.adminOrderDetail, builder: (_, state) => AdminOrderDetailScreen(orderId: state.pathParameters['id'] ?? '')),
+        GoRoute(path: RouteNames.adminDisputesPath, name: RouteNames.adminDisputes, builder: (_, _) => const AdminOrdersScreen()),
+        GoRoute(path: RouteNames.adminProductModerationPath, name: RouteNames.adminProductModeration, builder: (_, _) => const AdminProductModerationScreen()),
+        // Legacy routes (keep backward compat)
+        GoRoute(path: RouteNames.adminProductsPath, name: RouteNames.adminProducts, builder: (_, _) => const AdminProductsScreen()),
+        GoRoute(path: RouteNames.adminCategoriesPath, name: RouteNames.adminCategories, builder: (_, _) => const AdminCategoriesScreen()),
+        GoRoute(path: RouteNames.adminBrandsPath, name: RouteNames.adminBrands, builder: (_, _) => const AdminBrandsScreen()),
+        GoRoute(path: RouteNames.adminVouchersPath, name: RouteNames.adminVouchers, builder: (_, _) => const AdminCouponsScreen()),
+        GoRoute(path: RouteNames.adminInventoryPath, name: RouteNames.adminInventory, builder: (_, _) => const InventoryScreen()),
+        GoRoute(path: RouteNames.adminReviewsPath, name: RouteNames.adminReviews, builder: (_, _) => const AdminReviewsScreen()),
+        GoRoute(path: RouteNames.adminShopRegistrationsPath, name: RouteNames.adminShopRegistrations, builder: (_, _) => const AdminShopsScreen()),
+      ],
+    ),
+    // Store Owner Shell + Routes
+    ShellRoute(
+      builder: (_, _, child) => StoreShell(child: child),
+      routes: [
+        GoRoute(
+          path: RouteNames.storePath,
+          name: RouteNames.store,
+          redirect: (_, _) => RouteNames.storeDashboardPath,
+        ),
+        GoRoute(
+          path: RouteNames.storeDashboardPath,
+          name: RouteNames.storeDashboard,
+          builder: (_, _) => const DashboardScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.storeProductsPath,
+          name: RouteNames.storeProducts,
+          builder: (_, _) => const store_products.StoreProductListScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.storeOrdersPath,
+          name: RouteNames.storeOrders,
+          builder: (_, _) => const store_orders.StoreOrderListScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.storeFinancePath,
+          name: RouteNames.storeFinance,
+          builder: (_, _) => const FinanceScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.storeSettingsPath,
+          name: RouteNames.storeSettings,
+          builder: (_, _) => const SettingsScreen(),
+        ),
+        // Sub-screens (not in bottom nav)
+        GoRoute(
+          path: RouteNames.storeAddProductPath,
+          name: RouteNames.storeAddProduct,
+          builder: (_, _) => const store_products.StoreProductFormScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.storeEditProductPath,
+          name: RouteNames.storeEditProduct,
+          builder: (_, state) => store_products.StoreProductFormScreen(productId: state.pathParameters['id']),
+        ),
+        GoRoute(
+          path: RouteNames.storeOrderDetailPath,
+          name: RouteNames.storeOrderDetail,
+          builder: (_, state) => store_orders.StoreOrderDetailScreen(orderId: state.pathParameters['id'] ?? ''),
+        ),
+      ],
+    ),
   ];
+}
+
+class _AdminShell extends StatelessWidget {
+  const _AdminShell({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Row(
+        children: [
+          NavigationRail(
+            selectedIndex: _adminIndex(context),
+            onDestinationSelected: (index) {
+              switch (index) {
+                case 0: GoRouter.of(context).go(RouteNames.adminDashboardPath);
+                case 1: GoRouter.of(context).go(RouteNames.adminShopsPath);
+                case 2: GoRouter.of(context).go(RouteNames.adminUsersPath);
+                case 3: GoRouter.of(context).go(RouteNames.adminOrdersPath);
+                case 4: GoRouter.of(context).go(RouteNames.adminFinancePath);
+                case 5: GoRouter.of(context).go(RouteNames.adminSettingsPath);
+              }
+            },
+            labelType: NavigationRailLabelType.all,
+            destinations: const [
+              NavigationRailDestination(icon: Icon(Icons.dashboard), label: Text('Tổng quan')),
+              NavigationRailDestination(icon: Icon(Icons.store), label: Text('Shop')),
+              NavigationRailDestination(icon: Icon(Icons.people), label: Text('User')),
+              NavigationRailDestination(icon: Icon(Icons.receipt_long), label: Text('Đơn hàng')),
+              NavigationRailDestination(icon: Icon(Icons.account_balance_wallet), label: Text('Tài chính')),
+              NavigationRailDestination(icon: Icon(Icons.settings), label: Text('Cài đặt')),
+            ],
+          ),
+          const VerticalDivider(width: 1),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+
+  int _adminIndex(BuildContext context) {
+    final location = GoRouterState.of(context).matchedLocation;
+    if (location.startsWith(RouteNames.adminShopsPath)) return 1;
+    if (location.startsWith(RouteNames.adminUsersPath)) return 2;
+    if (location.startsWith(RouteNames.adminOrdersPath)) return 3;
+    if (location.startsWith(RouteNames.adminFinancePath)) return 4;
+    if (location.startsWith(RouteNames.adminSettingsPath)) return 5;
+    return 0;
+  }
 }
 
 class _MainShell extends StatelessWidget {

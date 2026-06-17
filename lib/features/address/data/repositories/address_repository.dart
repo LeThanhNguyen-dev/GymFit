@@ -36,4 +36,44 @@ class AddressRepository {
         .maybeSingle();
     return row == null ? null : AddressModel.fromJson(row);
   }
+
+  Future<AddressModel> createAddress(AddressModel address) async {
+    final data = address.toJson();
+    data.remove('id');
+    data.remove('created_at');
+    data.remove('updated_at');
+    final row = await _client
+        .from(AppConstants.addressesTable)
+        .insert(data)
+        .select()
+        .single();
+    return AddressModel.fromJson(row);
+  }
+
+  Future<AddressModel> updateAddress(AddressModel address) async {
+    final data = address.toJson();
+    data.remove('id');
+    data.remove('user_id');
+    data.remove('created_at');
+    final row = await _client
+        .from(AppConstants.addressesTable)
+        .update(data)
+        .eq('id', address.id)
+        .select()
+        .single();
+    return AddressModel.fromJson(row);
+  }
+
+  Future<void> deleteAddress(String id) async {
+    await _client.from(AppConstants.addressesTable).delete().eq('id', id);
+  }
+
+  Future<void> setDefaultAddress(String id, String userId) async {
+    await _client.from(AppConstants.addressesTable).update({
+      'is_default': false,
+    }).eq('user_id', userId).neq('id', id);
+    await _client.from(AppConstants.addressesTable).update({
+      'is_default': true,
+    }).eq('id', id);
+  }
 }
