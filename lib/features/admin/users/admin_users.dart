@@ -1,2 +1,13 @@
-// Admin users module placeholder for customer management and roles.
+import 'package:flutter/material.dart';
 
+class AdminUsersScreen extends StatelessWidget {
+  const AdminUsersScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Quản lý người dùng')),
+      body: const Center(child: Text('Admin Users Placeholder')),
+    );
+  }
+}
