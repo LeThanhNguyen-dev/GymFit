@@ -146,7 +146,7 @@ class AddressListScreen extends ConsumerWidget {
   ) async {
     try {
       final repo = ref.read(addressRepositoryProvider);
-      await repo.setDefaultAddress(address.id);
+      await repo.setDefaultAddress(address.id, address.userId);
       ref.invalidate(userAddressesProvider);
       if (context.mounted) {
         showAppSnackbar(context,

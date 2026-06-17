@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../cart/providers/cart_providers.dart';
+import '../../../../core/widgets/navbar.dart';
 import '../../../products/data/models/product_model.dart';
 import '../../../products/providers/brand_providers.dart';
 import '../../../products/providers/category_providers.dart';
@@ -137,6 +138,13 @@ class HomeScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
+                  ),
+
+                  // ── Navigation Bar ──────────────────────────────────────
+                  NavBar(
+                    onCategorySelected: (slug) {
+                      context.push('/products?category=$slug');
+                    },
                   ),
 
                   // ── Banner Carousel ──────────────────────────────────────

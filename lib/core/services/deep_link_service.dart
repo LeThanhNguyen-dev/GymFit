@@ -17,6 +17,11 @@ class DeepLinkService {
   Future<void> init() async {
     _appLinks = AppLinks();
 
+    final initialUri = await _appLinks.getInitialLink();
+    if (initialUri != null) {
+      _handleUri(initialUri);
+    }
+
     _appLinks.uriLinkStream.listen((uri) {
       _handleUri(uri);
     });

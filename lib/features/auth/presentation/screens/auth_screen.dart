@@ -11,8 +11,12 @@ import '../../providers/auth_providers.dart';
 import '../widgets/auth_form.dart';
 import 'reset_password_screen.dart';
 
+enum AuthPageType { login, register, forgotPassword }
+
 class AuthScreen extends ConsumerWidget {
-  const AuthScreen({super.key});
+  const AuthScreen({super.key, this.initialPage});
+
+  final AuthPageType? initialPage;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -45,7 +49,7 @@ class AuthScreen extends ConsumerWidget {
                 else if (authState.resetToken != null)
                   const ResetPasswordScreen()
                 else
-                  const AuthForm(),
+                  AuthForm(initialPage: initialPage),
               ],
             ),
           ),

@@ -132,7 +132,7 @@ class AppTheme {
       ),
 
       // Card
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.lightSurface,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -223,7 +223,7 @@ class AppTheme {
       ),
 
       // Dialog
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: AppColors.lightSurface,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -548,93 +548,6 @@ class AppTheme {
         foregroundColor: AppColors.onPrimaryContainer,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-    );
-  }
-
-  static ThemeData get light {
-    final colorScheme = ColorScheme.light(
-      primary: AppColors.lightPrimary,
-      onPrimary: AppColors.lightOnPrimary,
-      primaryContainer: AppColors.lightPrimaryContainer,
-      onPrimaryContainer: AppColors.lightOnPrimaryContainer,
-      secondary: AppColors.secondary,
-      onSecondary: AppColors.onSecondary,
-      secondaryContainer: AppColors.secondaryContainer,
-      onSecondaryContainer: AppColors.onSecondaryContainer,
-      tertiary: AppColors.tertiary,
-      onTertiary: AppColors.onTertiary,
-      error: AppColors.lightError,
-      onError: AppColors.lightOnError,
-      surface: AppColors.lightSurface,
-      onSurface: AppColors.lightOnSurface,
-      surfaceContainerHighest: AppColors.lightSurfaceVariant,
-      onSurfaceVariant: AppColors.lightOnSurfaceVariant,
-      outline: AppColors.lightOutline,
-    );
-
-    return ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.light,
-      colorScheme: colorScheme,
-      scaffoldBackgroundColor: AppColors.lightBackground,
-      textTheme: AppTheme.dark.textTheme,
-      appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.lightSurface,
-        foregroundColor: AppColors.lightOnSurface,
-        elevation: 0,
-        centerTitle: true,
-        titleTextStyle: AppTextStyles.titleMedium,
-      ),
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: AppColors.lightSurface,
-        selectedItemColor: AppColors.lightPrimary,
-        unselectedItemColor: AppColors.lightOnSurfaceVariant,
-        type: BottomNavigationBarType.fixed,
-      ),
-      cardTheme: CardThemeData(
-        color: AppColors.lightSurface,
-        elevation: 1,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: colorScheme.primary,
-          foregroundColor: colorScheme.onPrimary,
-          minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          textStyle: AppTextStyles.buttonLarge,
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: colorScheme.primary,
-          side: BorderSide(color: colorScheme.outline),
-          minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: AppColors.lightSurfaceVariant,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: colorScheme.primary, width: 2),
         ),
       ),
     );

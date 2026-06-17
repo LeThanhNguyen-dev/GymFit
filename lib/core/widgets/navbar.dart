@@ -34,36 +34,62 @@ class _NavBarState extends ConsumerState<NavBar> {
     final menuAsync = ref.watch(completeMenuProvider);
 
     return menuAsync.when(
-      loading: () => Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: SizedBox(
-          height: 50,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: List.generate(
-              3,
-              (index) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Container(
-                  width: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
+      loading: () => _buildLoadingState(),
+      error: (err, stack) {
+        debugPrint('Navbar error: $err');
+        return _buildErrorState(err.toString());
+      },
+      data: (menuItems) {
+        if (menuItems.isEmpty) {
+          return _buildEmptyState();
+        }
+        return _buildNavBar(context, menuItems);
+      },
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: SizedBox(
+        height: 50,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: List.generate(
+            3,
+            (index) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Container(
+                width: 80,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(4),
                 ),
               ),
             ),
           ),
         ),
       ),
-      error: (err, stack) => Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Text(
-          'Lỗi tải menu: $err',
-          style: AppTextStyles.bodySmall.copyWith(color: Colors.red),
-        ),
+    );
+  }
+
+  Widget _buildErrorState(String error) {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Text(
+        'Lỗi tải menu',
+        style: AppTextStyles.bodySmall.copyWith(color: Colors.red),
       ),
-      data: (menuItems) => _buildNavBar(context, menuItems),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Text(
+        'Chưa có danh mục',
+        style: AppTextStyles.bodySmall,
+      ),
     );
   }
 
@@ -154,7 +180,7 @@ class _NavBarState extends ConsumerState<NavBar> {
                             Icon(
                               Icons.arrow_right,
                               size: 16,
-                              color: AppColors.textSecondary,
+                              color: AppColors.onSurfaceVariant,
                             ),
                         ],
                       ),
@@ -190,7 +216,7 @@ class _NavBarState extends ConsumerState<NavBar> {
                           level1.children.length -
                               1) // Divider between items
                         Divider(
-                          color: AppColors.divider,
+                          color: AppColors.outlineVariant,
                           height: AppSpacing.md,
                         ),
                     ],
@@ -211,7 +237,7 @@ class _NavBarState extends ConsumerState<NavBar> {
             Text(
               level1.name,
               style: AppTextStyles.bodyMedium.copyWith(
-                color: isExpanded ? AppColors.primary : AppColors.textPrimary,
+                color: isExpanded ? AppColors.primary : AppColors.onSurface,
                 fontWeight: isExpanded ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
@@ -221,7 +247,7 @@ class _NavBarState extends ConsumerState<NavBar> {
                 child: Icon(
                   Icons.expand_more,
                   size: 18,
-                  color: isExpanded ? AppColors.primary : AppColors.textSecondary,
+                  color: isExpanded ? AppColors.primary : AppColors.onSurfaceVariant,
                 ),
               ),
           ],
@@ -327,7 +353,7 @@ class _DesktopNavBarState extends ConsumerState<DesktopNavBar> {
                 Text(
                   level1.name,
                   style: AppTextStyles.bodyMedium.copyWith(
-                    color: isHovered ? AppColors.primary : AppColors.textPrimary,
+                    color: isHovered ? AppColors.primary : AppColors.onSurface,
                     fontWeight: isHovered ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
@@ -339,7 +365,7 @@ class _DesktopNavBarState extends ConsumerState<DesktopNavBar> {
                       size: 18,
                       color: isHovered
                           ? AppColors.primary
-                          : AppColors.textSecondary,
+                          : AppColors.onSurfaceVariant,
                     ),
                   ),
               ],

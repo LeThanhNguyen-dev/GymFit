@@ -21,6 +21,7 @@ class AppConstants {
   static const shippingTrackingTable = 'shipping_tracking';
   static const supportTicketsTable = 'support_tickets';
   static const aiRecommendationLogsTable = 'ai_recommendation_logs';
+  static const shopRegistrationsTable = 'shop_registrations';
 
   static const productImagesBucket = 'product-images';
   static const avatarImagesBucket = 'avatars';

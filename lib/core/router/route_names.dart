@@ -46,16 +46,45 @@ class RouteNames {
   static const String supportList = 'supportList';
   static const String supportDetail = 'supportDetail';
 
-  // Admin
+  // Shop Registration
+  static const String registerShop = 'registerShop';
+
+  // Store Owner
+  static const String store = 'store';
+  static const String storeDashboard = 'storeDashboard';
+  static const String storeProducts = 'storeProducts';
+  static const String storeOrders = 'storeOrders';
+  static const String storeFinance = 'storeFinance';
+  static const String storeSettings = 'storeSettings';
+  static const String storeAddProduct = 'storeAddProduct';
+  static const String storeEditProduct = 'storeEditProduct';
+  static const String storeOrderDetail = 'storeOrderDetail';
+
+  // Admin — 6 tabs
   static const String admin = 'admin';
   static const String adminDashboard = 'adminDashboard';
+  static const String adminShops = 'adminShops';
+  static const String adminUsers = 'adminUsers';
+  static const String adminOrders = 'adminOrders';
+  static const String adminFinance = 'adminFinance';
+  static const String adminSettings = 'adminSettings';
+
+  // Admin sub-screens
+  static const String adminShopDetail = 'adminShopDetail';
+  static const String adminShopRegistrations = 'adminShopRegistrations';
+  static const String adminProductModeration = 'adminProductModeration';
+  static const String adminUserDetail = 'adminUserDetail';
+  static const String adminOrderDetail = 'adminOrderDetail';
+  static const String adminDisputes = 'adminDisputes';
+  static const String adminDisputeDetail = 'adminDisputeDetail';
+  static const String adminWithdrawalDetail = 'adminWithdrawalDetail';
+
+  // Legacy (keep for backward compat)
   static const String adminProducts = 'adminProducts';
   static const String adminCategories = 'adminCategories';
   static const String adminBrands = 'adminBrands';
-  static const String adminOrders = 'adminOrders';
   static const String adminVouchers = 'adminVouchers';
   static const String adminInventory = 'adminInventory';
-  static const String adminUsers = 'adminUsers';
   static const String adminReviews = 'adminReviews';
 
   // Route paths
@@ -84,14 +113,41 @@ class RouteNames {
   static const String reviewFormPath = '/review';
   static const String supportListPath = '/support';
   static const String supportDetailPath = '/support/:id';
+  static const String registerShopPath = '/register-shop';
   static const String adminPath = '/admin';
   static const String adminDashboardPath = '/admin/dashboard';
+  static const String adminShopsPath = '/admin/shops';
+  static const String adminUsersPath = '/admin/users';
+  static const String adminOrdersPath = '/admin/orders';
+  static const String adminFinancePath = '/admin/finance';
+  static const String adminSettingsPath = '/admin/settings';
+
+  // Admin sub paths
+  static const String adminShopDetailPath = '/admin/shops/:id';
+  static const String adminShopRegistrationsPath = '/admin/shop-registrations';
+  static const String adminProductModerationPath = '/admin/product-moderation';
+  static const String adminUserDetailPath = '/admin/users/:id';
+  static const String adminOrderDetailPath = '/admin/orders/:id';
+  static const String adminDisputesPath = '/admin/disputes';
+  static const String adminDisputeDetailPath = '/admin/disputes/:id';
+  static const String adminWithdrawalDetailPath = '/admin/withdrawals/:id';
+
+  // Legacy paths
   static const String adminProductsPath = '/admin/products';
   static const String adminCategoriesPath = '/admin/categories';
   static const String adminBrandsPath = '/admin/brands';
-  static const String adminOrdersPath = '/admin/orders';
   static const String adminVouchersPath = '/admin/vouchers';
   static const String adminInventoryPath = '/admin/inventory';
-  static const String adminUsersPath = '/admin/users';
   static const String adminReviewsPath = '/admin/reviews';
+
+  // Store Owner paths
+  static const String storePath = '/store';
+  static const String storeDashboardPath = '/store/dashboard';
+  static const String storeProductsPath = '/store/products';
+  static const String storeOrdersPath = '/store/orders';
+  static const String storeFinancePath = '/store/finance';
+  static const String storeSettingsPath = '/store/settings';
+  static const String storeAddProductPath = '/store/products/add';
+  static const String storeEditProductPath = '/store/products/:id/edit';
+  static const String storeOrderDetailPath = '/store/orders/:id';
 }

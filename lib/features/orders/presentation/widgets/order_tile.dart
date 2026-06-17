@@ -56,11 +56,11 @@ class OrderTile extends StatelessWidget {
                     ],
                   ),
                   Chip(
-                    label: Text(_statusDisplay(order.status)),
-                    backgroundColor: _statusColor(order.status)
+                    label: Text(order.statusText),
+                    backgroundColor: order.statusColor
                         .withValues(alpha: 0.2),
                     labelStyle: TextStyle(
-                      color: _statusColor(order.status),
+                      color: order.statusColor,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -134,7 +134,7 @@ class OrderTile extends StatelessWidget {
                     style: AppTextStyles.bodyMedium,
                   ),
                   Text(
-                    formatCurrency(order.totalPrice),
+                    formatCurrency(order.totalAmount),
                     style: AppTextStyles.titleSmall.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w700,
@@ -147,38 +147,6 @@ class OrderTile extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _statusDisplay(String status) {
-    const statusMap = {
-      'pending': 'Chờ xác nhận',
-      'confirmed': 'Đã xác nhận',
-      'processing': 'Đang xử lý',
-      'shipped': 'Đang giao',
-      'delivered': 'Đã giao',
-      'cancelled': 'Đã hủy',
-      'returned': 'Đã trả hàng',
-    };
-    return statusMap[status] ?? status;
-  }
-
-  Color _statusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return AppColors.warning;
-      case 'confirmed':
-      case 'processing':
-        return AppColors.info;
-      case 'shipped':
-        return AppColors.secondary;
-      case 'delivered':
-        return AppColors.success;
-      case 'cancelled':
-      case 'returned':
-        return AppColors.error;
-      default:
-        return AppColors.onSurface;
-    }
   }
 
   String _formatDate(DateTime? date) {

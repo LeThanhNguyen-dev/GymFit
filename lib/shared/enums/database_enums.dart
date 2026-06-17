@@ -73,6 +73,10 @@ enum TicketCategory {
   other,
 }
 
+enum ShopRegistrationStatus { pending, approved, rejected }
+
+enum BusinessType { individual, household, company }
+
 String enumToSnake(Enum value) {
   return value.name.replaceAllMapped(
     RegExp('[A-Z]'),

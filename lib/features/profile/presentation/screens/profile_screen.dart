@@ -6,7 +6,10 @@ import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/enums/database_enums.dart';
 import '../../../auth/providers/auth_providers.dart';
+import '../../../register_shop/data/models/shop_registration_model.dart';
+import '../../../register_shop/providers/shop_registration_providers.dart';
 import '../../data/models/profile_model.dart';
 import '../../providers/profile_providers.dart';
 import '../widgets/profile_header.dart';
@@ -143,8 +146,19 @@ class ProfileScreen extends ConsumerWidget {
                 label: 'Quản trị',
                 onTap: () => context.go(RouteNames.adminDashboardPath),
               ),
+            if (profile.role == 'storeowner' || profile.sellerStatus == 'approved')
+              _MenuItem(
+                icon: Icons.store,
+                label: 'Quản lý Shop',
+                onTap: () => context.go(RouteNames.storeDashboardPath),
+              ),
           ],
         ),
+
+        const SizedBox(height: AppSpacing.sm),
+
+        // Shop Registration
+        _ShopRegistrationSection(profile: profile),
 
         const SizedBox(height: AppSpacing.sm),
 
@@ -175,6 +189,120 @@ class ProfileScreen extends ConsumerWidget {
       'seller' => 'Người bán',
       _ => 'Khách hàng',
     };
+  }
+}
+
+class _ShopRegistrationSection extends ConsumerWidget {
+  const _ShopRegistrationSection({required this.profile});
+
+  final ProfileModel profile;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final registrationAsync = ref.watch(myShopRegistrationProvider);
+
+    return registrationAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => profile.sellerStatus == 'none'
+          ? _buildRegisterButton(context)
+          : const SizedBox.shrink(),
+      data: (registration) {
+        if (profile.sellerStatus == 'none' && registration == null) {
+          return _buildRegisterButton(context);
+        }
+        if (profile.sellerStatus == 'pending' || registration?.status == ShopRegistrationStatus.pending) {
+          return _buildPendingCard(context);
+        }
+        if (profile.sellerStatus == 'approved' || registration?.status == ShopRegistrationStatus.approved) {
+          return _buildApprovedCard(context);
+        }
+        if (registration?.status == ShopRegistrationStatus.rejected) {
+          return _buildRejectedCard(context, registration!);
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildRegisterButton(BuildContext context) {
+    return Card(
+      color: AppColors.surfaceContainer,
+      child: ListTile(
+        leading: Icon(Icons.store_outlined, color: AppColors.primary),
+        title: Text('Đăng ký Shop', style: AppTextStyles.bodyLarge),
+        subtitle: Text('Mở shop bán hàng trên GymFit', style: AppTextStyles.bodySmall),
+        trailing: Icon(Icons.chevron_right, color: AppColors.onSurfaceVariant),
+        onTap: () => context.push(RouteNames.registerShopPath),
+      ),
+    );
+  }
+
+  Widget _buildPendingCard(BuildContext context) {
+    return Card(
+      color: AppColors.surfaceContainer,
+      child: ListTile(
+        leading: Icon(Icons.hourglass_bottom, color: AppColors.secondary),
+        title: Text('Đăng ký Shop', style: AppTextStyles.bodyLarge),
+        subtitle: Text('Đang chờ duyệt', style: AppTextStyles.bodySmall),
+        trailing: Chip(
+          label: Text('Chờ duyệt', style: const TextStyle(fontSize: 11)),
+          backgroundColor: const Color(0x33ffa726),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildApprovedCard(BuildContext context) {
+    return Card(
+      color: AppColors.surfaceContainer,
+      child: ListTile(
+        leading: Icon(Icons.store, color: AppColors.success),
+        title: Text('Shop của tôi', style: AppTextStyles.bodyLarge),
+        trailing: Icon(Icons.chevron_right, color: AppColors.onSurfaceVariant),
+        onTap: () {
+          // Navigate to shop management (future feature)
+        },
+      ),
+    );
+  }
+
+  Widget _buildRejectedCard(BuildContext context, ShopRegistrationModel registration) {
+    return Card(
+      color: AppColors.surfaceContainer,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ListTile(
+            leading: Icon(Icons.error_outline, color: AppColors.error),
+            title: Text('Đăng ký Shop', style: AppTextStyles.bodyLarge),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Bị từ chối', style: AppTextStyles.bodySmall),
+                if (registration.rejectionReason != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    registration.rejectionReason!,
+                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.error),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: OutlinedButton.icon(
+              onPressed: () => context.push(
+                RouteNames.registerShopPath,
+                extra: registration,
+              ),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Đăng ký lại'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
