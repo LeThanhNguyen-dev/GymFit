@@ -75,6 +75,7 @@ class ProfileRepository {
       _profileTable,
       {
         'id': authUser.id,
+        'email': authUser.email ?? '',
         'avatar_url': url,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       },

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -82,7 +83,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       if (mounted) {
         ref.invalidate(profileProvider);
         showAppSnackbar(context, message: 'Cập nhật hồ sơ thành công', type: SnackbarType.success);
-        context.pop();
+        context.go(RouteNames.profilePath);
       }
     } catch (e) {
       setState(() => _saving = false);

@@ -10,6 +10,7 @@ abstract class IAuthRepository {
   Future<AuthResult> register(RegisterRequest request);
   Future<void> logout();
   Future<void> forgotPassword(String email);
+  Future<void> resendVerificationEmail(String email);
   Future<AuthResult> confirmEmail(String email);
   Future<AuthResult> verifyResetToken(String token);
   Future<void> updatePassword(String newPassword);
@@ -135,6 +136,13 @@ class AuthRepository implements IAuthRepository {
   }
 
   @override
+  Future<void> resendVerificationEmail(String email) async {
+    await guardSupabase(
+      () => _authService.resendVerificationEmail(email),
+    );
+  }
+
+  @override
   Future<AuthResult> confirmEmail(String email) async {
     try {
       if (_authService.currentUser?.emailConfirmedAt != null) {
@@ -173,6 +181,7 @@ class AuthRepository implements IAuthRepository {
     final now = DateTime.now().toUtc().toIso8601String();
     await guardSupabase(() => _databaseService.upsert(_profileTable, {
       'id': authUser.id,
+      'email': authUser.email ?? '',
       'seller_status': 'pending',
       'updated_at': now,
     }, onConflict: 'id'));
