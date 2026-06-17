@@ -213,7 +213,7 @@ class AuthNotifier extends Notifier<AuthStateData> {
         );
       },
       needsVerification: (user, email) {
-        _startVerificationCheck(email, password);
+        _startVerificationCheck(email);
         state = AuthStateData(
           status: AuthStatus.emailVerification,
           user: user,
@@ -286,24 +286,9 @@ class AuthNotifier extends Notifier<AuthStateData> {
     });
   }
 
-  void _startVerificationCheck(String email, String password) {
-    _verificationTimer?.cancel();
-    _verificationTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
-      try {
-        final result = await ref.read(authRepositoryProvider).login(
-          LoginRequest(email: email, password: password),
-        );
-        result.when(
-          success: (_) {
-            _verificationTimer?.cancel();
-            _handleVerifySuccess();
-          },
-          error: (_) {},
-          emailNotConfirmed: (_) {},
-          needsVerification: (_, _) {},
-        );
-      } catch (_) {}
-    });
+  void _startVerificationCheck(String email) {
+    // Polling removed: Relying on Supabase onAuthStateChange listener 
+    // and DeepLinkService to handle email verification automatically.
   }
 
   Future<void> forgotPassword(String email) async {
