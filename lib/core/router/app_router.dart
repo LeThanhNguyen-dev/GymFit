@@ -32,6 +32,7 @@ import '../../features/admin/coupons/admin_coupons.dart';
 import '../../features/admin/reviews/admin_reviews.dart';
 import '../../features/admin/dashboard/presentation/inventory_screen.dart';
 import '../../features/admin/users/admin_users.dart';
+import '../../features/admin/widgets/admin_shell.dart';
 import 'route_names.dart';
 import '../services/deep_link_service.dart';
 
@@ -65,6 +66,10 @@ final routerNotifierProvider = Provider<GoRouter>((ref) {
       }
 
       if (isLoggedIn && publicRoutes.contains(path)) {
+        final user = authState.user;
+        if (user?.role == 'admin') {
+          return RouteNames.adminDashboardPath;
+        }
         return RouteNames.homePath;
       }
 
@@ -255,56 +260,61 @@ List<RouteBase> _buildRoutes() {
       name: RouteNames.editAddress,
       builder: (_, _) => const AddressListScreen(),
     ),
-    // Admin Routes
-    GoRoute(
-      path: RouteNames.adminPath,
-      name: RouteNames.admin,
-      redirect: (_, __) => RouteNames.adminDashboardPath,
-    ),
-    GoRoute(
-      path: RouteNames.adminDashboardPath,
-      name: RouteNames.adminDashboard,
-      builder: (_, _) => const AdminDashboardScreen(),
-    ),
-    GoRoute(
-      path: RouteNames.adminProductsPath,
-      name: RouteNames.adminProducts,
-      builder: (_, _) => const AdminProductsScreen(),
-    ),
-    GoRoute(
-      path: RouteNames.adminCategoriesPath,
-      name: RouteNames.adminCategories,
-      builder: (_, _) => const AdminCategoriesScreen(),
-    ),
-    GoRoute(
-      path: RouteNames.adminBrandsPath,
-      name: RouteNames.adminBrands,
-      builder: (_, _) => const AdminBrandsScreen(),
-    ),
-    GoRoute(
-      path: RouteNames.adminOrdersPath,
-      name: RouteNames.adminOrders,
-      builder: (_, _) => const AdminOrdersScreen(),
-    ),
-    GoRoute(
-      path: RouteNames.adminVouchersPath,
-      name: RouteNames.adminVouchers,
-      builder: (_, _) => const AdminCouponsScreen(),
-    ),
-    GoRoute(
-      path: RouteNames.adminInventoryPath,
-      name: RouteNames.adminInventory,
-      builder: (_, _) => const InventoryScreen(),
-    ),
-    GoRoute(
-      path: RouteNames.adminUsersPath,
-      name: RouteNames.adminUsers,
-      builder: (_, _) => const AdminUsersScreen(),
-    ),
-    GoRoute(
-      path: RouteNames.adminReviewsPath,
-      name: RouteNames.adminReviews,
-      builder: (_, _) => const AdminReviewsScreen(),
+    // Admin Routes (wrapped in ShellRoute for navigation)
+    ShellRoute(
+      builder: (_, __, child) => AdminShell(child: child),
+      routes: [
+        GoRoute(
+          path: RouteNames.adminPath,
+          name: RouteNames.admin,
+          redirect: (_, __) => RouteNames.adminDashboardPath,
+        ),
+        GoRoute(
+          path: RouteNames.adminDashboardPath,
+          name: RouteNames.adminDashboard,
+          builder: (_, _) => const AdminDashboardScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminProductsPath,
+          name: RouteNames.adminProducts,
+          builder: (_, _) => const AdminProductsScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminCategoriesPath,
+          name: RouteNames.adminCategories,
+          builder: (_, _) => const AdminCategoriesScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminBrandsPath,
+          name: RouteNames.adminBrands,
+          builder: (_, _) => const AdminBrandsScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminOrdersPath,
+          name: RouteNames.adminOrders,
+          builder: (_, _) => const AdminOrdersScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminVouchersPath,
+          name: RouteNames.adminVouchers,
+          builder: (_, _) => const AdminCouponsScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminInventoryPath,
+          name: RouteNames.adminInventory,
+          builder: (_, _) => const InventoryScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminUsersPath,
+          name: RouteNames.adminUsers,
+          builder: (_, _) => const AdminUsersScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminReviewsPath,
+          name: RouteNames.adminReviews,
+          builder: (_, _) => const AdminReviewsScreen(),
+        ),
+      ],
     ),
   ];
 }

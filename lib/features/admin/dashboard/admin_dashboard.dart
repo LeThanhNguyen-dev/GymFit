@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/router/route_names.dart';
+import '../../../shared/widgets/app_empty_state.dart';
+import '../../../shared/widgets/app_error_widget.dart';
+import '../../../shared/widgets/app_loading.dart';
 import '../../orders/data/models/order_model.dart';
+import '../../auth/providers/auth_providers.dart';
 import 'data/models/admin_dashboard_models.dart';
 import 'providers/dashboard_provider.dart';
 
@@ -16,7 +22,21 @@ class AdminDashboardScreen extends ConsumerWidget {
     final recentOrders = ref.watch(recentOrdersProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin dashboard')),
+      appBar: AppBar(
+        title: const Text('Admin dashboard'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            tooltip: 'Về trang người dùng',
+            onPressed: () => context.go(RouteNames.homePath),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Đăng xuất',
+            onPressed: () => ref.read(authProvider.notifier).logout(),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(dashboardStatsProvider);
@@ -29,29 +49,53 @@ class AdminDashboardScreen extends ConsumerWidget {
           children: [
             stats.when(
               data: _StatsGrid.new,
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => _ErrorText(error: error),
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: AppLoading(message: 'Đang tải thống kê...'),
+              ),
+              error: (error, _) => AppErrorWidget(
+                message: 'Không thể tải thống kê: $error',
+                onRetry: () => ref.invalidate(dashboardStatsProvider),
+              ),
             ),
             const SizedBox(height: 24),
             _SectionTitle(title: 'Revenue by category'),
             revenue.when(
               data: (items) => _RevenueChart(items: items),
-              loading: () => const LinearProgressIndicator(),
-              error: (error, _) => _ErrorText(error: error),
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: AppLoading(message: 'Đang tải...'),
+              ),
+              error: (error, _) => AppErrorWidget(
+                message: 'Không thể tải doanh thu: $error',
+                onRetry: () => ref.invalidate(revenueByCategoryProvider),
+              ),
             ),
             const SizedBox(height: 24),
             _SectionTitle(title: 'Low stock warning'),
             lowStock.when(
               data: (items) => _LowStockList(items: items),
-              loading: () => const LinearProgressIndicator(),
-              error: (error, _) => _ErrorText(error: error),
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: AppLoading(message: 'Đang tải...'),
+              ),
+              error: (error, _) => AppErrorWidget(
+                message: 'Không thể tải tồn kho: $error',
+                onRetry: () => ref.invalidate(lowStockProvider),
+              ),
             ),
             const SizedBox(height: 24),
             _SectionTitle(title: 'Recent orders'),
             recentOrders.when(
               data: (orders) => _RecentOrders(orders: orders),
-              loading: () => const LinearProgressIndicator(),
-              error: (error, _) => _ErrorText(error: error),
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: AppLoading(message: 'Đang tải...'),
+              ),
+              error: (error, _) => AppErrorWidget(
+                message: 'Không thể tải đơn hàng: $error',
+                onRetry: () => ref.invalidate(recentOrdersProvider),
+              ),
             ),
             const SizedBox(height: 24),
             const _QuickActions(),
@@ -139,7 +183,12 @@ class _RevenueChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) return const Text('No revenue data yet.');
+    if (items.isEmpty) {
+      return const AppEmptyState(
+        icon: Icons.bar_chart,
+        message: 'Chưa có dữ liệu doanh thu',
+      );
+    }
     final maxRevenue = items
         .map((item) => item.revenue)
         .reduce((a, b) => a > b ? a : b);
@@ -189,7 +238,12 @@ class _LowStockList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) return const Text('All variants are stocked.');
+    if (items.isEmpty) {
+      return const AppEmptyState(
+        icon: Icons.check_circle_outline,
+        message: 'Tất cả sản phẩm đều đủ hàng',
+      );
+    }
     return Column(
       children: items.take(8).map((item) {
         final color = item.stock <= 5 ? Colors.red : Colors.amber.shade800;
@@ -216,7 +270,12 @@ class _RecentOrders extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (orders.isEmpty) return const Text('No recent orders.');
+    if (orders.isEmpty) {
+      return const AppEmptyState(
+        icon: Icons.receipt_long,
+        message: 'Chưa có đơn hàng gần đây',
+      );
+    }
     return Column(
       children: orders.map((order) {
         return ListTile(
@@ -235,13 +294,13 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const actions = [
-      ('Products', Icons.shopping_bag),
-      ('Categories', Icons.category),
-      ('Brands', Icons.verified),
-      ('Orders', Icons.local_shipping),
-      ('Vouchers', Icons.sell),
-      ('Inventory', Icons.warehouse),
+    final actions = [
+      ('Products', Icons.shopping_bag, RouteNames.adminProductsPath),
+      ('Categories', Icons.category, RouteNames.adminCategoriesPath),
+      ('Brands', Icons.verified, RouteNames.adminBrandsPath),
+      ('Orders', Icons.local_shipping, RouteNames.adminOrdersPath),
+      ('Vouchers', Icons.sell, RouteNames.adminVouchersPath),
+      ('Inventory', Icons.warehouse, RouteNames.adminInventoryPath),
     ];
     return GridView.count(
       crossAxisCount: 3,
@@ -251,7 +310,7 @@ class _QuickActions extends StatelessWidget {
       crossAxisSpacing: 8,
       children: actions.map((action) {
         return OutlinedButton(
-          onPressed: () {},
+          onPressed: () => context.go(action.$3),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -277,17 +336,6 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(title, style: Theme.of(context).textTheme.titleMedium),
     );
-  }
-}
-
-class _ErrorText extends StatelessWidget {
-  const _ErrorText({required this.error});
-
-  final Object error;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text('Could not load data: $error');
   }
 }
 

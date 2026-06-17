@@ -133,6 +133,7 @@ class ProductModel {
     required this.slug,
     required this.basePrice,
     this.brandId,
+    this.userId,
     this.sku,
     this.shortDescription,
     this.description,
@@ -154,6 +155,7 @@ class ProductModel {
     this.metadata = const {},
     this.category,
     this.brand,
+    this.seller,
     this.images = const [],
     this.variants = const [],
     this.createdAt,
@@ -163,6 +165,7 @@ class ProductModel {
   final String id;
   final String categoryId;
   final String? brandId;
+  final String? userId;
   final String name;
   final String slug;
   final String? sku;
@@ -187,6 +190,7 @@ class ProductModel {
   final Map<String, dynamic> metadata;
   final CategoryModel? category;
   final BrandModel? brand;
+  final SellerModel? seller;
   final List<ProductImageModel> images;
   final List<ProductVariantModel> variants;
   final DateTime? createdAt;
@@ -196,6 +200,7 @@ class ProductModel {
     id: json['id'].toString(),
     categoryId: json['category_id']?.toString() ?? '',
     brandId: json['brand_id'] as String?,
+    userId: json['user_id'] as String?,
     name: json['name'].toString(),
     slug: json['slug']?.toString() ?? '',
     sku: json['sku'] as String?,
@@ -228,6 +233,9 @@ class ProductModel {
         : null,
     brand: json['brand'] is Map
         ? BrandModel.fromJson(mapFromJson(json['brand']))
+        : null,
+    seller: json['seller'] is Map
+        ? SellerModel.fromJson(mapFromJson(json['seller']))
         : null,
     images: mapListFromJson(
       json['images'],
@@ -439,6 +447,30 @@ String? _variantNameFromJson(Map<String, dynamic> json) {
     json['color']?.toString(),
   ].where((value) => value != null && value.isNotEmpty).cast<String>();
   return values.isEmpty ? null : values.join(' / ');
+}
+
+class SellerModel {
+  const SellerModel({
+    required this.id,
+    this.fullName,
+    this.email,
+  });
+
+  final String id;
+  final String? fullName;
+  final String? email;
+
+  factory SellerModel.fromJson(Map<String, dynamic> json) => SellerModel(
+    id: json['id'].toString(),
+    fullName: json['full_name'] as String?,
+    email: json['email'] as String?,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'full_name': fullName,
+    'email': email,
+  };
 }
 
 class InventoryLogModel {

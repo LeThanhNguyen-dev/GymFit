@@ -69,13 +69,46 @@ class VoucherRepository {
         .eq('id', voucherId);
   }
 
-  Future<List<VoucherModel>> getAdminVouchers() async {
-    final rows = await _client
-        .from(AppConstants.vouchersTable)
-        .select()
-        .order('created_at', ascending: false);
+  Future<({List<VoucherModel> items, int totalCount})> getAdminVouchers({
+    String? search,
+    bool? isActive,
+    String? discountType,
+    String sortBy = 'created_at',
+    bool ascending = false,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    var query = _client.from(AppConstants.vouchersTable).select();
 
-    return rows.map((row) => VoucherModel.fromJson(row)).toList();
+    if (search != null && search.isNotEmpty) {
+      query = query.ilike('code', '%${search.toUpperCase()}%');
+    }
+    if (isActive != null) {
+      query = query.eq('is_active', isActive);
+    }
+    if (discountType != null) {
+      query = query.eq('discount_type', discountType);
+    }
+
+    final from = (page - 1) * pageSize;
+    final to = from + pageSize - 1;
+    final rows = await query.order(sortBy, ascending: ascending).range(from, to);
+    final items = rows.map((row) => VoucherModel.fromJson(row)).toList();
+
+    var countQuery = _client.from(AppConstants.vouchersTable).select('id');
+    if (search != null && search.isNotEmpty) {
+      countQuery = countQuery.ilike('code', '%${search.toUpperCase()}%');
+    }
+    if (isActive != null) {
+      countQuery = countQuery.eq('is_active', isActive);
+    }
+    if (discountType != null) {
+      countQuery = countQuery.eq('discount_type', discountType);
+    }
+    final countResult = List<Map<String, dynamic>>.from(await countQuery);
+    final totalCount = countResult.length;
+
+    return (items: items, totalCount: totalCount);
   }
 
   Future<VoucherModel> saveVoucher(
