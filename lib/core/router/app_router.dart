@@ -23,15 +23,23 @@ import '../../features/wishlist/presentation/screens/wishlist_screen.dart';
 import '../../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../../features/profile/presentation/screens/address_list_screen.dart';
 import '../../features/reviews/presentation/screens/review_form_screen.dart';
-import '../../features/admin/dashboard/admin_dashboard.dart';
+import '../../features/admin/dashboard/admin_dashboard_screen.dart';
 import '../../features/admin/products/admin_products.dart';
-import '../../features/admin/orders/admin_orders.dart';
+import '../../features/admin/orders/admin_orders_screen.dart';
 import '../../features/admin/categories/admin_categories.dart';
 import '../../features/admin/brands/admin_brands.dart';
 import '../../features/admin/coupons/admin_coupons.dart';
 import '../../features/admin/reviews/admin_reviews.dart';
 import '../../features/admin/dashboard/presentation/inventory_screen.dart';
-import '../../features/admin/users/admin_users.dart';
+import '../../features/admin/users/admin_users_screen.dart';
+import '../../features/admin/users/admin_user_detail_screen.dart';
+import '../../features/admin/shops/admin_shops_screen.dart';
+import '../../features/admin/shops/admin_shop_detail_screen.dart';
+import '../../features/admin/shops/admin_product_moderation_screen.dart';
+import '../../features/admin/orders/admin_order_detail_screen.dart';
+import '../../features/admin/finance/admin_finance_screen.dart';
+import '../../features/admin/settings/admin_settings_screen.dart';
+import '../../features/products/presentation/screens/compare_screen.dart';
 import 'route_names.dart';
 import '../services/deep_link_service.dart';
 
@@ -208,6 +216,11 @@ List<RouteBase> _buildRoutes() {
           path: RouteNames.wishlistPath,
           name: RouteNames.wishlist,
           builder: (_, _) => const WishlistScreen(),
+        ),
+        GoRoute(
+          path: '/compare',
+          name: 'compare',
+          builder: (_, _) => const CompareScreen(),
         ),
         GoRoute(
           path: RouteNames.profilePath,

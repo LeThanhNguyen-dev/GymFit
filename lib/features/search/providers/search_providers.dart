@@ -24,7 +24,15 @@ final searchResultsProvider =
   final query = ref.watch(searchQueryProvider);
   if (query.trim().isEmpty) return [];
   final repo = ref.watch(productRepositoryProvider);
-  return repo.searchProducts(query.trim());
+  return repo.searchProducts(query);
+});
+
+final searchSuggestionsProvider =
+    FutureProvider.autoDispose<List<String>>((ref) async {
+  final query = ref.watch(searchQueryProvider);
+  if (query.trim().length < 2) return [];
+  final repo = ref.watch(productRepositoryProvider);
+  return repo.getSearchSuggestions(query);
 });
 
 // ── Search History Notifier (Riverpod 3.x) ────────────────────────────────────
