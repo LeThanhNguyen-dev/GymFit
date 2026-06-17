@@ -86,7 +86,7 @@ class CompareScreen extends ConsumerWidget {
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: 8.0),
                               child: AppImage(
-                                imageUrl: p.images.isNotEmpty ? p.images.first.imageUrl : '',
+                                imageUrl: p.images.isNotEmpty ? p.images.first.url : '',
                                 width: 80,
                                 height: 80,
                                 fit: BoxFit.cover,
