@@ -65,7 +65,7 @@ class AuthStateData {
       error: error,
       successMessage: successMessage,
       isLoading: isLoading ?? this.isLoading,
-      emailForVerification: emailForVerification,
+      emailForVerification: emailForVerification ?? this.emailForVerification,
       verificationSuccess: verificationSuccess ?? this.verificationSuccess,
       resetSuccess: resetSuccess ?? this.resetSuccess,
       resetToken: resetToken ?? this.resetToken,
@@ -221,6 +221,11 @@ class AuthNotifier extends Notifier<AuthStateData> {
           successMessage:
               'Đăng ký thành công. Vui lòng kiểm tra email xác thực rồi đăng nhập.',
         );
+        Future.delayed(const Duration(seconds: 2), () async {
+          try {
+            await ref.read(authRepositoryProvider).resendVerificationEmail(email);
+          } catch (_) {}
+        });
       },
       error: (message) {
         state = state.copyWith(isLoading: false, error: message);
@@ -257,8 +262,13 @@ class AuthNotifier extends Notifier<AuthStateData> {
     );
   }
 
-  void resendVerification(String email) {
-    ref.read(authRepositoryProvider).forgotPassword(email);
+  Future<void> resendVerification(String email) async {
+    try {
+      await ref.read(authRepositoryProvider).resendVerificationEmail(email);
+    } catch (_) {
+      state = state.copyWith(error: 'Gửi email thất bại. Vui lòng thử lại.');
+      return;
+    }
     _startCooldown();
   }
 

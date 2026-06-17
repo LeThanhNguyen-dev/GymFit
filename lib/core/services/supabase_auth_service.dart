@@ -43,4 +43,8 @@ class SupabaseAuthService {
   Future<UserResponse> updateUser(UserAttributes attributes) {
     return _client.auth.updateUser(attributes);
   }
+
+  Future<ResendResponse> resendVerificationEmail(String email) {
+    return _client.auth.resend(email: email, type: OtpType.signup);
+  }
 }
