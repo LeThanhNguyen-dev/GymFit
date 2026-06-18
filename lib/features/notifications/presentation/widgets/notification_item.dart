@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../data/models/notification_model.dart';
 
 class NotificationItem extends StatelessWidget {
   const NotificationItem({
@@ -10,13 +11,13 @@ class NotificationItem extends StatelessWidget {
     required this.onTap,
   });
 
-  final Map<String, dynamic> notification;
+  final NotificationModel notification;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isRead = notification['isRead'] as bool;
+    final isRead = notification.isRead;
 
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -34,13 +35,12 @@ class NotificationItem extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(AppSpacing.sm),
                 decoration: BoxDecoration(
-                  color: (notification['color'] as Color)
-                      .withValues(alpha: 0.1),
+                  color: notification.color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  notification['icon'] as IconData,
-                  color: notification['color'] as Color,
+                  notification.icon,
+                  color: notification.color,
                   size: 24,
                 ),
               ),
@@ -56,7 +56,7 @@ class NotificationItem extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            notification['title'] as String,
+                            notification.title,
                             style: AppTextStyles.titleSmall.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -78,7 +78,7 @@ class NotificationItem extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      notification['message'] as String,
+                      notification.message,
                       style: AppTextStyles.bodySmall.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -87,7 +87,7 @@ class NotificationItem extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      notification['timestamp'] as String,
+                      notification.timestamp,
                       style: AppTextStyles.labelSmall.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),

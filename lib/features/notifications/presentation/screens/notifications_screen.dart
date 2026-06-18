@@ -1,97 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/supabase_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../providers/notification_providers.dart';
 import '../widgets/notification_item.dart';
 
-class NotificationsScreen extends StatefulWidget {
+
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
+  ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
-  // Mock notification data
-  static const List<Map<String, dynamic>> mockNotifications = [
-    {
-      'id': '1',
-      'type': 'order_confirmed',
-      'title': 'Đơn hàng được xác nhận',
-      'message': 'Đơn hàng #ABC123 của bạn đã được xác nhận',
-      'icon': Icons.check_circle,
-      'color': AppColors.success,
-      'timestamp': '2 giờ trước',
-      'isRead': false,
-    },
-    {
-      'id': '2',
-      'type': 'order_shipped',
-      'title': 'Đơn hàng đang được giao',
-      'message': 'Đơn hàng #ABC122 của bạn đang được giao',
-      'icon': Icons.local_shipping,
-      'color': AppColors.secondary,
-      'timestamp': '5 giờ trước',
-      'isRead': false,
-    },
-    {
-      'id': '3',
-      'type': 'promotion',
-      'title': 'Khuyến mãi đặc biệt',
-      'message': 'Giảm 30% cho tất cả sản phẩm thể dục - Hôm nay chỉ',
-      'icon': Icons.local_offer,
-      'color': AppColors.primary,
-      'timestamp': '1 ngày trước',
-      'isRead': true,
-    },
-    {
-      'id': '4',
-      'type': 'payment_success',
-      'title': 'Thanh toán thành công',
-      'message': 'Thanh toán 1.500.000đ cho đơn hàng #ABC121 thành công',
-      'icon': Icons.credit_card,
-      'color': AppColors.success,
-      'timestamp': '2 ngày trước',
-      'isRead': true,
-    },
-    {
-      'id': '5',
-      'type': 'back_in_stock',
-      'title': 'Sản phẩm có hàng trở lại',
-      'message': 'Sản phẩm "Tạ tay 5kg" mà bạn yêu thích đã có hàng',
-      'icon': Icons.inventory_2,
-      'color': AppColors.primary,
-      'timestamp': '3 ngày trước',
-      'isRead': true,
-    },
-  ];
-
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   String _selectedFilter = 'all'; // all, unread
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final filteredNotifications = _selectedFilter == 'unread'
-        ? mockNotifications
-            .where((n) => n['isRead'] == false)
-            .toList()
-        : mockNotifications;
+    final notificationsAsync = ref.watch(userNotificationsProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Thông báo'),
         elevation: 0,
         actions: [
-          if (filteredNotifications.any((n) => n['isRead'] == false))
-            PopupMenuButton(
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  child: const Text('Đánh dấu tất cả đã đọc'),
-                  onTap: _markAllAsRead,
-                ),
-              ],
-            ),
+          notificationsAsync.when(
+            data: (notifications) {
+              final hasUnread = notifications.any((n) => !n.isRead);
+              if (hasUnread) {
+                return PopupMenuButton(
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      onTap: _markAllAsRead,
+                      child: const Text('Đánh dấu tất cả đã đọc'),
+                    ),
+                  ],
+                );
+              }
+              return const SizedBox.shrink();
+            },
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
         ],
       ),
       body: Column(
@@ -110,31 +65,38 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   onSelected: (_) => setState(() => _selectedFilter = 'all'),
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                FilterChip(
-                  label: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('Chưa đọc'),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          '${mockNotifications.where((n) => n['isRead'] == false).length}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                notificationsAsync.when(
+                  data: (notifications) {
+                    final unreadCount = notifications.where((n) => !n.isRead).length;
+                    return FilterChip(
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('Chưa đọc'),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              '$unreadCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                  selected: _selectedFilter == 'unread',
-                  onSelected: (_) => setState(() => _selectedFilter = 'unread'),
+                      selected: _selectedFilter == 'unread',
+                      onSelected: (_) => setState(() => _selectedFilter = 'unread'),
+                    );
+                  },
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
                 ),
               ],
             ),
@@ -144,27 +106,46 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           // Notifications list
           Expanded(
-            child: filteredNotifications.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.notifications_off_outlined,
-                          size: 64,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Không có thông báo',
-                          style: AppTextStyles.titleMedium.copyWith(
-                            color: colorScheme.onSurfaceVariant,
+            child: notificationsAsync.when(
+              data: (notifications) {
+                final filteredNotifications = _selectedFilter == 'unread'
+                    ? notifications.where((n) => !n.isRead).toList()
+                    : notifications;
+
+                if (filteredNotifications.isEmpty) {
+                  return RefreshIndicator(
+                    onRefresh: () async => ref.refresh(userNotificationsProvider.future),
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.5,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.notifications_off_outlined,
+                                size: 64,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Không có thông báo',
+                                style: AppTextStyles.titleMedium.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  )
-                : ListView.builder(
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () async => ref.refresh(userNotificationsProvider.future),
+                  child: ListView.builder(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.pageHorizontal,
                     ),
@@ -173,28 +154,47 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       final notification = filteredNotifications[index];
                       return NotificationItem(
                         notification: notification,
-                        onTap: () => _markAsRead(notification['id']),
+                        onTap: () => _markAsRead(notification.id),
                       );
                     },
                   ),
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => Center(child: Text('Lỗi: $error')),
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _markAsRead(String notificationId) {
-    // TODO: Implement mark as read
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đánh dấu thông báo đã đọc')),
-    );
+  Future<void> _markAsRead(String notificationId) async {
+    try {
+      await ref.read(notificationRepositoryProvider).markAsRead(notificationId);
+      ref.invalidate(userNotificationsProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e')),
+        );
+      }
+    }
   }
 
-  void _markAllAsRead() {
-    // TODO: Implement mark all as read
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đánh dấu tất cả thông báo đã đọc')),
-    );
+  Future<void> _markAllAsRead() async {
+    final user = ref.read(supabaseClientProvider).auth.currentUser;
+    if (user == null) return;
+    try {
+      await ref.read(notificationRepositoryProvider).markAllAsRead(user.id);
+      ref.invalidate(userNotificationsProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e')),
+        );
+      }
+    }
   }
 }
 

@@ -36,4 +36,8 @@ class AddressRepository {
         .maybeSingle();
     return row == null ? null : AddressModel.fromJson(row);
   }
+
+  Future<void> deleteAddress(String id) async {
+    await _client.from(AppConstants.addressesTable).delete().eq('id', id);
+  }
 }

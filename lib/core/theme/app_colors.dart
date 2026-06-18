@@ -57,10 +57,20 @@ class AppColors {
   static const Color errorContainer = Color(0xFF93000a);
   static const Color onErrorContainer = Color(0xFFffdad6);
 
+  // Semantic Colors
+  static const Color success = Color(0xFF81c784); // light green
+  static const Color info = Color(0xFF64b5f6); // light blue
+  static const Color warning = Color(0xFFffd54f); // light yellow
+
   // Outline
   static const Color outline = Color(0xFF8f937b);
   static const Color outlineVariant = Color(0xFF454935);
   static const Color surfaceTint = Color(0xFFb1d424);
+
+  // Common Aliases
+  static const Color textPrimary = onSurface;
+  static const Color textSecondary = onSurfaceVariant;
+  static const Color divider = outlineVariant;
 
   // Light theme variants
   static const Color lightPrimary = Color(0xFF526600);

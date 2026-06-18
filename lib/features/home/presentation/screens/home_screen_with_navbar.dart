@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/theme/app_spacing.dart';
-import '../../core/theme/app_text_styles.dart';
-import '../../core/widgets/navbar.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/navbar.dart';
 
 class HomeScreenWithNavBar extends StatefulWidget {
   const HomeScreenWithNavBar({Key? key}) : super(key: key);
