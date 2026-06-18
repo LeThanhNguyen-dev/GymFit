@@ -134,6 +134,7 @@ class ProductModel {
     required this.basePrice,
     this.sellerId,
     this.brandId,
+    this.userId,
     this.sku,
     this.shortDescription,
     this.description,
@@ -158,6 +159,7 @@ class ProductModel {
     this.metadata = const {},
     this.category,
     this.brand,
+    this.seller,
     this.images = const [],
     this.variants = const [],
     this.createdAt,
@@ -168,6 +170,7 @@ class ProductModel {
   final String categoryId;
   final String? sellerId;
   final String? brandId;
+  final String? userId;
   final String name;
   final String slug;
   final String? sku;
@@ -195,6 +198,7 @@ class ProductModel {
   final Map<String, dynamic> metadata;
   final CategoryModel? category;
   final BrandModel? brand;
+  final SellerModel? seller;
   final List<ProductImageModel> images;
   final List<ProductVariantModel> variants;
   final DateTime? createdAt;
@@ -205,6 +209,7 @@ class ProductModel {
     categoryId: json['category_id']?.toString() ?? '',
     sellerId: json['seller_id']?.toString(),
     brandId: json['brand_id'] as String?,
+    userId: json['user_id'] as String?,
     name: json['name'].toString(),
     slug: json['slug']?.toString() ?? '',
     sku: json['sku'] as String?,
@@ -240,6 +245,9 @@ class ProductModel {
         : null,
     brand: json['brand'] is Map
         ? BrandModel.fromJson(mapFromJson(json['brand']))
+        : null,
+    seller: json['seller'] is Map
+        ? SellerModel.fromJson(mapFromJson(json['seller']))
         : null,
     images: mapListFromJson(
       json['images'],
@@ -455,4 +463,90 @@ String? _variantNameFromJson(Map<String, dynamic> json) {
     json['color']?.toString(),
   ].where((value) => value != null && value.isNotEmpty).cast<String>();
   return values.isEmpty ? null : values.join(' / ');
+}
+
+class SellerModel {
+  const SellerModel({
+    required this.id,
+    this.fullName,
+    this.email,
+  });
+
+  final String id;
+  final String? fullName;
+  final String? email;
+
+  factory SellerModel.fromJson(Map<String, dynamic> json) => SellerModel(
+    id: json['id'].toString(),
+    fullName: json['full_name'] as String?,
+    email: json['email'] as String?,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'full_name': fullName,
+    'email': email,
+  };
+}
+
+class InventoryLogModel {
+  const InventoryLogModel({
+    required this.id,
+    required this.variantId,
+    required this.action,
+    required this.quantityChange,
+    required this.quantityBefore,
+    required this.quantityAfter,
+    this.referenceType,
+    this.referenceId,
+    this.note,
+    this.performedBy,
+    this.createdAt,
+  });
+
+  final String id;
+  final String variantId;
+  final InventoryAction action;
+  final int quantityChange;
+  final int quantityBefore;
+  final int quantityAfter;
+  final String? referenceType;
+  final String? referenceId;
+  final String? note;
+  final String? performedBy;
+  final DateTime? createdAt;
+
+  factory InventoryLogModel.fromJson(Map<String, dynamic> json) {
+    return InventoryLogModel(
+      id: json['id'].toString(),
+      variantId: json['variant_id'].toString(),
+      action: enumFromSnake(
+        InventoryAction.values,
+        json['action'],
+        InventoryAction.adjustment,
+      ),
+      quantityChange: intFromJson(json['quantity_change']) ?? 0,
+      quantityBefore: intFromJson(json['quantity_before']) ?? 0,
+      quantityAfter: intFromJson(json['quantity_after']) ?? 0,
+      referenceType: json['reference_type'] as String?,
+      referenceId: json['reference_id'] as String?,
+      note: json['note'] as String?,
+      performedBy: json['performed_by'] as String?,
+      createdAt: dateTimeFromJson(json['created_at']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'variant_id': variantId,
+    'action': enumToSnake(action),
+    'quantity_change': quantityChange,
+    'quantity_before': quantityBefore,
+    'quantity_after': quantityAfter,
+    'reference_type': referenceType,
+    'reference_id': referenceId,
+    'note': note,
+    'performed_by': performedBy,
+    'created_at': dateTimeToJson(createdAt),
+  };
 }

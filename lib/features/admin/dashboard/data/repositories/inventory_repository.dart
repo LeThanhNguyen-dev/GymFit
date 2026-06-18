@@ -9,12 +9,62 @@ class InventoryRepository {
   final SupabaseClient _client;
 
   Future<List<LowStockVariantModel>> getLowStockVariants() async {
+    const select =
+        'id, product_id, sku, name, quantity, low_stock_threshold, option_values, product:products(id, name)';
     final rows = await _client
-        .from('v_low_stock_variants')
-        .select()
-        .order('stock', ascending: true);
+        .from('product_variants')
+        .select(select)
+        .lte('quantity', 5)
+        .order('quantity', ascending: true);
 
     return rows.map((row) => LowStockVariantModel.fromJson(row)).toList();
+  }
+
+  static const String _variantSelect =
+      'id, product_id, sku, name, quantity, low_stock_threshold, option_values, product:products(id, name)';
+
+  Future<({List<LowStockVariantModel> items, int totalCount})> getInventoryVariants({
+    String? search,
+    String? stockLevel,
+    String? categoryId,
+    String sortBy = 'quantity',
+    bool ascending = true,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    var query = _client.from('product_variants').select(_variantSelect);
+
+    if (search != null && search.isNotEmpty) {
+      query = query.or(
+        'name.ilike.%$search%,sku.ilike.%$search%',
+      );
+    }
+    if (stockLevel == 'low') {
+      query = query.lte('quantity', 5);
+    } else if (stockLevel == 'out') {
+      query = query.eq('quantity', 0);
+    }
+
+    final from = (page - 1) * pageSize;
+    final to = from + pageSize - 1;
+    final rows = await query.order(sortBy, ascending: ascending).range(from, to);
+    final items = rows.map((row) => LowStockVariantModel.fromJson(row)).toList();
+
+    var countQuery = _client.from('product_variants').select('id');
+    if (search != null && search.isNotEmpty) {
+      countQuery = countQuery.or(
+        'name.ilike.%$search%,sku.ilike.%$search%',
+      );
+    }
+    if (stockLevel == 'low') {
+      countQuery = countQuery.lte('quantity', 5);
+    } else if (stockLevel == 'out') {
+      countQuery = countQuery.eq('quantity', 0);
+    }
+    final countResult = List<Map<String, dynamic>>.from(await countQuery);
+    final totalCount = countResult.length;
+
+    return (items: items, totalCount: totalCount);
   }
 
   Future<List<InventoryLogModel>> getInventoryLogs(String variantId) async {
@@ -36,11 +86,10 @@ class InventoryRepository {
   }) async {
     final variant = await _client
         .from('product_variants')
-        .select('stock,quantity')
+        .select('quantity')
         .eq('id', variantId)
         .single();
-    final before =
-        (variant['stock'] ?? variant['quantity'] as num?)?.toInt() ?? 0;
+    final before = (variant['quantity'] as num?)?.toInt() ?? 0;
     final after = before + quantityChange;
 
     final log = await _client
@@ -60,7 +109,6 @@ class InventoryRepository {
     await _client
         .from('product_variants')
         .update({
-          'stock': after,
           'quantity': after,
           'updated_at': DateTime.now().toIso8601String(),
         })
@@ -73,7 +121,7 @@ class InventoryRepository {
     final rows = await _client
         .from('v_revenue_by_category')
         .select()
-        .order('revenue', ascending: false);
+        .order('total_revenue', ascending: false);
 
     return rows.map((row) => RevenueByCategoryModel.fromJson(row)).toList();
   }

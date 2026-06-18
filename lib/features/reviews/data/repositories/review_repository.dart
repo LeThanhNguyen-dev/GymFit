@@ -141,16 +141,49 @@ class ReviewRepository {
     return rows.map((row) => ReviewModel.fromJson(row)).toList();
   }
 
-  Future<List<ReviewModel>> getAdminReviews({String? status}) async {
-    final rows = await _client
+  Future<({List<ReviewModel> items, int totalCount})> getAdminReviews({
+    String? status,
+    int? rating,
+    String? search,
+    String sortBy = 'created_at',
+    bool ascending = false,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    var query = _client
         .from(AppConstants.reviewsTable)
-        .select('*, user:profiles(id, full_name, avatar_url), review_images(*)')
-        .order('created_at', ascending: false);
+        .select('*, user:profiles(id, full_name, avatar_url), review_images(*)');
 
-    return rows
-        .map((row) => ReviewModel.fromJson(row))
-        .where((review) => status == null || review.status == status)
-        .toList();
+    if (status != null) {
+      query = query.eq('status', status);
+    }
+    if (rating != null) {
+      query = query.eq('rating', rating);
+    }
+    if (search != null && search.isNotEmpty) {
+      query = query.ilike('comment', '%$search%');
+    }
+
+    final from = (page - 1) * pageSize;
+    final to = from + pageSize - 1;
+    final rows =
+        await query.order(sortBy, ascending: ascending).range(from, to);
+    final items = rows.map((row) => ReviewModel.fromJson(row)).toList();
+
+    var countQuery = _client.from(AppConstants.reviewsTable).select('id');
+    if (status != null) {
+      countQuery = countQuery.eq('status', status);
+    }
+    if (rating != null) {
+      countQuery = countQuery.eq('rating', rating);
+    }
+    if (search != null && search.isNotEmpty) {
+      countQuery = countQuery.ilike('comment', '%$search%');
+    }
+    final countResult = List<Map<String, dynamic>>.from(await countQuery);
+    final totalCount = countResult.length;
+
+    return (items: items, totalCount: totalCount);
   }
 
   Future<void> updateReviewStatus(String reviewId, String status) async {

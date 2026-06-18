@@ -13,7 +13,6 @@ class CategoryRepository {
     final rows = await _client
         .from(_table)
         .select()
-        .eq('is_active', true)
         .order('sort_order', ascending: true);
 
     return rows.map((row) => CategoryModel.fromJson(row)).toList();
@@ -51,10 +50,9 @@ class CategoryRepository {
   }
 
   Future<void> delete(String id) async {
-    // Soft delete: set is_active = false
     await _client
         .from(_table)
-        .update({'is_active': false})
+        .delete()
         .eq('id', id);
   }
 }

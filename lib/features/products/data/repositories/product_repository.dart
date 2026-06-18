@@ -50,6 +50,8 @@ class ProductRepository {
         .toList();
   }
 
+  static const String _adminProductSelect = _productSelect;
+
   Future<ProductModel?> getProductById(String productId) async {
     final row = await _client
         .from(AppConstants.productsTable)
@@ -191,7 +193,6 @@ class ProductRepository {
 
     return rows.map((row) => ProductModel.fromJson(row)).toList();
   }
-
   Future<List<String>> getSearchSuggestions(String text) async {
     if (text.trim().isEmpty) return [];
     final rows = await _client
@@ -202,6 +203,61 @@ class ProductRepository {
         .limit(5);
 
     return rows.map((row) => row['name'] as String).toList();
+  }
+
+  Future<({List<ProductModel> items, int totalCount})> getAdminProducts({
+    String? search,
+    String? status,
+    String? categoryId,
+    String? brandId,
+    String sortBy = 'created_at',
+    bool ascending = false,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    var query = _client.from(AppConstants.productsTable).select(_adminProductSelect);
+
+    if (search != null && search.isNotEmpty) {
+      final keyword = search.toLowerCase().trim();
+      query = query.or(
+        'name.ilike.%$keyword%,sku.ilike.%$keyword%',
+      );
+    }
+    if (status != null) {
+      query = query.eq('status', status);
+    }
+    if (categoryId != null) {
+      query = query.eq('category_id', categoryId);
+    }
+    if (brandId != null) {
+      query = query.eq('brand_id', brandId);
+    }
+
+    final from = (page - 1) * pageSize;
+    final to = from + pageSize - 1;
+    final rows = await query.order(sortBy, ascending: ascending).range(from, to);
+    final items = rows.map((row) => ProductModel.fromJson(row)).toList();
+
+    var countQuery = _client.from(AppConstants.productsTable).select('id');
+    if (search != null && search.isNotEmpty) {
+      final keyword = search.toLowerCase().trim();
+      countQuery = countQuery.or(
+        'name.ilike.%$keyword%,sku.ilike.%$keyword%',
+      );
+    }
+    if (status != null) {
+      countQuery = countQuery.eq('status', status);
+    }
+    if (categoryId != null) {
+      countQuery = countQuery.eq('category_id', categoryId);
+    }
+    if (brandId != null) {
+      countQuery = countQuery.eq('brand_id', brandId);
+    }
+    final countResult = List<Map<String, dynamic>>.from(await countQuery);
+    final totalCount = countResult.length;
+
+    return (items: items, totalCount: totalCount);
   }
 
   Future<ProductModel> saveProduct(
@@ -241,7 +297,6 @@ class ProductRepository {
         .from(AppConstants.productsTable)
         .update({
           'status': 'inactive',
-          'is_active': false,
           'updated_at': DateTime.now().toIso8601String(),
         })
         .eq('id', productId);
@@ -249,15 +304,42 @@ class ProductRepository {
 
   Future<void> deleteProduct(String productId) => softDeleteProduct(productId);
 
-  Future<List<CategoryModel>> getAdminCategories({String? search}) async {
-    final rows = await _client.from('categories').select().order('sort_order');
-    final categories = rows.map((row) => CategoryModel.fromJson(row)).toList();
-    if (search == null || search.trim().isEmpty) return categories;
+  Future<void> restoreProduct(String productId) async {
+    await _client
+        .from(AppConstants.productsTable)
+        .update({
+          'status': 'active',
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', productId);
+  }
 
-    final keyword = search.toLowerCase().trim();
-    return categories
-        .where((category) => category.name.toLowerCase().contains(keyword))
-        .toList();
+  Future<({List<CategoryModel> items, int totalCount})> getAdminCategories({
+    String? search,
+    String sortBy = 'sort_order',
+    bool ascending = true,
+    int page = 1,
+    int pageSize = 50,
+  }) async {
+    var query = _client.from('categories').select();
+
+    if (search != null && search.isNotEmpty) {
+      query = query.ilike('name', '%${search.toLowerCase().trim()}%');
+    }
+
+    final from = (page - 1) * pageSize;
+    final to = from + pageSize - 1;
+    final rows = await query.order(sortBy, ascending: ascending).range(from, to);
+    final items = rows.map((row) => CategoryModel.fromJson(row)).toList();
+
+    var countQuery = _client.from('categories').select('id');
+    if (search != null && search.isNotEmpty) {
+      countQuery = countQuery.ilike('name', '%${search.toLowerCase().trim()}%');
+    }
+    final countResult = List<Map<String, dynamic>>.from(await countQuery);
+    final totalCount = countResult.length;
+
+    return (items: items, totalCount: totalCount);
   }
 
   Future<CategoryModel> saveCategory(
@@ -280,21 +362,37 @@ class ProductRepository {
     await _client
         .from('categories')
         .update({
-          'is_active': false,
           'updated_at': DateTime.now().toIso8601String(),
         })
         .eq('id', categoryId);
   }
 
-  Future<List<BrandModel>> getAdminBrands({String? search}) async {
-    final rows = await _client.from('brands').select().order('name');
-    final brands = rows.map((row) => BrandModel.fromJson(row)).toList();
-    if (search == null || search.trim().isEmpty) return brands;
+  Future<({List<BrandModel> items, int totalCount})> getAdminBrands({
+    String? search,
+    String sortBy = 'name',
+    bool ascending = true,
+    int page = 1,
+    int pageSize = 50,
+  }) async {
+    var query = _client.from('brands').select();
 
-    final keyword = search.toLowerCase().trim();
-    return brands
-        .where((brand) => brand.name.toLowerCase().contains(keyword))
-        .toList();
+    if (search != null && search.isNotEmpty) {
+      query = query.ilike('name', '%${search.toLowerCase().trim()}%');
+    }
+
+    final from = (page - 1) * pageSize;
+    final to = from + pageSize - 1;
+    final rows = await query.order(sortBy, ascending: ascending).range(from, to);
+    final items = rows.map((row) => BrandModel.fromJson(row)).toList();
+
+    var countQuery = _client.from('brands').select('id');
+    if (search != null && search.isNotEmpty) {
+      countQuery = countQuery.ilike('name', '%${search.toLowerCase().trim()}%');
+    }
+    final countResult = List<Map<String, dynamic>>.from(await countQuery);
+    final totalCount = countResult.length;
+
+    return (items: items, totalCount: totalCount);
   }
 
   Future<BrandModel> saveBrand(Map<String, dynamic> data, {String? id}) async {
@@ -314,7 +412,6 @@ class ProductRepository {
     await _client
         .from('brands')
         .update({
-          'is_active': false,
           'updated_at': DateTime.now().toIso8601String(),
         })
         .eq('id', brandId);
