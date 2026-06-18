@@ -87,11 +87,11 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
   Future<void> _loadMetadata() async {
     try {
       final repo = ref.read(productRepositoryProvider);
-      final cats = await repo.getAdminCategories();
-      final brs = await repo.getAdminBrands();
+      final catsResult = await repo.getAdminCategories();
+      final brsResult = await repo.getAdminBrands();
       setState(() {
-        _categories = cats;
-        _brands = brs;
+        _categories = catsResult.items;
+        _brands = brsResult.items;
         _loadingMetadata = false;
       });
       if (widget.productId != null) {

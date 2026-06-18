@@ -31,24 +31,6 @@ class ProductRepository {
         .toList();
   }
 
-  Future<List<ProductModel>> getAdminProducts({String? search}) async {
-    final rows = await _client
-        .from(AppConstants.productsTable)
-        .select(_productSelect)
-        .order('created_at', ascending: false);
-
-    final products = rows.map((row) => ProductModel.fromJson(row)).toList();
-    if (search == null || search.trim().isEmpty) return products;
-
-    final keyword = search.toLowerCase().trim();
-    return products
-        .where(
-          (product) =>
-              product.name.toLowerCase().contains(keyword) ||
-              (product.sku ?? '').toLowerCase().contains(keyword),
-        )
-        .toList();
-  }
 
   static const String _adminProductSelect = _productSelect;
 
