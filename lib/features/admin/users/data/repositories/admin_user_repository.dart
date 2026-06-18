@@ -19,47 +19,22 @@ class AdminUserRepository {
     int pageSize = 20,
   }) async {
     try {
-      dynamic query = _client.from('profiles').select();
+      final result = await _client.rpc('admin_list_profiles', params: {
+        if (search != null && search.isNotEmpty) 'search_text': search,
+        if (role != null) 'role_filter': role,
+        if (sellerStatus != null) 'seller_status_filter': sellerStatus,
+        if (banned != null) 'banned_filter': banned,
+        'sort_col': sortBy,
+        'sort_asc': ascending,
+        'page_num': page,
+        'page_size': pageSize,
+      });
 
-      if (search != null && search.isNotEmpty) {
-        query = query.or(
-          'full_name.ilike.%$search%,email.ilike.%$search%',
-        );
-      }
-      if (role != null && role.isNotEmpty) {
-        query = query.eq('role', role);
-      }
-      if (sellerStatus != null && sellerStatus.isNotEmpty) {
-        query = query.eq('seller_status', sellerStatus);
-      }
-      if (banned != null) {
-        query = query.eq('is_banned', banned);
-      }
-
-      final from = (page - 1) * pageSize;
-      final to = from + pageSize - 1;
-      query = query.order(sortBy!, ascending: ascending).range(from, to);
-
-      final rows = List<Map<String, dynamic>>.from(await query);
-      final items = rows.map((row) => AdminUserModel.fromJson(row)).toList();
-
-      var countQuery = _client.from('profiles').select('id');
-      if (search != null && search.isNotEmpty) {
-        countQuery = countQuery.or(
-          'full_name.ilike.%$search%,email.ilike.%$search%',
-        );
-      }
-      if (role != null && role.isNotEmpty) {
-        countQuery = countQuery.eq('role', role);
-      }
-      if (sellerStatus != null && sellerStatus.isNotEmpty) {
-        countQuery = countQuery.eq('seller_status', sellerStatus);
-      }
-      if (banned != null) {
-        countQuery = countQuery.eq('is_banned', banned);
-      }
-      final countResult = List<Map<String, dynamic>>.from(await countQuery);
-      final totalCount = countResult.length;
+      final data = Map<String, dynamic>.from(result);
+      final items = (data['items'] as List)
+          .map((row) => AdminUserModel.fromJson(Map<String, dynamic>.from(row)))
+          .toList();
+      final totalCount = data['totalCount'] as int;
 
       return (items: items, totalCount: totalCount);
     } catch (e) {
@@ -84,10 +59,10 @@ class AdminUserRepository {
 
   Future<void> updateUserRole(String userId, String role) async {
     try {
-      await _client
-          .from('profiles')
-          .update({'role': role, 'updated_at': DateTime.now().toUtc().toIso8601String()})
-          .eq('id', userId);
+      await _client.rpc('admin_update_user_role', params: {
+        'target_id': userId,
+        'new_role': role,
+      });
     } catch (e) {
       throw handleSupabaseError(e);
     }
@@ -95,18 +70,11 @@ class AdminUserRepository {
 
   Future<void> toggleBan(String userId, {bool banned = true, String? reason}) async {
     try {
-      final data = <String, dynamic>{
-        'is_banned': banned,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      };
-      if (banned) {
-        data['ban_reason'] = reason;
-        data['banned_at'] = DateTime.now().toUtc().toIso8601String();
-      } else {
-        data['ban_reason'] = null;
-        data['banned_at'] = null;
-      }
-      await _client.from('profiles').update(data).eq('id', userId);
+      await _client.rpc('admin_toggle_ban', params: {
+        'target_id': userId,
+        'set_banned': banned,
+        if (reason != null) 'reason_text': reason,
+      });
     } catch (e) {
       throw handleSupabaseError(e);
     }
@@ -114,12 +82,10 @@ class AdminUserRepository {
 
   Future<void> updateSellerStatus(String userId, String status) async {
     try {
-      await _client.from('profiles').update({
-        'seller_status': status,
-        if (status == 'approved' || status == 'rejected')
-          'role': 'seller',
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      }).eq('id', userId);
+      await _client.rpc('admin_update_seller_status', params: {
+        'target_id': userId,
+        'new_status': status,
+      });
     } catch (e) {
       throw handleSupabaseError(e);
     }

@@ -56,8 +56,8 @@ class AdminUserModel {
     switch (role) {
       case 'admin':
         return 'Admin';
-      case 'seller':
-        return 'Seller';
+      case 'storeowner':
+        return 'Store Owner';
       default:
         return 'Customer';
     }

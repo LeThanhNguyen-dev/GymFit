@@ -59,7 +59,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
       body: Column(
         children: [
           _buildSearchBar(),
-          _buildFilterChips(),
+          _buildFilterRow(),
           _buildSortRow(),
           Expanded(
             child: usersAsync.when(
@@ -113,72 +113,102 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           prefixIcon: Icon(Icons.search),
           labelText: 'Tìm kiếm người dùng...',
           border: OutlineInputBorder(),
+          isDense: true,
         ),
         onChanged: (_) => _onFilterChanged(),
       ),
     );
   }
 
-  Widget _buildFilterChips() {
+  Widget _buildFilterRow() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _buildChip('Tất cả', null, _roleFilter),
-            const SizedBox(width: 8),
-            _buildChip('Admin', 'admin', _roleFilter),
-            const SizedBox(width: 8),
-            _buildChip('Seller', 'seller', _roleFilter),
-            const SizedBox(width: 8),
-            _buildChip('Customer', 'customer', _roleFilter),
-            const SizedBox(width: 16),
-            _buildChip('Chờ duyệt', 'pending', _sellerStatusFilter),
-            const SizedBox(width: 8),
-            _buildChip('Đã duyệt', 'approved', _sellerStatusFilter),
-            const SizedBox(width: 16),
-            _buildChip('Bị cấm', true, _bannedFilter),
-          ],
-        ),
+      child: Row(
+        children: [
+          Expanded(
+            child: DropdownButtonFormField<String?>(
+              value: _roleFilter,
+              decoration: const InputDecoration(
+                labelText: 'Role',
+                border: OutlineInputBorder(),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              items: const [
+                DropdownMenuItem(value: null, child: Text('All')),
+                DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                DropdownMenuItem(value: 'storeowner', child: Text('Store Owner')),
+                DropdownMenuItem(value: 'customer', child: Text('Customer')),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _roleFilter = value;
+                  _sellerStatusFilter = null;
+                  _page = 1;
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: DropdownButtonFormField<String?>(
+              value: _sellerStatusFilter,
+              decoration: const InputDecoration(
+                labelText: 'Seller',
+                border: OutlineInputBorder(),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              items: const [
+                DropdownMenuItem(value: null, child: Text('All')),
+                DropdownMenuItem(value: 'pending', child: Text('Pending')),
+                DropdownMenuItem(value: 'approved', child: Text('Approved')),
+                DropdownMenuItem(value: 'rejected', child: Text('Rejected')),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _sellerStatusFilter = value;
+                  _roleFilter = null;
+                  _page = 1;
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: DropdownButtonFormField<String?>(
+              value: _bannedFilter == null
+                  ? null
+                  : _bannedFilter!
+                      ? 'banned'
+                      : 'not_banned',
+              decoration: const InputDecoration(
+                labelText: 'Status',
+                border: OutlineInputBorder(),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              items: const [
+                DropdownMenuItem(value: null, child: Text('All')),
+                DropdownMenuItem(value: 'not_banned', child: Text('Active')),
+                DropdownMenuItem(value: 'banned', child: Text('Banned')),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  if (value == 'banned') {
+                    _bannedFilter = true;
+                  } else if (value == 'not_banned') {
+                    _bannedFilter = false;
+                  } else {
+                    _bannedFilter = null;
+                  }
+                  _page = 1;
+                });
+              },
+            ),
+          ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildChip(
-    String label,
-    Object? value,
-    Object? currentValue,
-  ) {
-    final selected = currentValue == value;
-    return FilterChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) {
-        setState(() {
-          if (value is String) {
-            if (value == _roleFilter || value == _sellerStatusFilter) {
-              _roleFilter = null;
-              _sellerStatusFilter = null;
-            } else {
-              _roleFilter = null;
-              _sellerStatusFilter = null;
-              if (value == 'admin' || value == 'seller' || value == 'customer') {
-                _roleFilter = value;
-              } else {
-                _sellerStatusFilter = value;
-              }
-            }
-          } else if (value is bool) {
-            _bannedFilter = _bannedFilter == value ? null : value;
-          } else {
-            _roleFilter = null;
-            _sellerStatusFilter = null;
-            _bannedFilter = null;
-          }
-          _page = 1;
-        });
-      },
     );
   }
 
@@ -212,39 +242,118 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   }
 
   Widget _buildUserTile(AdminUserModel user) {
-    final banColor = user.isBanned ? Colors.red : null;
+    final banned = user.isBanned;
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        backgroundColor: banned
+            ? Colors.red.shade100
+            : Theme.of(context).colorScheme.primaryContainer,
         child: Text(
           user.initials,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onPrimaryContainer,
+            color: banned
+                ? Colors.red.shade700
+                : Theme.of(context).colorScheme.onPrimaryContainer,
             fontWeight: FontWeight.bold,
           ),
         ),
       ),
       title: Text(
         user.fullName ?? user.email,
-        style: TextStyle(color: banColor),
+        style: TextStyle(
+          color: banned ? Colors.red : null,
+          decoration: banned ? TextDecoration.lineThrough : null,
+        ),
       ),
-      subtitle: Text(
-        '${user.roleLabel}${user.sellerStatus != 'none' ? ' · ${user.sellerStatusLabel}' : ''}${user.isBanned ? ' · BANNED' : ''}',
-        style: TextStyle(color: banColor),
+      subtitle: Row(
+        children: [
+          if (banned)
+              const Padding(
+                padding: EdgeInsets.only(right: 4),
+                child: Icon(Icons.block_flipped, size: 14, color: Colors.red),
+              ),
+          Expanded(
+            child: Text(
+              '${user.roleLabel}${user.sellerStatus != 'none' ? ' · ${user.sellerStatusLabel}' : ''}',
+              style: TextStyle(color: banned ? Colors.red.shade300 : null),
+            ),
+          ),
+        ],
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (user.sellerStatus == 'pending')
             Icon(Icons.pending, color: Colors.orange.shade300, size: 20),
-          if (user.isBanned)
-            const Icon(Icons.block, color: Colors.red, size: 20),
           const SizedBox(width: 4),
-          const Icon(Icons.chevron_right),
+          if (banned)
+            IconButton(
+              icon: const Icon(Icons.check_circle_outline, color: Colors.orange),
+              tooltip: 'Unban',
+              onPressed: () => _toggleBan(user, false),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.block_flipped, color: Colors.grey),
+              tooltip: 'Ban',
+              onPressed: () => _toggleBan(user, true),
+            ),
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Details',
+            onPressed: () => _showUserDetailDialog(user),
+          ),
         ],
       ),
-      onTap: () => _showUserDetailDialog(user),
     );
+  }
+
+  Future<void> _toggleBan(AdminUserModel user, bool ban) async {
+    final repo = ref.read(adminUserRepositoryProvider);
+    final name = user.fullName ?? user.email;
+
+    if (ban) {
+      final reason = await AppDialog.input(
+        context,
+        title: 'Ban $name',
+        initialValue: '',
+      );
+      if (reason == null || !context.mounted) return;
+      final confirm = await AppDialog.confirm(
+        context,
+        title: 'Confirm ban',
+        message: 'Ban $name${reason.isNotEmpty ? ': $reason' : ''}?',
+        confirmText: 'Ban',
+        confirmColor: Colors.red,
+      );
+      if (confirm != true || !context.mounted) return;
+      try {
+        await repo.toggleBan(user.id, banned: true, reason: reason.isNotEmpty ? reason : null);
+        if (context.mounted) {
+          showAppSnackbar(context, message: 'Đã cấm $name', type: SnackbarType.success);
+          ref.invalidate(adminUsersProvider);
+        }
+      } catch (e) {
+        if (context.mounted) showAppSnackbar(context, message: 'Lỗi: $e', type: SnackbarType.error);
+      }
+    } else {
+      final confirm = await AppDialog.confirm(
+        context,
+        title: 'Unban',
+        message: 'Bỏ cấm $name?',
+        confirmText: 'Unban',
+      );
+      if (confirm != true || !context.mounted) return;
+      try {
+        await repo.toggleBan(user.id, banned: false);
+        if (context.mounted) {
+          showAppSnackbar(context, message: 'Đã bỏ cấm $name', type: SnackbarType.success);
+          ref.invalidate(adminUsersProvider);
+        }
+      } catch (e) {
+        if (context.mounted) showAppSnackbar(context, message: 'Lỗi: $e', type: SnackbarType.error);
+      }
+    }
   }
 
   Future<void> _showUserDetailDialog(AdminUserModel user) async {
@@ -328,16 +437,15 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     AdminUserModel user,
     void Function(void Function()) setLocalState,
   ) {
-    var selectedRole = user.role;
     return DropdownButtonFormField<String>(
-      initialValue: selectedRole,
+      value: user.role,
       decoration: const InputDecoration(
         labelText: 'Vai trò',
         border: OutlineInputBorder(),
       ),
       items: const [
         DropdownMenuItem(value: 'customer', child: Text('Customer')),
-        DropdownMenuItem(value: 'seller', child: Text('Seller')),
+        DropdownMenuItem(value: 'storeowner', child: Text('Store Owner')),
         DropdownMenuItem(value: 'admin', child: Text('Admin')),
       ],
       onChanged: (value) async {
@@ -455,7 +563,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           }
         }
       },
-      icon: const Icon(Icons.block),
+      icon: const Icon(Icons.block_flipped),
       label: const Text('Cấm người dùng'),
     );
   }
