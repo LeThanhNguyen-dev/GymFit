@@ -65,35 +65,37 @@ class ProductRepository {
     bool ascending = true,
     String? search,
   }) async {
-    dynamic query = _client
-        .from(AppConstants.productsTable)
-        .select(_productSelect);
-
-    if (categoryId != null && categoryId.isNotEmpty) {
-      query = query.eq('category_id', categoryId);
-    }
-    if (brandId != null && brandId.isNotEmpty) {
-      query = query.eq('brand_id', brandId);
-    }
-    if (minPrice != null) {
-      query = query.gte('base_price', minPrice);
-    }
-    if (maxPrice != null) {
-      query = query.lte('base_price', maxPrice);
-    }
-    if (search != null && search.trim().isNotEmpty) {
-      query = query.textSearch('name', search.trim(),
-          type: TextSearchType.websearch);
-    }
-
-    query = sortBy == null || sortBy.isEmpty
-        ? query.order('created_at', ascending: false)
-        : query.order(sortBy, ascending: ascending);
-
     final from = (page - 1) * pageSize;
     final to = from + pageSize - 1;
-    final rows = await query.range(from, to);
-    return rows.map((row) => ProductModel.fromJson(row)).toList();
+
+    var q = _client.from(AppConstants.productsTable).select(_productSelect);
+
+    if (categoryId != null && categoryId.isNotEmpty) {
+      q = q.eq('category_id', categoryId);
+    }
+    if (brandId != null && brandId.isNotEmpty) {
+      q = q.eq('brand_id', brandId);
+    }
+    if (minPrice != null) {
+      q = q.gte('base_price', minPrice);
+    }
+    if (maxPrice != null) {
+      q = q.lte('base_price', maxPrice);
+    }
+    if (search != null && search.trim().isNotEmpty) {
+      final keyword = search.trim();
+      q = q.or(
+        'name.ilike.%$keyword%,sku.ilike.%$keyword%,short_description.ilike.%$keyword%',
+      );
+    }
+
+    final orderBy = (sortBy != null && sortBy.isNotEmpty) ? sortBy : 'created_at';
+    final rows = await q.order(orderBy, ascending: ascending).range(from, to);
+
+    return rows
+        .map<Map<String, dynamic>>((row) => Map<String, dynamic>.from(row))
+        .map<ProductModel>((row) => ProductModel.fromJson(row))
+        .toList();
   }
 
   Future<List<ProductModel>> getFeaturedProducts({int limit = 10}) async {
@@ -166,22 +168,28 @@ class ProductRepository {
 
   Future<List<ProductModel>> searchProducts(String text) async {
     if (text.trim().isEmpty) return [];
+    final keyword = text.trim();
     final rows = await _client
         .from(AppConstants.productsTable)
         .select(_productSelect)
-        .eq('is_active', true)
-        .textSearch('name', text.trim(), type: TextSearchType.websearch)
-        .order('created_at', ascending: false);
+        .inFilter('status', ['active', 'out_of_stock'])
+        .or(
+          'name.ilike.%$keyword%,sku.ilike.%$keyword%,short_description.ilike.%$keyword%',
+        )
+        .order('total_sold', ascending: false)
+        .limit(50);
 
     return rows.map((row) => ProductModel.fromJson(row)).toList();
   }
+
   Future<List<String>> getSearchSuggestions(String text) async {
     if (text.trim().isEmpty) return [];
+    final keyword = text.trim();
     final rows = await _client
         .from(AppConstants.productsTable)
         .select('name')
-        .eq('is_active', true)
-        .ilike('name', '%${text.trim()}%')
+        .inFilter('status', ['active', 'out_of_stock'])
+        .ilike('name', '%$keyword%')
         .limit(5);
 
     return rows.map((row) => row['name'] as String).toList();
