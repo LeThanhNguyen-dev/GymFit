@@ -110,9 +110,23 @@ class AddressListScreen extends ConsumerWidget {
             child: const Text('Hủy'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              // TODO: Implement delete address
+              try {
+                await ref.read(addressRepositoryProvider).deleteAddress(addressId);
+                ref.invalidate(userAddressesProvider);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Đã xóa địa chỉ')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Lỗi: $e')),
+                  );
+                }
+              }
             },
             child: const Text('Xóa', style: TextStyle(color: Colors.red)),
           ),

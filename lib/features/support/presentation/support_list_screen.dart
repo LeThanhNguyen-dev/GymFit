@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/supabase_providers.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../data/models/support_ticket_model.dart';
@@ -65,36 +66,48 @@ class _SupportListScreenState extends ConsumerState<SupportListScreen> {
                     )
                     .toList();
                 if (filtered.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.support_agent_outlined,
-                          size: 64,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Không có yêu cầu hỗ trợ',
-                          style: AppTextStyles.titleMedium.copyWith(
-                            color: colorScheme.onSurfaceVariant,
+                  return RefreshIndicator(
+                    onRefresh: () async => ref.refresh(userTicketsProvider.future),
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.5,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.support_agent_outlined,
+                                size: 64,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Không có yêu cầu hỗ trợ',
+                                style: AppTextStyles.titleMedium.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   );
                 }
-                return ListView.separated(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.pageHorizontal,
-                    vertical: AppSpacing.md,
+                return RefreshIndicator(
+                  onRefresh: () async => ref.refresh(userTicketsProvider.future),
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.pageHorizontal,
+                      vertical: AppSpacing.md,
+                    ),
+                    itemCount: filtered.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (context, index) =>
+                        _TicketTile(ticket: filtered[index]),
                   ),
-                  itemCount: filtered.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: AppSpacing.sm),
-                  itemBuilder: (context, index) =>
-                      _TicketTile(ticket: filtered[index]),
                 );
               },
               loading: () =>
@@ -332,19 +345,19 @@ class _CreateTicketSheetState extends ConsumerState<CreateTicketSheet> {
                     setState(() => _priority = value ?? 'normal'),
               ),
               const SizedBox(height: AppSpacing.lg),
-              FilledButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // TODO: Submit ticket
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Yêu cầu được tạo thành công'),
-                      ),
-                    );
-                  }
+              Consumer(
+                builder: (context, ref, child) {
+                  final submitState = ref.watch(createTicketProvider);
+                  return FilledButton(
+                    onPressed: submitState.isLoading ? null : _submit,
+                    child: submitState.isLoading
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Gửi yêu cầu'),
+                  );
                 },
-                child: const Text('Gửi yêu cầu'),
               ),
               const SizedBox(height: AppSpacing.md),
             ],
@@ -352,5 +365,28 @@ class _CreateTicketSheetState extends ConsumerState<CreateTicketSheet> {
         ),
       ),
     );
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    final userId = ref.read(supabaseClientProvider).auth.currentUser?.id;
+    if (userId == null) return;
+
+    await ref
+        .read(createTicketProvider.notifier)
+        .submit(
+          userId: userId,
+          orderId: _orderIdController.text.trim().isEmpty
+              ? null
+              : _orderIdController.text.trim(),
+          subject: _subjectController.text,
+          description: _descriptionController.text,
+          priority: _priority,
+        );
+    if (!mounted) return;
+    ref.invalidate(userTicketsProvider);
+    Navigator.of(context).pop();
   }
 }

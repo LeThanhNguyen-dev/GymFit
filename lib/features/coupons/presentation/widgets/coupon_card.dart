@@ -4,8 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../shared/enums/database_enums.dart';
-import '../../data/models/coupon_model.dart';
+import '../../../voucher/data/models/voucher_model.dart';
 
 class CouponCard extends StatelessWidget {
   const CouponCard({
@@ -81,7 +80,7 @@ class CouponCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            coupon.name,
+                            'Mã giảm giá',
                             style: AppTextStyles.titleMedium.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -206,7 +205,7 @@ class CouponCard extends StatelessWidget {
   }
 
   String _formatDiscount(VoucherModel coupon) {
-    if (coupon.type == VoucherType.percentage) {
+    if (coupon.discountType == 'percentage') {
       return '${coupon.discountValue.toStringAsFixed(0)}%';
     } else {
       return formatCurrency(coupon.discountValue);

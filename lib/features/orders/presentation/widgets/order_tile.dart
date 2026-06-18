@@ -57,8 +57,7 @@ class OrderTile extends StatelessWidget {
                   ),
                   Chip(
                     label: Text(order.statusText),
-                    backgroundColor: order.statusColor
-                        .withValues(alpha: 0.2),
+                    backgroundColor: order.statusColor.withValues(alpha: 0.2),
                     labelStyle: TextStyle(
                       color: order.statusColor,
                       fontWeight: FontWeight.w500,
@@ -94,7 +93,7 @@ class OrderTile extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                item.productName ?? 'Sản phẩm không xác định',
+                                item.productName,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: AppTextStyles.bodySmall,

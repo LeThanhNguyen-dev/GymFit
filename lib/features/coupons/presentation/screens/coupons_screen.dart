@@ -1,64 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/enums/database_enums.dart';
-import '../../data/models/coupon_model.dart';
+import '../../../voucher/providers/voucher_provider.dart';
 import '../widgets/coupon_card.dart';
 
-class CouponsScreen extends StatefulWidget {
+class CouponsScreen extends ConsumerStatefulWidget {
   const CouponsScreen({super.key});
 
   @override
-  State<CouponsScreen> createState() => _CouponsScreenState();
+  ConsumerState<CouponsScreen> createState() => _CouponsScreenState();
 }
 
-class _CouponsScreenState extends State<CouponsScreen> {
-  // Mock data for coupons - Replace with real provider data
-  static final List<VoucherModel> mockCoupons = [
-    VoucherModel(
-      id: '1',
-      code: 'SAVE20',
-      name: 'Giảm 20% cho tất cả',
-      description: 'Giảm 20% khi mua bất kỳ sản phẩm nào',
-      type: VoucherType.percentage,
-      discountValue: 20,
-      scope: VoucherScope.global,
-      isActive: true,
-      usedCount: 45,
-      usageLimit: 100,
-    ),
-    VoucherModel(
-      id: '2',
-      code: 'FLAT50K',
-      name: 'Giảm 50.000đ',
-      description: 'Giảm 50.000đ cho đơn hàng từ 200.000đ',
-      type: VoucherType.fixedAmount,
-      discountValue: 50000,
-      scope: VoucherScope.global,
-      minOrderAmount: 200000,
-      isActive: true,
-      usedCount: 120,
-      usageLimit: 200,
-    ),
-    VoucherModel(
-      id: '3',
-      code: 'SUMMER30',
-      name: 'Mùa hè - Giảm 30%',
-      description: 'Ưu đãi mùa hè - Giảm 30% tối đa 500.000đ',
-      type: VoucherType.percentage,
-      discountValue: 30,
-      scope: VoucherScope.global,
-      maxDiscountAmount: 500000,
-      isActive: true,
-      usedCount: 200,
-      usageLimit: 300,
-    ),
-  ];
-
+class _CouponsScreenState extends ConsumerState<CouponsScreen> {
   @override
   Widget build(BuildContext context) {
+    final vouchersAsync = ref.watch(availableVouchersProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mã khuyến mãi'),
@@ -66,8 +27,8 @@ class _CouponsScreenState extends State<CouponsScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          // TODO: Refresh coupons from provider
-          await Future.delayed(const Duration(seconds: 1));
+          ref.invalidate(availableVouchersProvider);
+          await ref.read(availableVouchersProvider.future);
         },
         child: CustomScrollView(
           slivers: [
@@ -99,24 +60,41 @@ class _CouponsScreenState extends State<CouponsScreen> {
                 ),
               ),
             ),
-            SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
+            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
 
             // Coupons list
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.pageHorizontal,
+            vouchersAsync.when(
+              loading: () => const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
               ),
-              sliver: SliverList.separated(
-                itemCount: mockCoupons.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: AppSpacing.md),
-                itemBuilder: (context, index) => CouponCard(
-                  coupon: mockCoupons[index],
-                  onCopy: () => _copyCouponCode(mockCoupons[index].code),
-                ),
+              error: (error, _) => SliverFillRemaining(
+                child: Center(child: Text('Lỗi: $error')),
               ),
+              data: (vouchers) {
+                if (vouchers.isEmpty) {
+                  return const SliverFillRemaining(
+                    child: Center(
+                      child: Text('Không có mã khuyến mãi nào'),
+                    ),
+                  );
+                }
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.pageHorizontal,
+                  ),
+                  sliver: SliverList.separated(
+                    itemCount: vouchers.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: AppSpacing.md),
+                    itemBuilder: (context, index) => CouponCard(
+                      coupon: vouchers[index],
+                      onCopy: () => _copyCouponCode(vouchers[index].code),
+                    ),
+                  ),
+                );
+              },
             ),
-            SliverToBoxAdapter(child: SizedBox(height: AppSpacing.pageHorizontal)),
+            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.pageHorizontal)),
           ],
         ),
       ),
@@ -124,7 +102,7 @@ class _CouponsScreenState extends State<CouponsScreen> {
   }
 
   void _copyCouponCode(String code) {
-    // TODO: Copy to clipboard
+    Clipboard.setData(ClipboardData(text: code));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Đã sao chép mã: $code'),
