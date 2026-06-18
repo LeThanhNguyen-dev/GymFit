@@ -6,6 +6,9 @@ import '../../../../../core/router/route_names.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../core/theme/app_text_styles.dart';
+import '../../../../products/data/models/product_model.dart';
+import '../../../../products/providers/product_providers.dart';
+import '../../../../../shared/enums/database_enums.dart';
 
 class StoreProductListScreen extends ConsumerStatefulWidget {
   const StoreProductListScreen({super.key});
@@ -16,15 +19,25 @@ class StoreProductListScreen extends ConsumerStatefulWidget {
 class _StoreProductListScreenState extends ConsumerState<StoreProductListScreen> with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
   final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
 
   @override
-  void initState() { super.initState(); _tabCtrl = TabController(length: 5, vsync: this); }
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: 5, vsync: this);
+  }
 
   @override
-  void dispose() { _tabCtrl.dispose(); _searchCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _tabCtrl.dispose();
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final productsAsync = ref.watch(storeProductsProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Sản phẩm'), elevation: 0),
       body: Column(
@@ -33,9 +46,19 @@ class _StoreProductListScreenState extends ConsumerState<StoreProductListScreen>
             padding: const EdgeInsets.fromLTRB(AppSpacing.pageHorizontal, AppSpacing.sm, AppSpacing.pageHorizontal, 0),
             child: TextField(
               controller: _searchCtrl,
+              onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
               decoration: InputDecoration(
                 hintText: 'Tìm sản phẩm...',
                 prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchCtrl.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
@@ -44,12 +67,36 @@ class _StoreProductListScreenState extends ConsumerState<StoreProductListScreen>
           TabBar(
             controller: _tabCtrl,
             isScrollable: true,
-            tabs: 'Tất cả|Đang bán|Hết hàng|Ẩn|Chờ duyệt'.split('|').map((t) => Tab(text: t)).toList(),
+            tabs: 'Tất cả|Đang bán|Hết hàng|Ẩn|Nháp'.split('|').map((t) => Tab(text: t)).toList(),
           ),
           Expanded(
-            child: TabBarView(
-              controller: _tabCtrl,
-              children: List.generate(5, (_) => _buildProductList()),
+            child: productsAsync.when(
+              data: (products) {
+                // Apply search filter
+                var filtered = products;
+                if (_searchQuery.isNotEmpty) {
+                  filtered = filtered
+                      .where((p) => p.name.toLowerCase().contains(_searchQuery) || (p.sku ?? '').toLowerCase().contains(_searchQuery))
+                      .toList();
+                }
+
+                return TabBarView(
+                  controller: _tabCtrl,
+                  children: [
+                    _buildProductList(filtered), // Tất cả
+                    _buildProductList(filtered.where((p) => p.status == ProductStatus.active).toList()), // Đang bán
+                    _buildProductList(filtered.where((p) {
+                      // Check if out of stock
+                      if (p.variants.isEmpty) return true; // mock or no variants
+                      return p.variants.every((v) => v.quantity <= 0);
+                    }).toList()), // Hết hàng
+                    _buildProductList(filtered.where((p) => p.status == ProductStatus.inactive).toList()), // Ẩn
+                    _buildProductList(filtered.where((p) => p.status == ProductStatus.draft).toList()), // Nháp
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, _) => Center(child: Text('Lỗi: $err')),
             ),
           ),
         ],
@@ -62,59 +109,158 @@ class _StoreProductListScreenState extends ConsumerState<StoreProductListScreen>
     );
   }
 
-  Widget _buildProductList() {
-    final products = [
-      _mockProduct('Gym Bag Pro', '1.200.000₫', 45, 'Đang bán'),
-      _mockProduct('Towel XL', '250.000₫', 0, 'Hết hàng'),
-      _mockProduct('Water Bottle 500ml', '180.000₫', 120, 'Đang bán'),
-      _mockProduct('Wrist Wraps', '350.000₫', 0, 'Ẩn'),
-      _mockProduct('Jump Rope Speed', '220.000₫', 60, 'Đang bán'),
-    ];
-    return ListView.separated(
-      padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
-      itemCount: products.length,
-      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-      itemBuilder: (_, i) => _ProductCard(product: products[i], onTap: () {}),
+  Widget _buildProductList(List<ProductModel> products) {
+    if (products.isEmpty) {
+      return const Center(child: Text('Không có sản phẩm nào.'));
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async => ref.refresh(storeProductsProvider),
+      child: ListView.separated(
+        padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
+        itemCount: products.length,
+        separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+        itemBuilder: (_, i) => _ProductCard(
+          product: products[i],
+          onTap: () => context.push(RouteNames.storeEditProductPath.replaceAll(':id', products[i].id)),
+          onStatusChanged: (newStatus) async {
+            try {
+              final repo = ref.read(productRepositoryProvider);
+              await repo.updateProduct(products[i].id, {'status': newStatus});
+              ref.invalidate(storeProductsProvider);
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+              }
+            }
+          },
+          onDelete: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Xóa sản phẩm?'),
+                content: const Text('Bạn có chắc chắn muốn xóa sản phẩm này không?'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+                    child: const Text('Xóa'),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirm == true) {
+              try {
+                final repo = ref.read(productRepositoryProvider);
+                await repo.deleteProduct(products[i].id);
+                ref.invalidate(storeProductsProvider);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Xóa thành công!')));
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+                }
+              }
+            }
+          },
+        ),
+      ),
     );
   }
-
-  Map<String, dynamic> _mockProduct(String name, String price, int stock, String status) =>
-      {'name': name, 'price': price, 'stock': stock, 'status': status, 'image': Icons.image};
 }
 
 class _ProductCard extends StatelessWidget {
-  final Map<String, dynamic> product;
+  final ProductModel product;
   final VoidCallback onTap;
-  const _ProductCard({required this.product, required this.onTap});
+  final Function(String) onStatusChanged;
+  final VoidCallback onDelete;
 
-  Color _statusColor(String s) => switch (s) {
-    'Đang bán' => AppColors.success, 'Hết hàng' => AppColors.error, 'Ẩn' => Colors.grey, _ => AppColors.warning,
-  };
+  const _ProductCard({
+    required this.product,
+    required this.onTap,
+    required this.onStatusChanged,
+    required this.onDelete,
+  });
+
+  Color _statusColor(ProductStatus s) => switch (s) {
+        ProductStatus.active => AppColors.success,
+        ProductStatus.inactive => Colors.grey,
+        ProductStatus.draft => AppColors.info,
+        _ => AppColors.warning,
+      };
+
+  String _statusText(ProductStatus s) => switch (s) {
+        ProductStatus.active => 'Đang bán',
+        ProductStatus.inactive => 'Ẩn',
+        ProductStatus.draft => 'Nháp',
+        _ => 'Chờ duyệt',
+      };
 
   @override
   Widget build(BuildContext context) {
+    final hasStock = product.variants.isNotEmpty ? product.variants.fold<int>(0, (sum, v) => sum + v.quantity) : 0;
+    final displayStatusText = hasStock == 0 && product.status == ProductStatus.active ? 'Hết hàng' : _statusText(product.status);
+    final statusColor = hasStock == 0 && product.status == ProductStatus.active ? AppColors.error : _statusColor(product.status);
+
     return Card(
       child: ListTile(
         leading: Container(
-          width: 56, height: 56,
-          decoration: BoxDecoration(color: AppColors.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
-          child: Icon(Icons.image, color: AppColors.onSurfaceVariant),
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8),
+            image: product.primaryImageUrl != null
+                ? DecorationImage(image: NetworkImage(product.primaryImageUrl!), fit: BoxFit.cover)
+                : null,
+          ),
+          child: product.primaryImageUrl == null
+              ? Icon(Icons.image, color: AppColors.onSurfaceVariant)
+              : null,
         ),
-        title: Text(product['name'], style: AppTextStyles.bodyMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
-        subtitle: Text('${product['price']} • Tồn: ${product['stock']}', style: AppTextStyles.bodySmall),
+        title: Text(product.name, style: AppTextStyles.bodyMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text(
+          '${product.basePrice.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}₫ • Tồn: $hasStock',
+          style: AppTextStyles.bodySmall,
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(color: _statusColor(product['status']).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
-              child: Text(product['status'], style: TextStyle(fontSize: 11, color: _statusColor(product['status']))),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                displayStatusText,
+                style: TextStyle(fontSize: 11, color: statusColor, fontWeight: FontWeight.bold),
+              ),
             ),
-            PopupMenuButton(itemBuilder: (_) => [
-              const PopupMenuItem(value: 'edit', child: Text('Sửa')),
-              const PopupMenuItem(value: 'hide', child: Text('Ẩn')),
-              const PopupMenuItem(value: 'delete', child: Text('Xóa')),
-            ]),
+            PopupMenuButton<String>(
+              onSelected: (val) {
+                if (val == 'edit') {
+                  onTap();
+                } else if (val == 'hide') {
+                  onStatusChanged('inactive');
+                } else if (val == 'show') {
+                  onStatusChanged('active');
+                } else if (val == 'delete') {
+                  onDelete();
+                }
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'edit', child: Text('Sửa')),
+                if (product.status == ProductStatus.active)
+                  const PopupMenuItem(value: 'hide', child: Text('Ẩn')),
+                if (product.status == ProductStatus.inactive || product.status == ProductStatus.draft)
+                  const PopupMenuItem(value: 'show', child: Text('Hiện thị (Bán)')),
+                const PopupMenuItem(value: 'delete', child: Text('Xóa')),
+              ],
+            ),
           ],
         ),
         onTap: onTap,

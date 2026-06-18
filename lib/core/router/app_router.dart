@@ -50,6 +50,8 @@ import '../../features/store/presentation/screens/store_orders/order_list_screen
 import '../../features/store/presentation/screens/store_orders/order_detail_screen.dart' as store_orders;
 import '../../features/store/presentation/screens/store_finance/finance_screen.dart';
 import '../../features/store/presentation/screens/store_settings/settings_screen.dart';
+import '../../features/admin/users/admin_users.dart';
+import '../../features/admin/widgets/admin_shell.dart';
 import 'route_names.dart';
 import '../services/deep_link_service.dart';
 
@@ -309,7 +311,7 @@ List<RouteBase> _buildRoutes() {
     ),
     // Admin Shell + Routes
     ShellRoute(
-      builder: (_, _, child) => _AdminShell(child: child),
+      builder: (_, _, child) => AdminShell(child: child),
       routes: [
         GoRoute(path: RouteNames.adminPath, name: RouteNames.admin, redirect: (_, _) => RouteNames.adminDashboardPath),
         // 6 main tabs
@@ -390,55 +392,6 @@ List<RouteBase> _buildRoutes() {
   ];
 }
 
-class _AdminShell extends StatelessWidget {
-  const _AdminShell({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
-        children: [
-          NavigationRail(
-            selectedIndex: _adminIndex(context),
-            onDestinationSelected: (index) {
-              switch (index) {
-                case 0: GoRouter.of(context).go(RouteNames.adminDashboardPath);
-                case 1: GoRouter.of(context).go(RouteNames.adminShopsPath);
-                case 2: GoRouter.of(context).go(RouteNames.adminUsersPath);
-                case 3: GoRouter.of(context).go(RouteNames.adminOrdersPath);
-                case 4: GoRouter.of(context).go(RouteNames.adminFinancePath);
-                case 5: GoRouter.of(context).go(RouteNames.adminSettingsPath);
-              }
-            },
-            labelType: NavigationRailLabelType.all,
-            destinations: const [
-              NavigationRailDestination(icon: Icon(Icons.dashboard), label: Text('Tổng quan')),
-              NavigationRailDestination(icon: Icon(Icons.store), label: Text('Shop')),
-              NavigationRailDestination(icon: Icon(Icons.people), label: Text('User')),
-              NavigationRailDestination(icon: Icon(Icons.receipt_long), label: Text('Đơn hàng')),
-              NavigationRailDestination(icon: Icon(Icons.account_balance_wallet), label: Text('Tài chính')),
-              NavigationRailDestination(icon: Icon(Icons.settings), label: Text('Cài đặt')),
-            ],
-          ),
-          const VerticalDivider(width: 1),
-          Expanded(child: child),
-        ],
-      ),
-    );
-  }
-
-  int _adminIndex(BuildContext context) {
-    final location = GoRouterState.of(context).matchedLocation;
-    if (location.startsWith(RouteNames.adminShopsPath)) return 1;
-    if (location.startsWith(RouteNames.adminUsersPath)) return 2;
-    if (location.startsWith(RouteNames.adminOrdersPath)) return 3;
-    if (location.startsWith(RouteNames.adminFinancePath)) return 4;
-    if (location.startsWith(RouteNames.adminSettingsPath)) return 5;
-    return 0;
-  }
-}
 
 class _MainShell extends StatelessWidget {
   const _MainShell({required this.child});

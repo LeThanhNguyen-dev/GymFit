@@ -32,9 +32,14 @@ class LowStockVariantModel {
   factory LowStockVariantModel.fromJson(Map<String, dynamic> json) {
     return LowStockVariantModel(
       variantId: (json['variant_id'] ?? json['id']).toString(),
-      productName: (json['product_name'] ?? json['name'] ?? 'Product')
+      productName: (json['product_name'] ??
+              json['product']?['name'] ??
+              json['name'] ??
+              'Product')
           .toString(),
-      variantName: (json['variant_name'] ?? json['option_display']) as String?,
+      variantName:
+          (json['variant_name'] ?? json['name'] ?? json['option_display'])
+              as String?,
       sku: json['sku'] as String?,
       stock: intFromJson(json['stock'] ?? json['quantity']) ?? 0,
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../../core/providers/supabase_providers.dart';
 import '../../../../../core/router/route_names.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_spacing.dart';
@@ -20,25 +21,49 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final supabase = ref.watch(supabaseClientProvider);
+    final userId = supabase.auth.currentUser?.id;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Tổng quan'), elevation: 0),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildPeriodToggle(),
-            const SizedBox(height: AppSpacing.md),
-            _buildStatsGrid(),
-            const SizedBox(height: AppSpacing.lg),
-            _buildRevenueChart(),
-            const SizedBox(height: AppSpacing.lg),
-            _buildTopProducts(),
-            const SizedBox(height: AppSpacing.lg),
-            _buildQuickActions(),
-          ],
-        ),
-      ),
+      body: userId == null
+          ? const Center(child: Text('Đang tải thông tin...'))
+          : RefreshIndicator(
+              onRefresh: () async {
+                setState(() {});
+              },
+              child: FutureBuilder<Map<String, dynamic>>(
+                future: supabase.rpc('get_store_stats', params: {'p_seller_id': userId}).then((res) => Map<String, dynamic>.from(res ?? {})),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final stats = snapshot.data ?? {};
+                  final revenue = double.tryParse(stats['revenue']?.toString() ?? '0') ?? 0.0;
+                  final formattedRevenue = revenue.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+
+                  return SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildPeriodToggle(),
+                        const SizedBox(height: AppSpacing.md),
+                        _buildStatsGrid(stats, formattedRevenue),
+                        const SizedBox(height: AppSpacing.lg),
+                        _buildRevenueChart(),
+                        const SizedBox(height: AppSpacing.lg),
+                        _buildTopProducts(userId, supabase),
+                        const SizedBox(height: AppSpacing.lg),
+                        _buildQuickActions(stats),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
     );
   }
 
@@ -50,15 +75,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildStatsGrid() {
+  Widget _buildStatsGrid(Map<String, dynamic> stats, String revenueText) {
     return LayoutBuilder(
       builder: (_, constraints) => Wrap(
         spacing: AppSpacing.sm, runSpacing: AppSpacing.sm,
         children: [
-          _StatCard(label: 'Doanh thu', value: '12.450.000₫', icon: Icons.trending_up, color: AppColors.success),
-          _StatCard(label: 'Đơn hàng', value: '28 (3 chờ)', icon: Icons.receipt_long, color: AppColors.primary),
-          _StatCard(label: 'Lượt xem', value: '1.240', icon: Icons.visibility, color: AppColors.info),
-          _StatCard(label: 'Tồn kho', value: '156 (8 hết)', icon: Icons.inventory_2, color: AppColors.warning),
+          _StatCard(label: 'Doanh thu', value: '$revenueText₫', icon: Icons.trending_up, color: AppColors.success),
+          _StatCard(label: 'Đơn hàng', value: '${stats['order_count'] ?? 0}', icon: Icons.receipt_long, color: AppColors.primary),
+          _StatCard(label: 'Sản phẩm bán', value: '${stats['product_count'] ?? 0}', icon: Icons.inventory_2, color: AppColors.info),
+          _StatCard(label: 'Hết hàng', value: '${stats['out_of_stock_count'] ?? 0}', icon: Icons.warning_amber_rounded, color: AppColors.warning),
         ].map((s) => SizedBox(width: (constraints.maxWidth - AppSpacing.sm) / 2, child: s)).toList(),
       ),
     );
@@ -71,7 +96,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Doanh thu 7 ngày', style: AppTextStyles.titleMedium),
+            Text('Doanh thu 7 ngày qua', style: AppTextStyles.titleMedium),
             const SizedBox(height: AppSpacing.md),
             SizedBox(
               height: 180,
@@ -81,15 +106,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   final h = [0.3, 0.5, 0.4, 0.7, 0.6, 0.8, 0.5][e.key];
                   return Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           Container(
-                            height: 160 * h,
-                            decoration: BoxDecoration(
+                            height: 140 * h,
+                            decoration: const BoxDecoration(
                               color: AppColors.primary,
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -107,64 +132,91 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildTopProducts() {
-    final products = ['Gym Bag Pro', 'Towel XL', 'Water Bottle', 'Wrist Wraps', 'Jump Rope'];
-    final sales = [45, 38, 30, 22, 18];
-    final maxSale = sales[0];
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Top 5 sản phẩm bán chạy', style: AppTextStyles.titleMedium),
-            const SizedBox(height: AppSpacing.md),
-            ...List.generate(5, (i) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  SizedBox(width: 120, child: Text(products[i], style: AppTextStyles.bodySmall, overflow: TextOverflow.ellipsis)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: sales[i] / maxSale,
-                        minHeight: 12,
-                        backgroundColor: AppColors.surfaceContainerHighest,
-                      ),
+  Widget _buildTopProducts(String userId, dynamic supabase) {
+    return FutureBuilder<List<dynamic>>(
+      future: supabase
+          .from('products')
+          .select('name, total_sold')
+          .eq('seller_id', userId)
+          .order('total_sold', ascending: false)
+          .limit(5),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Card(child: Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())));
+        }
+
+        final products = snapshot.data ?? [];
+        if (products.isEmpty) {
+          return const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('Chưa có số liệu sản phẩm bán chạy.')));
+        }
+
+        final maxSold = products.isNotEmpty ? (products[0]['total_sold'] as int? ?? 1) : 1;
+        final maxSoldValue = maxSold == 0 ? 1 : maxSold;
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Sản phẩm bán chạy nhất', style: AppTextStyles.titleMedium),
+                const SizedBox(height: AppSpacing.md),
+                ...List.generate(products.length, (i) {
+                  final name = products[i]['name']?.toString() ?? '';
+                  final sold = products[i]['total_sold'] as int? ?? 0;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Text(name, style: AppTextStyles.bodySmall, overflow: TextOverflow.ellipsis),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 4,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: sold / maxSoldValue,
+                              minHeight: 12,
+                              backgroundColor: AppColors.surfaceContainerHighest,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text('$sold', style: AppTextStyles.labelSmall),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  SizedBox(width: 40, child: Text('${sales[i]}', style: AppTextStyles.labelSmall, textAlign: TextAlign.right)),
-                ],
-              ),
-            )),
-          ],
-        ),
-      ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildQuickActions(Map<String, dynamic> stats) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Hành động nhanh', style: AppTextStyles.titleMedium),
         const SizedBox(height: AppSpacing.sm),
         _ActionCard(
-          icon: Icons.pending_actions, label: 'Đơn chờ xử lý', badge: '3',
+          icon: Icons.pending_actions, label: 'Đơn chờ xử lý', badge: null,
           color: AppColors.warning, onTap: () => context.go(RouteNames.storeOrdersPath),
         ),
         const SizedBox(height: AppSpacing.sm),
         _ActionCard(
-          icon: Icons.inventory, label: 'Sản phẩm hết hàng', badge: '8',
-          color: AppColors.error, onTap: () => context.go(RouteNames.storeProductsPath),
+          icon: Icons.inventory, label: 'Quản lý sản phẩm', badge: '${stats['product_count'] ?? 0}',
+          color: AppColors.primary, onTap: () => context.go(RouteNames.storeProductsPath),
         ),
         const SizedBox(height: AppSpacing.sm),
         _ActionCard(
-          icon: Icons.rate_review, label: 'Đánh giá mới', badge: '2',
-          color: AppColors.info, onTap: () => context.go(RouteNames.storeSettingsPath),
+          icon: Icons.account_balance_wallet, label: 'Tài chính & Thu nhập', badge: null,
+          color: AppColors.success, onTap: () => context.go(RouteNames.storeFinancePath),
         ),
       ],
     );
@@ -188,7 +240,7 @@ class _StatCard extends StatelessWidget {
             Row(children: [
               Icon(icon, size: 20, color: color),
               const Spacer(),
-              Text(value, style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
+              Text(value, style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold, fontSize: 16)),
             ]),
             const SizedBox(height: 4),
             Text(label, style: AppTextStyles.bodySmall),

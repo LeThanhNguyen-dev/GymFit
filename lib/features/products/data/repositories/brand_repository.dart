@@ -13,7 +13,6 @@ class BrandRepository {
     final rows = await _client
         .from(_table)
         .select()
-        .eq('is_active', true)
         .order('name', ascending: true);
 
     return rows.map((row) => BrandModel.fromJson(row)).toList();
@@ -51,10 +50,9 @@ class BrandRepository {
   }
 
   Future<void> delete(String id) async {
-    // Soft delete: set is_active = false
     await _client
         .from(_table)
-        .update({'is_active': false})
+        .delete()
         .eq('id', id);
   }
 }

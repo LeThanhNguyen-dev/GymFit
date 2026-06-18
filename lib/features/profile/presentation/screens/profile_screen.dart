@@ -186,7 +186,7 @@ class ProfileScreen extends ConsumerWidget {
     return switch (role) {
       'admin' => 'Quản trị viên',
       'staff' => 'Nhân viên',
-      'seller' => 'Người bán',
+      'storeowner' => 'Chủ cửa hàng',
       _ => 'Khách hàng',
     };
   }
