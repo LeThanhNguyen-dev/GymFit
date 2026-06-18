@@ -132,6 +132,7 @@ class ProductModel {
     required this.name,
     required this.slug,
     required this.basePrice,
+    this.sellerId,
     this.brandId,
     this.sku,
     this.shortDescription,
@@ -143,6 +144,9 @@ class ProductModel {
     this.isDigital = false,
     this.requiresShipping = true,
     this.weightGrams,
+    this.lengthCm,
+    this.widthCm,
+    this.heightCm,
     this.tags = const [],
     this.attributes = const {},
     this.seoTitle,
@@ -162,6 +166,7 @@ class ProductModel {
 
   final String id;
   final String categoryId;
+  final String? sellerId;
   final String? brandId;
   final String name;
   final String slug;
@@ -176,6 +181,9 @@ class ProductModel {
   final bool isDigital;
   final bool requiresShipping;
   final int? weightGrams;
+  final double? lengthCm;
+  final double? widthCm;
+  final double? heightCm;
   final List<String> tags;
   final Map<String, dynamic> attributes;
   final String? seoTitle;
@@ -195,6 +203,7 @@ class ProductModel {
   factory ProductModel.fromJson(Map<String, dynamic> json) => ProductModel(
     id: json['id'].toString(),
     categoryId: json['category_id']?.toString() ?? '',
+    sellerId: json['seller_id']?.toString(),
     brandId: json['brand_id'] as String?,
     name: json['name'].toString(),
     slug: json['slug']?.toString() ?? '',
@@ -213,6 +222,9 @@ class ProductModel {
     isDigital: json['is_digital'] as bool? ?? false,
     requiresShipping: json['requires_shipping'] as bool? ?? true,
     weightGrams: intFromJson(json['weight_grams']),
+    lengthCm: doubleFromJson(json['length_cm']),
+    widthCm: doubleFromJson(json['width_cm']),
+    heightCm: doubleFromJson(json['height_cm']),
     tags: stringListFromJson(json['tags']),
     attributes: mapFromJson(json['attributes']),
     seoTitle: json['seo_title'] as String?,
@@ -242,6 +254,7 @@ class ProductModel {
   Map<String, dynamic> toJson() => {
     'id': id,
     'category_id': categoryId,
+    'seller_id': sellerId,
     'brand_id': brandId,
     'name': name,
     'slug': slug,
@@ -256,6 +269,9 @@ class ProductModel {
     'is_digital': isDigital,
     'requires_shipping': requiresShipping,
     'weight_grams': weightGrams,
+    'length_cm': lengthCm,
+    'width_cm': widthCm,
+    'height_cm': heightCm,
     'tags': tags,
     'attributes': attributes,
     'seo_title': seoTitle,

@@ -25,6 +25,7 @@ class ShopRegistrationModel {
     this.reviewedAt,
     this.createdAt,
     this.updatedAt,
+    this.metadata = const {},
   });
 
   final String id;
@@ -52,6 +53,7 @@ class ShopRegistrationModel {
   final DateTime? reviewedAt;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final Map<String, dynamic> metadata;
 
   factory ShopRegistrationModel.fromJson(Map<String, dynamic> json) {
     return ShopRegistrationModel(
@@ -85,6 +87,7 @@ class ShopRegistrationModel {
       reviewedAt: dateTimeFromJson(json['reviewed_at']),
       createdAt: dateTimeFromJson(json['created_at']),
       updatedAt: dateTimeFromJson(json['updated_at']),
+      metadata: mapFromJson(json['metadata']),
     );
   }
 
@@ -111,6 +114,7 @@ class ShopRegistrationModel {
     'reviewed_at': dateTimeToJson(reviewedAt),
     'created_at': dateTimeToJson(createdAt),
     'updated_at': dateTimeToJson(updatedAt),
+    'metadata': metadata,
   };
 
   String get statusDisplay => switch (status) {

@@ -9,7 +9,46 @@ class ProductRepository {
   final SupabaseClient _client;
 
   static const String _productSelect =
-      'id, category_id, brand_id, name, slug, sku, short_description, description, base_price, compare_at_price, cost_price, status, is_featured, is_digital, requires_shipping, weight_grams, tags, attributes, seo_title, seo_description, average_rating, total_reviews, total_sold, view_count, metadata, created_at, updated_at, category:categories(id, name, slug), brand:brands(id, name, slug), images:product_images(*), variants:product_variants(*)';
+      'id, category_id, seller_id, brand_id, name, slug, sku, short_description, description, base_price, compare_at_price, cost_price, status, is_featured, is_digital, requires_shipping, weight_grams, length_cm, width_cm, height_cm, tags, attributes, seo_title, seo_description, average_rating, total_reviews, total_sold, view_count, metadata, created_at, updated_at, category:categories(id, name, slug), brand:brands(id, name, slug), images:product_images(*), variants:product_variants(*)';
+
+  Future<List<ProductModel>> getStoreProducts({required String sellerId, String? search}) async {
+    final rows = await _client
+        .from(AppConstants.productsTable)
+        .select(_productSelect)
+        .eq('seller_id', sellerId)
+        .order('created_at', ascending: false);
+
+    final products = rows.map((row) => ProductModel.fromJson(row)).toList();
+    if (search == null || search.trim().isEmpty) return products;
+
+    final keyword = search.toLowerCase().trim();
+    return products
+        .where(
+          (product) =>
+              product.name.toLowerCase().contains(keyword) ||
+              (product.sku ?? '').toLowerCase().contains(keyword),
+        )
+        .toList();
+  }
+
+  Future<List<ProductModel>> getAdminProducts({String? search}) async {
+    final rows = await _client
+        .from(AppConstants.productsTable)
+        .select(_productSelect)
+        .order('created_at', ascending: false);
+
+    final products = rows.map((row) => ProductModel.fromJson(row)).toList();
+    if (search == null || search.trim().isEmpty) return products;
+
+    final keyword = search.toLowerCase().trim();
+    return products
+        .where(
+          (product) =>
+              product.name.toLowerCase().contains(keyword) ||
+              (product.sku ?? '').toLowerCase().contains(keyword),
+        )
+        .toList();
+  }
 
   Future<ProductModel?> getProductById(String productId) async {
     final row = await _client
@@ -165,25 +204,6 @@ class ProductRepository {
     return rows.map((row) => row['name'] as String).toList();
   }
 
-  Future<List<ProductModel>> getAdminProducts({String? search}) async {
-    final rows = await _client
-        .from(AppConstants.productsTable)
-        .select(_productSelect)
-        .order('created_at', ascending: false);
-
-    final products = rows.map((row) => ProductModel.fromJson(row)).toList();
-    if (search == null || search.trim().isEmpty) return products;
-
-    final keyword = search.toLowerCase().trim();
-    return products
-        .where(
-          (product) =>
-              product.name.toLowerCase().contains(keyword) ||
-              (product.sku ?? '').toLowerCase().contains(keyword),
-        )
-        .toList();
-  }
-
   Future<ProductModel> saveProduct(
     Map<String, dynamic> data, {
     String? id,
@@ -307,7 +327,7 @@ class ProductRepository {
   ) async {
     await _client.from('product_images').insert({
       'product_id': productId,
-      'image_url': imageUrl,
+      'url': imageUrl,
       'sort_order': sortOrder,
     });
   }

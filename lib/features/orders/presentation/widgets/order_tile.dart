@@ -29,6 +29,7 @@ class OrderTile extends StatelessWidget {
             RouteNames.orderDetailPath,
             extra: order.id,
           ).then((_) {
+            if (!context.mounted) return;
             context.pushReplacement(RouteNames.orderHistoryPath);
           }),
           child: Column(

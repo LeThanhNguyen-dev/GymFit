@@ -17,6 +17,14 @@ final productRepositoryProvider = Provider<ProductRepository>((ref) {
   return ProductRepository(ref.watch(supabaseClientProvider));
 });
 
+final storeProductsProvider = FutureProvider.autoDispose<List<ProductModel>>((ref) async {
+  final repo = ref.watch(productRepositoryProvider);
+  final client = ref.watch(supabaseClientProvider);
+  final userId = client.auth.currentUser?.id;
+  if (userId == null) return [];
+  return repo.getStoreProducts(sellerId: userId);
+});
+
 final featuredProductsProvider =
     FutureProvider.autoDispose<List<ProductModel>>((ref) async {
   final repo = ref.watch(productRepositoryProvider);
