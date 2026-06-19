@@ -36,6 +36,9 @@ dependencies:
   uuid: ^4.3.0
   shared_preferences: ^2.2.0
   connectivity_plus: ^6.0.3
+  http: ^1.6.0
+  crypto: ^3.0.7
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

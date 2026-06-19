@@ -1,4 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../../core/services/vnpay_service.dart';
 
 import '../../../core/providers/supabase_providers.dart';
 import '../../../shared/enums/database_enums.dart';
@@ -40,9 +43,22 @@ class PaymentProcessingNotifier extends AsyncNotifier<PaymentModel?> {
             .mockMomoPayment(payment.id, payment.amount);
       }
       if (payment.method == PaymentMethod.vnpay) {
+        final vnpayService = VnPayService();
+        final url = vnpayService.createPaymentUrl(
+          amount: payment.amount.toInt(),
+          orderInfo: 'Thanh toan don hang ${payment.orderId}',
+          returnUrl: 'gymfit://payment-success',
+        );
+
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+        
+        // Cập nhật trạng thái thành pending, hệ thống có thể poll hoặc xử lý qua deep link sau
         return ref
             .read(paymentRepositoryProvider)
-            .mockVnPayPayment(payment.id, payment.amount);
+            .updatePaymentStatus(payment.id, PaymentStatus.pending);
       }
       return ref
           .read(paymentRepositoryProvider)
