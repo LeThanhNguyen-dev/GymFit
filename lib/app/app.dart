@@ -12,9 +12,9 @@ class GymFitApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'GymFit',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
+      theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.dark,
+      themeMode: ThemeMode.system,
       routerConfig: ref.watch(routerNotifierProvider),
     );
   }
