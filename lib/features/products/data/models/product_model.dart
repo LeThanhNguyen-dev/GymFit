@@ -465,6 +465,7 @@ String? _variantNameFromJson(Map<String, dynamic> json) {
   return values.isEmpty ? null : values.join(' / ');
 }
 
+
 class SellerModel {
   const SellerModel({
     required this.id,
