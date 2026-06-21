@@ -43,6 +43,7 @@ class AddressModel {
   final DateTime? updatedAt;
 
   String get fullAddress {
+<<<<<<< Updated upstream
     final parts = <String>[
       addressLine1,
       if (addressLine2 != null) addressLine2!,
@@ -51,6 +52,15 @@ class AddressModel {
       city,
       if (province != null) province!,
     ];
+=======
+    final parts = <String>[];
+    if (addressLine1.isNotEmpty) parts.add(addressLine1);
+    if (addressLine2 != null && addressLine2!.isNotEmpty) parts.add(addressLine2!);
+    if (ward != null && ward!.isNotEmpty) parts.add(ward!);
+    if (district != null && district!.isNotEmpty) parts.add(district!);
+    if (city.isNotEmpty) parts.add(city);
+    if (province != null && province!.isNotEmpty) parts.add(province!);
+>>>>>>> Stashed changes
     return parts.join(', ');
   }
 
