@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -46,7 +47,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       maxHeight: 512,
     );
     if (file != null) {
-      setState(() => _selectedImage = file);
+      final tempDir = await getTemporaryDirectory();
+      final ext = file.name.split('.').last;
+      final savedPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.$ext';
+      await file.saveTo(savedPath);
+      setState(() => _selectedImage = XFile(savedPath));
     }
   }
 

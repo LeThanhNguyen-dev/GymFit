@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../../../core/providers/supabase_providers.dart';
 import '../../../../../core/theme/app_colors.dart';
@@ -224,8 +225,12 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
     }
     final image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
+      final tempDir = await getTemporaryDirectory();
+      final ext = image.name.split('.').last;
+      final savedPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.$ext';
+      await image.saveTo(savedPath);
       setState(() {
-        _selectedImages.add(image);
+        _selectedImages.add(XFile(savedPath));
       });
     }
   }
