@@ -6,7 +6,6 @@ import '../core/constants/app_constants.dart';
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Always try to initialize Supabase so Supabase.instance.client doesn't crash
   try {
     if (AppConstants.supabaseUrl.isNotEmpty &&
         AppConstants.supabaseAnonKey.isNotEmpty) {
@@ -14,8 +13,10 @@ Future<void> bootstrap() async {
         url: AppConstants.supabaseUrl,
         anonKey: AppConstants.supabaseAnonKey,
       );
+    } else {
+      debugPrint('⚠️ SUPABASE_URL hoặc SUPABASE_ANON_KEY trống — dùng MockAuthRepository');
     }
-  } catch (_) {
-    // Supabase unreachable — mock mode will handle fallback
+  } catch (e) {
+    debugPrint('⚠️ Supabase init thất bại: $e — dùng MockAuthRepository');
   }
 }

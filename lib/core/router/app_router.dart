@@ -44,6 +44,8 @@ import '../../features/admin/shop_registrations/presentation/screens/admin_shop_
 import '../../features/products/presentation/screens/compare_screen.dart';
 import '../../features/register_shop/presentation/screens/register_shop_screen.dart';
 import '../../features/register_shop/data/models/shop_registration_model.dart';
+import '../../features/support/presentation/support_list_screen.dart';
+import '../../features/services/presentation/screens/service_detail_screen.dart';
 import '../../features/store/presentation/screens/store_shell.dart';
 import '../../features/store/presentation/screens/store_dashboard/dashboard_screen.dart';
 import '../../features/store/presentation/screens/store_products/product_list_screen.dart' as store_products;
@@ -310,6 +312,18 @@ List<RouteBase> _buildRoutes() {
           existingRegistration: extra is ShopRegistrationModel ? extra : null,
         );
       },
+    ),
+    GoRoute(
+      path: RouteNames.supportListPath,
+      name: RouteNames.supportList,
+      builder: (_, _) => const SupportListScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.serviceDetailPath,
+      name: RouteNames.serviceDetail,
+      builder: (_, state) => ServiceDetailScreen(
+        slug: state.pathParameters['slug'] ?? '',
+      ),
     ),
     // Admin Shell + Routes
     ShellRoute(

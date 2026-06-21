@@ -61,17 +61,24 @@ class CreateTicketNotifier extends Notifier<AsyncValue<SupportTicketModel?>> {
     String? orderId,
     required String subject,
     required String description,
-    String priority = 'normal',
+    String category = 'other',
+    String priority = 'medium',
   }) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => _repository.createTicket(
+    try {
+      final ticket = await _repository.createTicket(
         userId,
         orderId: orderId,
         subject: subject,
         description: description,
+        category: category,
         priority: priority,
-      ),
-    );
+      );
+      state = AsyncValue.data(ticket);
+      ref.invalidate(userTicketsProvider);
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      rethrow;
+    }
   }
 }

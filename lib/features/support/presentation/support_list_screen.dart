@@ -254,7 +254,7 @@ class _CreateTicketSheetState extends ConsumerState<CreateTicketSheet> {
   final _orderIdController = TextEditingController();
   final _subjectController = TextEditingController();
   final _descriptionController = TextEditingController();
-  String _priority = 'normal';
+  String _priority = 'medium';
 
   @override
   void dispose() {
@@ -337,12 +337,12 @@ class _CreateTicketSheetState extends ConsumerState<CreateTicketSheet> {
                 ),
                 items: const [
                   DropdownMenuItem(value: 'low', child: Text('Thấp')),
-                  DropdownMenuItem(value: 'normal', child: Text('Bình thường')),
+                  DropdownMenuItem(value: 'medium', child: Text('Trung bình')),
                   DropdownMenuItem(value: 'high', child: Text('Cao')),
                   DropdownMenuItem(value: 'urgent', child: Text('Khẩn cấp')),
                 ],
                 onChanged: (value) =>
-                    setState(() => _priority = value ?? 'normal'),
+                    setState(() => _priority = value ?? 'medium'),
               ),
               const SizedBox(height: AppSpacing.lg),
               Consumer(

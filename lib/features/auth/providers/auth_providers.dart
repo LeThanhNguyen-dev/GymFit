@@ -174,28 +174,35 @@ class AuthNotifier extends Notifier<AuthStateData> {
   Future<void> login(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
 
-    final result = await ref
-        .read(authRepositoryProvider)
-        .login(LoginRequest(email: email, password: password));
+    try {
+      final result = await ref
+          .read(authRepositoryProvider)
+          .login(LoginRequest(email: email, password: password));
 
-    result.when(
-      success: (user) {
-        state = AuthStateData(status: AuthStatus.authenticated, user: user);
-      },
-      emailNotConfirmed: (email) {
-        state = state.copyWith(
-          isLoading: false,
-          error: 'Email chưa được xác thực. Vui lòng xác thực email trước khi đăng nhập.',
-          emailForVerification: email,
-        );
-      },
-      error: (message) {
-        state = state.copyWith(isLoading: false, error: message);
-      },
-      needsVerification: (_, _) {
-        state = state.copyWith(isLoading: false, error: 'Đăng nhập thất bại');
-      },
-    );
+      result.when(
+        success: (user) {
+          state = AuthStateData(status: AuthStatus.authenticated, user: user);
+        },
+        emailNotConfirmed: (email) {
+          state = state.copyWith(
+            isLoading: false,
+            error: 'Email chưa được xác thực. Vui lòng xác thực email trước khi đăng nhập.',
+            emailForVerification: email,
+          );
+        },
+        error: (message) {
+          state = state.copyWith(isLoading: false, error: message);
+        },
+        needsVerification: (_, _) {
+          state = state.copyWith(isLoading: false, error: 'Đăng nhập thất bại');
+        },
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
   }
 
   Future<void> register(
@@ -205,41 +212,48 @@ class AuthNotifier extends Notifier<AuthStateData> {
   }) async {
     state = state.copyWith(isLoading: true, error: null);
 
-    final result = await ref
-        .read(authRepositoryProvider)
-        .register(
-          RegisterRequest(email: email, password: password, fullName: fullName),
-        );
+    try {
+      final result = await ref
+          .read(authRepositoryProvider)
+          .register(
+            RegisterRequest(email: email, password: password, fullName: fullName),
+          );
 
-    result.when(
-      success: (user) {
-        state = const AuthStateData(
-          status: AuthStatus.unauthenticated,
-          successMessage: 'Đăng ký thành công. Vui lòng đăng nhập.',
-        );
-      },
-      needsVerification: (user, email) {
-        _startVerificationCheck(email);
-        state = AuthStateData(
-          status: AuthStatus.emailVerification,
-          user: user,
-          emailForVerification: email,
-          successMessage:
-              'Đăng ký thành công. Vui lòng kiểm tra email xác thực rồi đăng nhập.',
-        );
-        Future.delayed(const Duration(seconds: 2), () async {
-          try {
-            await ref.read(authRepositoryProvider).resendVerificationEmail(email);
-          } catch (_) {}
-        });
-      },
-      error: (message) {
-        state = state.copyWith(isLoading: false, error: message);
-      },
-      emailNotConfirmed: (email) {
-        state = state.copyWith(isLoading: false, error: 'Email đã tồn tại', emailForVerification: email);
-      },
-    );
+      result.when(
+        success: (user) {
+          state = const AuthStateData(
+            status: AuthStatus.unauthenticated,
+            successMessage: 'Đăng ký thành công. Vui lòng đăng nhập.',
+          );
+        },
+        needsVerification: (user, email) {
+          _startVerificationCheck(email);
+          state = AuthStateData(
+            status: AuthStatus.emailVerification,
+            user: user,
+            emailForVerification: email,
+            successMessage:
+                'Đăng ký thành công. Vui lòng kiểm tra email xác thực rồi đăng nhập.',
+          );
+          Future.delayed(const Duration(seconds: 2), () async {
+            try {
+              await ref.read(authRepositoryProvider).resendVerificationEmail(email);
+            } catch (_) {}
+          });
+        },
+        error: (message) {
+          state = state.copyWith(isLoading: false, error: message);
+        },
+        emailNotConfirmed: (email) {
+          state = state.copyWith(isLoading: false, error: 'Email đã tồn tại', emailForVerification: email);
+        },
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
   }
 
   Future<void> confirmEmail(String email) async {
