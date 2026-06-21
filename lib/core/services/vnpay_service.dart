@@ -14,11 +14,18 @@ class VnPayService {
     return digest.toString();
   }
 
+  /// Encode theo chuẩn application/x-www-form-urlencoded (khoảng trắng → +)
+  /// Khớp với PHP http_build_query mà VNPay dùng trong sample code chính thức
+  String _vnpEncode(String value) {
+    return Uri.encodeQueryComponent(value);
+  }
+
   /// Tạo link thanh toán VNPay
   String createPaymentUrl({
     required int amount,
     required String orderInfo,
     required String returnUrl,
+    required String txnRef,
     String? ipAddress,
   }) {
     final now = DateTime.now();
@@ -27,9 +34,6 @@ class VnPayService {
     final dateFormat = DateFormat('yyyyMMddHHmmss');
     final createDate = dateFormat.format(now);
     final expireDate = dateFormat.format(expire);
-    
-    // Tạo mã đơn hàng duy nhất
-    final txnRef = now.millisecondsSinceEpoch.toString();
 
     final params = <String, String>{
       'vnp_Version': '2.1.0',
@@ -55,8 +59,12 @@ class VnPayService {
     for (final key in sortedKeys) {
       final value = params[key];
       if (value != null && value.isNotEmpty) {
-        queryData.add('${Uri.encodeComponent(key)}=${Uri.encodeComponent(value)}');
-        hashData.add('$key=$value');
+        // VNPay dùng application/x-www-form-urlencoded (khoảng trắng → +)
+        // Khớp với PHP http_build_query trong sample code chính thức của VNPay
+        final encodedKey = _vnpEncode(key);
+        final encodedValue = _vnpEncode(value);
+        queryData.add('$encodedKey=$encodedValue');
+        hashData.add('$encodedKey=$encodedValue');
       }
     }
     
@@ -66,5 +74,34 @@ class VnPayService {
     final secureHash = _generateHash(signData);
     
     return '${AppConstants.vnpayUrl}?$queryString&vnp_SecureHash=$secureHash';
+  }
+
+  /// Xác thực dữ liệu trả về từ VNPay
+  bool verifyPaymentReturn(Map<String, String> queryParams) {
+    final params = Map<String, String>.from(queryParams);
+    final vnpSecureHash = params.remove('vnp_SecureHash');
+    
+    if (vnpSecureHash == null || vnpSecureHash.isEmpty) {
+      return false;
+    }
+
+    // Xoá các field không nằm trong chữ ký
+    params.remove('vnp_SecureHashType');
+
+    final sortedKeys = params.keys.toList()..sort();
+    final List<String> hashData = [];
+    
+    for (final key in sortedKeys) {
+      final value = params[key];
+      if (value != null && value.isNotEmpty) {
+        // Khi VNPay callback về, Flutter đã decode URL → cần encode lại để verify
+        hashData.add('${_vnpEncode(key)}=${_vnpEncode(value)}');
+      }
+    }
+    
+    final signData = hashData.join('&');
+    final calculatedHash = _generateHash(signData);
+    
+    return calculatedHash == vnpSecureHash;
   }
 }

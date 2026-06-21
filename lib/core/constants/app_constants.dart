@@ -6,8 +6,8 @@ class AppConstants {
   static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
   static const String supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
-  static const String vnpayTmnCode = String.fromEnvironment('VNPAY_TMN_CODE');
-  static const String vnpayHashSecret = String.fromEnvironment('VNPAY_HASH_SECRET');
+  static const String vnpayTmnCode = 'YC4BRBNY';
+  static const String vnpayHashSecret = 'EQLQ6WERR3A3731LSXL5RMQSP1LD0CB0';
   static const String vnpayUrl = String.fromEnvironment('VNPAY_URL', defaultValue: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html');
 
   static const productsTable = 'products';

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -29,6 +30,13 @@ class DeepLinkService {
       _controller.add('verify');
     } else if (host == 'reset-password') {
       _controller.add('reset');
+    } else if (host == 'app') {
+      final context = rootNavigatorKey.currentContext;
+      if (context != null) {
+        final path = uri.path.isEmpty ? '/' : uri.path;
+        final query = uri.hasQuery ? '?${uri.query}' : '';
+        GoRouter.of(context).pushReplacement('$path$query');
+      }
     }
   }
 }
