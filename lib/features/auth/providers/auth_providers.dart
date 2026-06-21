@@ -167,6 +167,10 @@ class AuthNotifier extends Notifier<AuthStateData> {
     } catch (_) {}
   }
 
+  Future<void> refreshProfile() async {
+    await _checkCurrentUser();
+  }
+
   Future<void> login(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
 

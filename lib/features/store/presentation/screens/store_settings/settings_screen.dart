@@ -5,6 +5,7 @@ import '../../../../../core/providers/supabase_providers.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../core/theme/app_text_styles.dart';
+import '../../../../auth/providers/auth_providers.dart';
 import '../../../../register_shop/providers/shop_registration_providers.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -231,6 +232,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
             ],
           ),
         ),
+        const SizedBox(height: AppSpacing.xl),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.logout, color: AppColors.error),
+            label: const Text('Đăng xuất', style: TextStyle(color: AppColors.error)),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: AppColors.error),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            onPressed: () {
+              ref.read(authProvider.notifier).logout();
+            },
+          ),
+        ),
       ],
     );
   }
@@ -259,8 +275,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
         return ListView.separated(
           padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
           itemCount: reviews.length,
-          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-          itemBuilder: (_, i) {
+          separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.sm),
+          itemBuilder: (context, i) {
             final review = reviews[i];
             final profile = review['profiles'] as Map<String, dynamic>?;
             final product = review['products'] as Map<String, dynamic>?;

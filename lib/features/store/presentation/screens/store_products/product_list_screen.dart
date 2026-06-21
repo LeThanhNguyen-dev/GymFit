@@ -119,8 +119,8 @@ class _StoreProductListScreenState extends ConsumerState<StoreProductListScreen>
       child: ListView.separated(
         padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
         itemCount: products.length,
-        separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-        itemBuilder: (_, i) => _ProductCard(
+        separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.sm),
+        itemBuilder: (context, i) => _ProductCard(
           product: products[i],
           onTap: () => context.push(RouteNames.storeEditProductPath.replaceAll(':id', products[i].id)),
           onStatusChanged: (newStatus) async {
@@ -129,7 +129,7 @@ class _StoreProductListScreenState extends ConsumerState<StoreProductListScreen>
               await repo.updateProduct(products[i].id, {'status': newStatus});
               ref.invalidate(storeProductsProvider);
             } catch (e) {
-              if (mounted) {
+              if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
               }
             }
@@ -156,11 +156,11 @@ class _StoreProductListScreenState extends ConsumerState<StoreProductListScreen>
                 final repo = ref.read(productRepositoryProvider);
                 await repo.deleteProduct(products[i].id);
                 ref.invalidate(storeProductsProvider);
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Xóa thành công!')));
                 }
               } catch (e) {
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
                 }
               }

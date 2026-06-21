@@ -150,7 +150,12 @@ class ProfileScreen extends ConsumerWidget {
               _MenuItem(
                 icon: Icons.store,
                 label: 'Quản lý Shop',
-                onTap: () => context.go(RouteNames.storeDashboardPath),
+                onTap: () async {
+                  await ref.read(authProvider.notifier).refreshProfile();
+                  if (context.mounted) {
+                    context.go(RouteNames.storeDashboardPath);
+                  }
+                },
               ),
           ],
         ),
@@ -214,7 +219,7 @@ class _ShopRegistrationSection extends ConsumerWidget {
           return _buildPendingCard(context);
         }
         if (profile.sellerStatus == 'approved' || registration?.status == ShopRegistrationStatus.approved) {
-          return _buildApprovedCard(context);
+          return _buildApprovedCard(context, ref);
         }
         if (registration?.status == ShopRegistrationStatus.rejected) {
           return _buildRejectedCard(context, registration!);
@@ -252,15 +257,19 @@ class _ShopRegistrationSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildApprovedCard(BuildContext context) {
+  Widget _buildApprovedCard(BuildContext context, WidgetRef ref) {
     return Card(
       color: AppColors.surfaceContainer,
       child: ListTile(
         leading: Icon(Icons.store, color: AppColors.success),
         title: Text('Shop của tôi', style: AppTextStyles.bodyLarge),
         trailing: Icon(Icons.chevron_right, color: AppColors.onSurfaceVariant),
-        onTap: () {
-          // Navigate to shop management (future feature)
+        onTap: () async {
+          // Buộc làm mới hồ sơ để nhận role mới nhất (storeowner) trước khi chuyển trang
+          await ref.read(authProvider.notifier).refreshProfile();
+          if (context.mounted) {
+            context.go(RouteNames.storeDashboardPath);
+          }
         },
       ),
     );

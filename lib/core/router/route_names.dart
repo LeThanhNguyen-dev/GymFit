@@ -72,6 +72,7 @@ class RouteNames {
   // Admin sub-screens
   static const String adminShopDetail = 'adminShopDetail';
   static const String adminShopRegistrations = 'adminShopRegistrations';
+  static const String adminShopRegistrationsDetail = 'adminShopRegistrationsDetail';
   static const String adminProductModeration = 'adminProductModeration';
   static const String adminUserDetail = 'adminUserDetail';
   static const String adminOrderDetail = 'adminOrderDetail';
@@ -125,6 +126,7 @@ class RouteNames {
   // Admin sub paths
   static const String adminShopDetailPath = '/admin/shops/:id';
   static const String adminShopRegistrationsPath = '/admin/shop-registrations';
+  static const String adminShopRegistrationsDetailPath = '/admin/shop-registrations/:id';
   static const String adminProductModerationPath = '/admin/product-moderation';
   static const String adminUserDetailPath = '/admin/users/:id';
   static const String adminOrderDetailPath = '/admin/orders/:id';

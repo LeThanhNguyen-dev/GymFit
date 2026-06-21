@@ -53,12 +53,17 @@ class MockAuthRepository implements IAuthRepository {
     }
 
     _currentUser = user;
-    final role = user.email.startsWith('admin') ? 'admin' : 'customer';
+    final role = user.email.startsWith('admin') 
+        ? 'admin' 
+        : (user.email.startsWith('store') ? 'storeowner' : 'customer');
+    final sellerStatus = user.email.startsWith('store') ? 'approved' : 'none';
+
     return AuthResultSuccess(AppUser(
       id: 'mock_${_nextId++}',
       email: user.email,
       fullName: user.fullName,
       role: role,
+      sellerStatus: sellerStatus,
     ));
   }
 
@@ -176,12 +181,17 @@ class MockAuthRepository implements IAuthRepository {
   @override
   AppUser? get currentUser {
     if (_currentUser == null) return null;
-    final role = _currentUser!.email.startsWith('admin') ? 'admin' : 'customer';
+    final role = _currentUser!.email.startsWith('admin') 
+        ? 'admin' 
+        : (_currentUser!.email.startsWith('store') ? 'storeowner' : 'customer');
+    final sellerStatus = _currentUser!.email.startsWith('store') ? 'approved' : 'none';
+        
     return AppUser(
       id: 'mock_current',
       email: _currentUser!.email,
       fullName: _currentUser!.fullName,
       role: role,
+      sellerStatus: sellerStatus,
     );
   }
 
