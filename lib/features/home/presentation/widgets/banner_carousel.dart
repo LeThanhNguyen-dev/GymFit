@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/widgets/app_image.dart';
-import '../../../home/providers/banner_providers.dart';
-import '../../data/models/banner_model.dart';
+import '../../../home/providers/home_carousel_providers.dart';
+import '../../data/models/carousel_item.dart';
 
 class BannerCarousel extends ConsumerStatefulWidget {
   const BannerCarousel({super.key});
@@ -24,14 +24,17 @@ class _BannerCarouselState extends ConsumerState<BannerCarousel> {
   }
 
   void _startAutoPlay() {
-    Future.delayed(const Duration(seconds: 4), _autoScroll);
+    Future.delayed(const Duration(seconds: 3), _autoScroll);
   }
 
   void _autoScroll() {
     if (!mounted) return;
-    final banners = ref.read(bannerListProvider).value;
-    if (banners == null || banners.isEmpty) return;
-    final next = (_currentPage + 1) % banners.length;
+    final items = ref.read(carouselItemsProvider).value;
+    if (items == null || items.isEmpty) {
+      Future.delayed(const Duration(seconds: 3), _autoScroll);
+      return;
+    }
+    final next = (_currentPage + 1) % items.length;
     if (_controller.hasClients) {
       _controller.animateToPage(
         next,
@@ -39,7 +42,7 @@ class _BannerCarouselState extends ConsumerState<BannerCarousel> {
         curve: Curves.easeInOut,
       );
     }
-    Future.delayed(const Duration(seconds: 4), _autoScroll);
+    Future.delayed(const Duration(seconds: 3), _autoScroll);
   }
 
   @override
@@ -50,15 +53,15 @@ class _BannerCarouselState extends ConsumerState<BannerCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    final bannersAsync = ref.watch(bannerListProvider);
+    final itemsAsync = ref.watch(carouselItemsProvider);
 
-    return bannersAsync.when(
+    return itemsAsync.when(
       loading: () => const _BannerShimmer(),
       error: (_, _) => const SizedBox.shrink(),
-      data: (banners) {
-        if (banners.isEmpty) return const SizedBox.shrink();
-        return _BannerContent(
-          banners: banners,
+      data: (items) {
+        if (items.isEmpty) return const SizedBox.shrink();
+        return _CarouselContent(
+          items: items,
           controller: _controller,
           currentPage: _currentPage,
           onPageChanged: (i) => setState(() => _currentPage = i),
@@ -68,15 +71,15 @@ class _BannerCarouselState extends ConsumerState<BannerCarousel> {
   }
 }
 
-class _BannerContent extends StatelessWidget {
-  const _BannerContent({
-    required this.banners,
+class _CarouselContent extends StatelessWidget {
+  const _CarouselContent({
+    required this.items,
     required this.controller,
     required this.currentPage,
     required this.onPageChanged,
   });
 
-  final List<BannerModel> banners;
+  final List<CarouselItem> items;
   final PageController controller;
   final int currentPage;
   final ValueChanged<int> onPageChanged;
@@ -93,10 +96,10 @@ class _BannerContent extends StatelessWidget {
           child: PageView.builder(
             controller: controller,
             onPageChanged: onPageChanged,
-            itemCount: banners.length,
+            itemCount: items.length,
             itemBuilder: (context, i) {
-              final banner = banners[i];
-              return _BannerCard(banner: banner);
+              final item = items[i];
+              return _CarouselCard(item: item);
             },
           ),
         ),
@@ -104,7 +107,7 @@ class _BannerContent extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
-            banners.length,
+            items.length,
             (i) => AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -124,17 +127,17 @@ class _BannerContent extends StatelessWidget {
   }
 }
 
-class _BannerCard extends StatelessWidget {
-  const _BannerCard({required this.banner});
-  final BannerModel banner;
+class _CarouselCard extends StatelessWidget {
+  const _CarouselCard({required this.item});
+  final CarouselItem item;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return GestureDetector(
-      onTap: banner.redirectUrl != null
-          ? () => context.push(banner.redirectUrl!)
+      onTap: item.onTapAction != null
+          ? () => context.push(item.onTapAction!)
           : null,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -153,10 +156,9 @@ class _BannerCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             AppImage(
-              imageUrl: banner.imageUrl,
+              imageUrl: item.imageUrl,
               fit: BoxFit.cover,
             ),
-            // Gradient overlay for readability
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -169,7 +171,6 @@ class _BannerCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Content
             Positioned(
               left: 20,
               right: 80,
@@ -177,16 +178,18 @@ class _BannerCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (banner.subtitle != null)
+                  if (item.subtitle != null)
                     Text(
-                      banner.subtitle!,
+                      item.subtitle!,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.white.withValues(alpha: 0.85),
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   const SizedBox(height: 4),
                   Text(
-                    banner.title,
+                    item.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleMedium?.copyWith(
@@ -194,7 +197,7 @@ class _BannerCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  if (banner.buttonText != null) ...[
+                  if (item.buttonText != null) ...[
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -206,7 +209,7 @@ class _BannerCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        banner.buttonText!,
+                        item.buttonText!,
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.bold,

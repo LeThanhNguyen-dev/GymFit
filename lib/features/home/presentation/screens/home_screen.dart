@@ -170,9 +170,7 @@ class _HomeBody extends ConsumerWidget {
           },
         ),
 
-        const SizedBox(height: 4),
-
-        // Hero Banner Carousel
+        // Hero Banner Carousel (includes banners + services)
         const BannerCarousel(),
 
         const SizedBox(height: 4),

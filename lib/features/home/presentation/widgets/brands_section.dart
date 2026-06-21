@@ -19,7 +19,7 @@ class BrandsSection extends ConsumerWidget {
       children: [
         const SectionTitle(title: 'Thương hiệu'),
         SizedBox(
-          height: 72,
+          height: 130,
           child: brandsAsync.when(
             loading: () => _BrandsShimmer(),
             error: (_, _) => const SizedBox.shrink(),
@@ -68,27 +68,63 @@ class _BrandItem extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-          ),
-        ),
-        child: logoUrl != null
-            ? AppImage(
-                imageUrl: logoUrl,
-                height: 36,
-                fit: BoxFit.contain,
-              )
-            : Text(
-                name,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
+      child: SizedBox(
+        width: 100,
+        child: Column(
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                 ),
               ),
+              child: logoUrl != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: AppImage(
+                          imageUrl: logoUrl,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    )
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.store, size: 32,
+                            color: colorScheme.onSurfaceVariant),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            name.length > 8
+                                ? '${name.substring(0, 7)}…'
+                                : name,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              name,
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -104,8 +140,8 @@ class _BrandsShimmer extends StatelessWidget {
       separatorBuilder: (_, _) => const SizedBox(width: 12),
       itemBuilder: (_, _) => ShimmerLoading(
         width: 100,
-        height: 72,
-        borderRadius: 12,
+        height: 130,
+        borderRadius: 14,
       ),
     );
   }
