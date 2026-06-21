@@ -13,6 +13,7 @@ import '../../features/orders/presentation/screens/order_detail_screen.dart';
 import '../../features/orders/presentation/screens/orders_screen.dart';
 import '../../features/payments/presentation/screens/payment_screen.dart';
 import '../../features/payments/presentation/screens/payment_status_screen.dart';
+import '../../features/payments/presentation/screens/payment_vnpay_return_screen.dart';
 import '../../features/products/presentation/screens/product_detail_screen.dart';
 import '../../features/products/presentation/screens/product_list_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
@@ -196,6 +197,14 @@ List<RouteBase> _buildRoutes() {
                 child: Text('Payment data not available.'),
               ),
             );
+          },
+        ),
+        GoRoute(
+          path: RouteNames.paymentVnPayReturnPath,
+          name: RouteNames.paymentVnPayReturn,
+          builder: (_, state) {
+            final queryParams = state.uri.queryParameters;
+            return PaymentVnPayReturnScreen(queryParams: queryParams);
           },
         ),
         GoRoute(
