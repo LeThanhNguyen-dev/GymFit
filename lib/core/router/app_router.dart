@@ -52,7 +52,6 @@ import '../../features/store/presentation/screens/store_orders/order_list_screen
 import '../../features/store/presentation/screens/store_orders/order_detail_screen.dart' as store_orders;
 import '../../features/store/presentation/screens/store_finance/finance_screen.dart';
 import '../../features/store/presentation/screens/store_settings/settings_screen.dart';
-
 import '../../features/admin/widgets/admin_shell.dart';
 import 'route_names.dart';
 import '../services/deep_link_service.dart';
