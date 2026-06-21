@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../../core/providers/supabase_providers.dart';
 import '../../../../../core/theme/app_colors.dart';
@@ -243,7 +244,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
             onPressed: () {
-              ref.read(authProvider.notifier).logout();
+              ref.read(authProvider.notifier).logout().then((_) {
+                context.go('/login');
+              });
             },
           ),
         ),

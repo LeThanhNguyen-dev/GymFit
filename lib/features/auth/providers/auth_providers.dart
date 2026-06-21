@@ -14,10 +14,14 @@ final authRepositoryProvider = Provider<IAuthRepository>((ref) {
   if (AppConstants.useMockAuth) {
     return MockAuthRepository();
   }
-  return AuthRepository(
-    ref.watch(supabaseAuthServiceProvider),
-    ref.watch(supabaseDatabaseServiceProvider),
-  );
+  try {
+    return AuthRepository(
+      ref.watch(supabaseAuthServiceProvider),
+      ref.watch(supabaseDatabaseServiceProvider),
+    );
+  } catch (_) {
+    return MockAuthRepository();
+  }
 });
 
 enum AuthStatus { uninitialized, authenticated, unauthenticated, emailVerification, resetSent }

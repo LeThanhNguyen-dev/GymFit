@@ -52,9 +52,7 @@ class PaymentProcessingNotifier extends AsyncNotifier<PaymentModel?> {
         );
 
         final uri = Uri.parse(url);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
-        }
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
         
         // Cập nhật trạng thái thành pending, hệ thống có thể poll hoặc xử lý qua deep link sau
         return ref

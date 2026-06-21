@@ -26,10 +26,14 @@ class _MockUser {
 }
 
 class MockAuthRepository implements IAuthRepository {
-  final _users = <_MockUser>[];
+  final _users = <_MockUser>[
+    const _MockUser(email: 'test@gmail.com', password: '123456', fullName: 'Test User', confirmed: true),
+    const _MockUser(email: 'admin@gmail.com', password: '123456', fullName: 'Admin', confirmed: true),
+    const _MockUser(email: 'store@gmail.com', password: '123456', fullName: 'Store Owner', confirmed: true),
+  ];
   final _resetTokens = <String, String>{};
   _MockUser? _currentUser;
-  int _nextId = 1;
+  int _nextId = 100;
 
   @override
   Future<AuthResult> login(LoginRequest request) async {
@@ -83,13 +87,14 @@ class MockAuthRepository implements IAuthRepository {
       email: request.email,
       password: request.password,
       fullName: request.fullName,
-      confirmed: false,
+      confirmed: true,
     ));
 
-    return AuthResultNeedsVerification(
-      AppUser(id: 'mock_${_nextId++}', email: request.email, fullName: request.fullName),
-      request.email,
-    );
+    return AuthResultSuccess(AppUser(
+      id: 'mock_${_nextId++}',
+      email: request.email,
+      fullName: request.fullName,
+    ));
   }
 
   @override

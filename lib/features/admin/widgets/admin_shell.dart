@@ -86,9 +86,9 @@ class AdminShell extends ConsumerWidget {
                   child: IconButton(
                     icon: const Icon(Icons.logout, color: Colors.red),
                     tooltip: 'Đăng xuất',
-                    onPressed: () {
-                      ref.read(authProvider.notifier).logout();
-                      context.go(RouteNames.homePath);
+                    onPressed: () async {
+                      await ref.read(authProvider.notifier).logout();
+                      if (context.mounted) context.go(RouteNames.loginPath);
                     },
                   ),
                 ),
