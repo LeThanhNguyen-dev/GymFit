@@ -37,7 +37,6 @@ class AddressRepository {
     return row == null ? null : AddressModel.fromJson(row);
   }
 
-<<<<<<< Updated upstream
   Future<AddressModel> createAddress(AddressModel address) async {
     final data = address.toJson();
     data.remove('id');
@@ -76,30 +75,5 @@ class AddressRepository {
     await _client.from(AppConstants.addressesTable).update({
       'is_default': true,
     }).eq('id', id);
-=======
-  Future<void> createAddress(AddressModel address) async {
-    await _client
-        .from(AppConstants.addressesTable)
-        .insert(address.toJson());
-  }
-
-  Future<void> updateAddress(AddressModel address) async {
-    await _client
-        .from(AppConstants.addressesTable)
-        .update(address.toJson())
-        .eq('id', address.id);
-  }
-
-  Future<void> deleteAddress(String id) async {
-    await _client
-        .from(AppConstants.addressesTable)
-        .delete()
-        .eq('id', id);
-  }
-
-  Future<void> setDefaultAddress(String id) async {
-    await _client
-        .rpc('set_default_address', params: {'address_id': id});
->>>>>>> Stashed changes
   }
 }

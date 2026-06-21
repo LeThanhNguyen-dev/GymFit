@@ -552,8 +552,5 @@ class AppTheme {
       ),
     );
   }
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 }
+
