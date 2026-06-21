@@ -9,8 +9,27 @@ import 'order_list_screen.dart';
 
 final storeOrderDetailProvider = FutureProvider.family.autoDispose<Map<String, dynamic>?, String>((ref, id) async {
   final supabase = ref.watch(supabaseClientProvider);
-  final response = await supabase.from('orders').select('*, order_items(*)').eq('id', id).maybeSingle();
-  return response;
+  final userId = supabase.auth.currentUser?.id;
+  if (userId == null) return null;
+
+  // Fetch the order using RPC to bypass RLS, chaining .eq to get the specific order
+  final orderResp = await supabase
+      .rpc('get_store_orders', params: {'p_seller_id': userId})
+      .eq('id', id)
+      .maybeSingle();
+
+  if (orderResp == null) return null;
+
+  // Fetch order items using RPC
+  final itemsResp = await supabase.rpc('get_store_order_items', params: {
+    'p_order_id': id,
+    'p_seller_id': userId,
+  });
+
+  final order = Map<String, dynamic>.from(orderResp);
+  order['order_items'] = List<Map<String, dynamic>>.from(itemsResp);
+
+  return order;
 });
 
 class StoreOrderDetailScreen extends ConsumerStatefulWidget {
@@ -28,7 +47,15 @@ class _StoreOrderDetailScreenState extends ConsumerState<StoreOrderDetailScreen>
     setState(() => _isUpdating = true);
     try {
       final supabase = ref.read(supabaseClientProvider);
-      await supabase.from('orders').update({'status': status}).eq('id', widget.orderId);
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Chưa đăng nhập');
+
+      await supabase.rpc('update_store_order_status', params: {
+        'p_order_id': widget.orderId,
+        'p_seller_id': userId,
+        'p_status': status,
+      });
+
       ref.invalidate(storeOrderDetailProvider(widget.orderId));
       ref.invalidate(storeOrdersProvider);
       if (mounted) {

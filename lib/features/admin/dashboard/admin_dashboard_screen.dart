@@ -72,7 +72,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
 
   Widget _buildPendingActions() {
     final actions = [
-      ('Shop chờ duyệt', '12', Icons.store, AppColors.warning, RouteNames.adminShopsPath),
+      ('Shop chờ duyệt', '12', Icons.store, AppColors.warning, RouteNames.adminShopRegistrationsPath),
       ('Rút tiền chờ duyệt', '5', Icons.payments, AppColors.error, RouteNames.adminFinancePath),
       ('Sản phẩm chờ duyệt', '23', Icons.inventory_2, AppColors.info, RouteNames.adminProductModerationPath),
       ('Khiếu nại', '3', Icons.report, Colors.deepOrange, RouteNames.adminDisputesPath),

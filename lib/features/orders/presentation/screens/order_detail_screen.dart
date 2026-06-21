@@ -16,30 +16,30 @@ class OrderDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final order = ref.watch(orderDetailProvider(orderId));
     return Scaffold(
-      appBar: AppBar(title: const Text('Chi tiet don hang')),
+      appBar: AppBar(title: const Text('Chi tiết đơn hàng')),
       body: order.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text(error.toString())),
         data: (order) {
           if (order == null) {
-            return const Center(child: Text('Khong tim thay don hang.'));
+            return const Center(child: Text('Không tìm thấy đơn hàng.'));
           }
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
               _Section(
-                title: 'Trang thai',
+                title: 'Trạng thái',
                 child: _StatusTimeline(order: order),
               ),
               _Section(
-                title: 'Dia chi giao hang',
+                title: 'Địa chỉ giao hàng',
                 child: Text(
                   '${order.shippingFullName} - ${order.shippingPhone}\n'
                   '${order.shippingAddress1}, ${order.shippingCity}',
                 ),
               ),
               _Section(
-                title: 'San pham',
+                title: 'Sản phẩm',
                 child: Column(
                   children: order.items
                       .map(
@@ -56,21 +56,21 @@ class OrderDetailScreen extends ConsumerWidget {
                 ),
               ),
               _Section(
-                title: 'Thanh toan',
+                title: 'Thanh toán',
                 child: Text(
-                  '${order.payment?.methodDisplay ?? 'Chua co thong tin'}\n'
+                  '${order.payment?.methodDisplay ?? 'Chưa có thông tin'}\n'
                   '${order.payment?.statusDisplay ?? ''}',
                 ),
               ),
               _Section(
-                title: 'Tong ket',
+                title: 'Tổng kết',
                 child: Column(
                   children: [
-                    _MoneyRow('Tam tinh', order.subtotal),
-                    _MoneyRow('Giam gia', -order.discountAmount),
-                    _MoneyRow('Phi van chuyen', order.shippingFee),
+                    _MoneyRow('Tạm tính', order.subtotal),
+                    _MoneyRow('Giảm giá', -order.discountAmount),
+                    _MoneyRow('Phí vận chuyển', order.shippingFee),
                     const Divider(),
-                    _MoneyRow('Tong cong', order.totalAmount, isTotal: true),
+                    _MoneyRow('Tổng cộng', order.totalAmount, isTotal: true),
                   ],
                 ),
               ),
@@ -84,7 +84,7 @@ class OrderDetailScreen extends ConsumerWidget {
                   );
                 },
                 icon: const Icon(Icons.local_shipping_outlined),
-                label: const Text('Theo doi don hang'),
+                label: const Text('Theo dõi đơn hàng'),
               ),
               if (order.canCancel)
                 TextButton(
@@ -94,7 +94,7 @@ class OrderDetailScreen extends ConsumerWidget {
                         .cancelOrder(order.id);
                     ref.invalidate(orderDetailProvider(order.id));
                   },
-                  child: const Text('Huy don'),
+                  child: const Text('Hủy đơn'),
                 ),
             ],
           );
@@ -135,11 +135,11 @@ class _StatusTimeline extends StatelessWidget {
   }
 
   String _statusText(OrderStatus status) => switch (status) {
-    OrderStatus.pending => 'Cho xac nhan',
-    OrderStatus.confirmed => 'Da xac nhan',
-    OrderStatus.processing => 'Dang xu ly',
-    OrderStatus.shipped => 'Dang giao',
-    OrderStatus.delivered => 'Da giao',
+    OrderStatus.pending => 'Chờ xác nhận',
+    OrderStatus.confirmed => 'Đã xác nhận',
+    OrderStatus.processing => 'Đang xử lý',
+    OrderStatus.shipped => 'Đang giao',
+    OrderStatus.delivered => 'Đã giao',
     _ => status.name,
   };
 }

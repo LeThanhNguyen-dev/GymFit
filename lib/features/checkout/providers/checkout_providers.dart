@@ -52,9 +52,9 @@ class CreateOrderNotifier extends AsyncNotifier<CheckoutResult?> {
     final user = ref.read(supabaseClientProvider).auth.currentUser;
     final data = ref.read(checkoutDataProvider);
     final address = ref.read(selectedAddressProvider);
-    if (user == null) throw StateError('Ban can dang nhap de dat hang.');
-    if (data == null) throw StateError('Chua co du lieu checkout.');
-    if (address == null) throw StateError('Vui long chon dia chi giao hang.');
+    if (user == null) throw StateError('Bạn cần đăng nhập để đặt hàng.');
+    if (data == null) throw StateError('Chưa có dữ liệu checkout.');
+    if (address == null) throw StateError('Vui lòng chọn địa chỉ giao hàng.');
 
     final request = CheckoutRequest(
       userId: user.id,

@@ -56,10 +56,60 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
 
   // Variants state
   bool _hasVariants = false;
-  final List<Map<String, dynamic>> _variants = []; // { 'id': '', 'name': '', 'price': 0.0, 'quantity': 0, 'sku': '' }
+  final List<Map<String, dynamic>> _attributes = []; // e.g. [{'name': 'Màu sắc', 'options': ['Đỏ', 'Xanh']}]
+  final List<Map<String, dynamic>> _variants = []; // Generated matrix
+
+  void _generateVariants() {
+    if (_attributes.isEmpty) {
+      _variants.clear();
+      return;
+    }
+
+    final oldVariants = {
+      for (var v in _variants)
+        if (v['optionValues'] != null)
+          (v['optionValues'] as Map).entries.map((e) => '${e.key}:${e.value}').join('|'): v
+    };
+
+    List<Map<String, String>> combinations = [{}];
+
+    for (var attr in _attributes) {
+      final attrName = attr['name'] as String;
+      final options = attr['options'] as List<String>;
+      if (attrName.trim().isEmpty || options.isEmpty) continue;
+
+      List<Map<String, String>> newCombinations = [];
+      for (var combo in combinations) {
+        for (var opt in options) {
+          if (opt.trim().isEmpty) continue;
+          final newCombo = Map<String, String>.from(combo);
+          newCombo[attrName.trim()] = opt.trim();
+          newCombinations.add(newCombo);
+        }
+      }
+      combinations = newCombinations;
+    }
+
+    if (combinations.length == 1 && combinations.first.isEmpty) {
+      _variants.clear();
+      return;
+    }
+
+    _variants.clear();
+    for (var combo in combinations) {
+      final key = combo.entries.map((e) => '${e.key}:${e.value}').join('|');
+      final oldV = oldVariants[key];
+      _variants.add({
+        'name': combo.values.join(' - '),
+        'optionValues': combo,
+        'price': oldV?['price'] ?? double.tryParse(_basePriceCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0.0,
+        'quantity': oldV?['quantity'] ?? 0,
+        'sku': oldV?['sku'] ?? '',
+      });
+    }
+  }
 
   bool _isSaving = false;
-  bool _isInit = false;
 
   @override
   void initState() {
@@ -85,20 +135,26 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
   }
 
   Future<void> _loadMetadata() async {
+    final repo = ref.read(productRepositoryProvider);
+    
     try {
-      final repo = ref.read(productRepositoryProvider);
       final catsResult = await repo.getAdminCategories();
+      setState(() => _categories = catsResult.items);
+    } catch (e) {
+      if (kDebugMode) print('Error loading categories: $e');
+    }
+
+    try {
       final brsResult = await repo.getAdminBrands();
-      setState(() {
-        _categories = catsResult.items;
-        _brands = brsResult.items;
-        _loadingMetadata = false;
-      });
-      if (widget.productId != null) {
-        _loadProductDetails();
-      }
-    } catch (_) {
-      setState(() => _loadingMetadata = false);
+      setState(() => _brands = brsResult.items);
+    } catch (e) {
+      if (kDebugMode) print('Error loading brands: $e');
+    }
+
+    setState(() => _loadingMetadata = false);
+
+    if (widget.productId != null) {
+      _loadProductDetails();
     }
   }
 
@@ -128,17 +184,30 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
             _hasVariants = true;
             _variants.addAll(product.variants.map((v) => {
                   'id': v.id,
-                  'name': v.name ?? '',
+                  'name': v.name ?? v.optionDisplay,
+                  'optionValues': v.optionValues,
                   'price': v.price,
                   'quantity': v.quantity,
                   'sku': v.sku,
                 }));
+            // Extract attributes from variants optionValues
+            if (product.variants.first.optionValues.isNotEmpty) {
+              final Map<String, Set<String>> attrMap = {};
+              for (var v in product.variants) {
+                for (var entry in v.optionValues.entries) {
+                  attrMap.putIfAbsent(entry.key, () => {}).add(entry.value.toString());
+                }
+              }
+              _attributes.clear();
+              attrMap.forEach((key, value) {
+                _attributes.add({'name': key, 'options': value.toList()});
+              });
+            }
           } else {
             _hasVariants = false;
             // set stock from variants if somehow stored there, or metadata
             _stockCtrl.text = '0';
           }
-          _isInit = true;
         });
       }
     } catch (e) {
@@ -199,16 +268,23 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
         'brand_id': brandId,
         'seller_id': userId,
         'description': _descCtrl.text.trim(),
-        'base_price': double.tryParse(_basePriceCtrl.text.trim()) ?? 0.0,
-        'compare_at_price': double.tryParse(_compareAtPriceCtrl.text.trim()),
-        'cost_price': double.tryParse(_costPriceCtrl.text.trim()),
+        'base_price': double.tryParse(_basePriceCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0.0,
+        'compare_at_price': double.tryParse(_compareAtPriceCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')),
+        'cost_price': double.tryParse(_costPriceCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')),
         'sku': _skuCtrl.text.trim().isEmpty ? 'SKU-${DateTime.now().millisecondsSinceEpoch}' : _skuCtrl.text.trim(),
         'status': _selectedStatus.name,
-        'weight_grams': int.tryParse(_weightCtrl.text.trim()),
-        'length_cm': double.tryParse(_lengthCtrl.text.trim()),
-        'width_cm': double.tryParse(_widthCtrl.text.trim()),
-        'height_cm': double.tryParse(_heightCtrl.text.trim()),
+        'weight_grams': int.tryParse(_weightCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')),
+        'length_cm': double.tryParse(_lengthCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')),
+        'width_cm': double.tryParse(_widthCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')),
+        'height_cm': double.tryParse(_heightCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')),
       };
+
+      // TODO: Save attributes to product metadata if needed.
+      if (_hasVariants && _attributes.isNotEmpty) {
+        productData['attributes'] = {
+          for (var a in _attributes) a['name']: a['options']
+        };
+      }
 
       ProductModel savedProduct;
       if (widget.productId == null) {
@@ -233,7 +309,7 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
 
       // Handle default/single variant creation if no variants enabled
       if (!_hasVariants) {
-        final stock = int.tryParse(_stockCtrl.text.trim()) ?? 0;
+        final stock = int.tryParse(_stockCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
         final defaultVariantData = {
           'product_id': savedProduct.id,
           'sku': savedProduct.sku ?? 'SKU-${savedProduct.id.substring(0, 8)}',
@@ -370,32 +446,94 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
     }
   }
 
-  List<DropdownMenuItem<String>> _buildCategoryDropdownItems() {
-    final List<DropdownMenuItem<String>> items = [];
-    final roots = _categories.where((c) => c.parentId == null || c.parentId!.isEmpty || c.parentId == 'null').toList();
-    
-    for (final root in roots) {
-      items.add(DropdownMenuItem(
-        value: root.id,
-        child: Text(root.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-      ));
-      
-      final children = _categories.where((c) => c.parentId == root.id).toList();
-      for (final child in children) {
-        items.add(DropdownMenuItem(
-          value: child.id,
-          child: Padding(
-            padding: const EdgeInsets.only(left: 16),
-            child: Text('↳ ${child.name}', style: const TextStyle(color: Colors.black87)),
-          ),
-        ));
+  String _getCategoryName(String? id) {
+    if (id == null) return 'Chọn danh mục';
+    try {
+      final cat = _categories.firstWhere((c) => c.id == id);
+      if (cat.parentId != null && cat.parentId!.isNotEmpty && cat.parentId != 'null') {
+        final parent = _categories.firstWhere((c) => c.id == cat.parentId, orElse: () => cat);
+        if (parent.id != cat.id) {
+          return '${parent.name} > ${cat.name}';
+        }
       }
+      return cat.name;
+    } catch (_) {
+      return 'Chọn danh mục';
     }
-    
-    if (items.isEmpty) {
-      return _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList();
-    }
-    return items;
+  }
+
+  void _showCategoryPicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (context) {
+        var roots = _categories.where((c) => c.parentId == null || c.parentId!.isEmpty || c.parentId == 'null').toList();
+        // Nếu không có danh mục cha nào (tức là dùng danh sách phẳng), lấy tất cả làm danh mục gốc
+        if (roots.isEmpty && _categories.isNotEmpty) {
+          roots = List.from(_categories);
+        }
+
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          maxChildSize: 0.9,
+          minChildSize: 0.4,
+          expand: false,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Chọn danh mục', style: AppTextStyles.titleMedium),
+                      IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    itemCount: roots.length,
+                    itemBuilder: (context, index) {
+                      final root = roots[index];
+                      final children = _categories.where((c) => c.parentId == root.id).toList();
+                      if (children.isEmpty) {
+                        return ListTile(
+                          title: Text(root.name, style: const TextStyle(fontWeight: FontWeight.w500)),
+                          trailing: _selectedCategoryId == root.id ? const Icon(Icons.check_circle, color: AppColors.primary) : null,
+                          onTap: () {
+                            setState(() => _selectedCategoryId = root.id);
+                            Navigator.pop(context);
+                          },
+                        );
+                      }
+                      return ExpansionTile(
+                        title: Text(root.name, style: const TextStyle(fontWeight: FontWeight.w500)),
+                        initiallyExpanded: children.any((c) => c.id == _selectedCategoryId) || _selectedCategoryId == root.id,
+                        children: children.map((child) {
+                          return ListTile(
+                            contentPadding: const EdgeInsets.only(left: 48, right: 16),
+                            title: Text(child.name),
+                            trailing: _selectedCategoryId == child.id ? const Icon(Icons.check_circle, color: AppColors.primary) : null,
+                            onTap: () {
+                              setState(() => _selectedCategoryId = child.id);
+                              Navigator.pop(context);
+                            },
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget _buildBasicInfo() {
@@ -416,16 +554,31 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
           decoration: const InputDecoration(labelText: 'Mô tả chi tiết', border: OutlineInputBorder(), alignLabelWithHint: true),
         ),
         const SizedBox(height: AppSpacing.md),
-        DropdownButtonFormField<String>(
-          value: _selectedCategoryId,
-          decoration: const InputDecoration(labelText: 'Danh mục *', border: OutlineInputBorder()),
-          items: _buildCategoryDropdownItems(),
-          onChanged: (v) => setState(() => _selectedCategoryId = v),
-          validator: (v) => v == null ? 'Vui lòng chọn danh mục' : null,
+        FormField<String>(
+          validator: (_) => _selectedCategoryId == null ? 'Vui lòng chọn danh mục' : null,
+          builder: (state) {
+            return InkWell(
+              onTap: _showCategoryPicker,
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Danh mục *',
+                  border: const OutlineInputBorder(),
+                  errorText: state.errorText,
+                  suffixIcon: const Icon(Icons.arrow_drop_down),
+                ),
+                child: Text(
+                  _getCategoryName(_selectedCategoryId),
+                  style: TextStyle(color: _selectedCategoryId != null ? null : AppColors.onSurfaceVariant),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            );
+          },
         ),
         const SizedBox(height: AppSpacing.md),
         DropdownButtonFormField<String>(
-          value: _isAddingNewBrand ? 'new' : _selectedBrandId,
+          initialValue: _isAddingNewBrand ? 'new' : _selectedBrandId,
           decoration: const InputDecoration(labelText: 'Thương hiệu', border: OutlineInputBorder()),
           items: [
             ..._brands.map((b) => DropdownMenuItem(value: b.id, child: Text(b.name))),
@@ -471,7 +624,7 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
         ],
         const SizedBox(height: AppSpacing.md),
         DropdownButtonFormField<ProductStatus>(
-          value: _selectedStatus,
+          initialValue: _selectedStatus,
           decoration: const InputDecoration(labelText: 'Trạng thái', border: OutlineInputBorder()),
           items: const [
             DropdownMenuItem(value: ProductStatus.active, child: Text('Đang bán (Active)')),
@@ -571,10 +724,25 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SwitchListTile(
-          title: const Text('Sản phẩm có phân loại (size, màu)?'),
-          value: _hasVariants,
-          onChanged: (v) => setState(() => _hasVariants = v),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Phân loại hàng', style: AppTextStyles.titleMedium),
+            Switch(
+              value: _hasVariants,
+              onChanged: (val) {
+                setState(() {
+                  _hasVariants = val;
+                  if (!val) {
+                    _attributes.clear();
+                    _variants.clear();
+                  } else if (_attributes.isEmpty) {
+                    _attributes.add({'name': 'Màu sắc', 'options': <String>[]});
+                  }
+                });
+              },
+            ),
+          ],
         ),
         const SizedBox(height: AppSpacing.md),
         TextFormField(
@@ -582,6 +750,7 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
           decoration: const InputDecoration(labelText: 'Giá cơ bản (₫) *', border: OutlineInputBorder(), prefixText: '₫ '),
           keyboardType: TextInputType.number,
           validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập giá bán' : null,
+          onChanged: (_) => setState(() => _generateVariants()),
         ),
         const SizedBox(height: AppSpacing.md),
         Row(
@@ -616,82 +785,67 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
             keyboardType: TextInputType.number,
           ),
         ] else ...[
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Các phiên bản sản phẩm', style: AppTextStyles.titleSmall),
-              ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _variants.add({'name': '', 'price': double.tryParse(_basePriceCtrl.text) ?? 0.0, 'quantity': 0, 'sku': ''});
-                  });
-                },
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Thêm phân loại', style: TextStyle(fontSize: 12)),
-              ),
-            ],
-          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text('Nhóm phân loại', style: AppTextStyles.titleSmall),
           const SizedBox(height: AppSpacing.sm),
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: _variants.length,
-            itemBuilder: (ctx, idx) {
-              final v = _variants[idx];
-              final nameCtrl = TextEditingController(text: v['name']);
-              final priceCtrl = TextEditingController(text: v['price'].toString());
-              final stockCtrl = TextEditingController(text: v['quantity'].toString());
-              final skuCtrl = TextEditingController(text: v['sku']);
-
+            itemCount: _attributes.length,
+            itemBuilder: (context, attrIndex) {
+              final attr = _attributes[attrIndex];
               return Card(
-                margin: const EdgeInsets.symmetric(vertical: 4),
+                elevation: 0,
+                shape: RoundedRectangleBorder(side: BorderSide(color: AppColors.outlineVariant), borderRadius: BorderRadius.circular(8)),
+                margin: const EdgeInsets.only(bottom: AppSpacing.md),
                 child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  padding: const EdgeInsets.all(AppSpacing.md),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
                           Expanded(
                             child: TextFormField(
-                              controller: nameCtrl,
-                              decoration: const InputDecoration(labelText: 'Tên phiên bản (VD: Đỏ, S)', isDense: true),
-                              onChanged: (val) => _variants[idx]['name'] = val,
+                              initialValue: attr['name'],
+                              decoration: const InputDecoration(labelText: 'Tên nhóm (VD: Màu sắc, Kích cỡ)', border: OutlineInputBorder(), isDense: true),
+                              onChanged: (val) {
+                                _attributes[attrIndex]['name'] = val;
+                                _generateVariants();
+                              },
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete, color: AppColors.error),
-                            onPressed: () => setState(() => _variants.removeAt(idx)),
+                            icon: const Icon(Icons.close, color: AppColors.error),
+                            onPressed: () => setState(() {
+                              _attributes.removeAt(attrIndex);
+                              _generateVariants();
+                            }),
                           ),
                         ],
                       ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Row(
+                      const SizedBox(height: AppSpacing.md),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
                         children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: priceCtrl,
-                              decoration: const InputDecoration(labelText: 'Giá bán', isDense: true),
-                              keyboardType: TextInputType.number,
-                              onChanged: (val) => _variants[idx]['price'] = double.tryParse(val) ?? 0.0,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: TextFormField(
-                              controller: stockCtrl,
-                              decoration: const InputDecoration(labelText: 'Tồn kho', isDense: true),
-                              keyboardType: TextInputType.number,
-                              onChanged: (val) => _variants[idx]['quantity'] = int.tryParse(val) ?? 0,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: TextFormField(
-                              controller: skuCtrl,
-                              decoration: const InputDecoration(labelText: 'SKU', isDense: true),
-                              onChanged: (val) => _variants[idx]['sku'] = val,
-                            ),
+                          ...(attr['options'] as List<String>).asMap().entries.map((entry) {
+                            return Chip(
+                              label: Text(entry.value),
+                              onDeleted: () {
+                                setState(() {
+                                  (attr['options'] as List<String>).removeAt(entry.key);
+                                  _generateVariants();
+                                });
+                              },
+                            );
+                          }),
+                          ActionChip(
+                            label: const Text('+ Thêm tuỳ chọn', style: TextStyle(color: AppColors.primary)),
+                            backgroundColor: AppColors.primaryContainer,
+                            onPressed: () {
+                              _showAddOptionDialog(attrIndex);
+                            },
                           ),
                         ],
                       ),
@@ -703,6 +857,45 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
           ),
         ],
       ],
+    );
+  }
+
+  void _showAddOptionDialog(int attrIndex) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Thêm tuỳ chọn'),
+        content: TextField(
+          controller: ctrl,
+          decoration: const InputDecoration(hintText: 'Nhập tuỳ chọn (Đỏ, Size L,...)'),
+          autofocus: true,
+          onSubmitted: (val) {
+            if (val.trim().isNotEmpty) {
+              setState(() {
+                (_attributes[attrIndex]['options'] as List<String>).add(val.trim());
+                _generateVariants();
+              });
+            }
+            Navigator.pop(context);
+          },
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Huỷ')),
+          ElevatedButton(
+            onPressed: () {
+              if (ctrl.text.trim().isNotEmpty) {
+                setState(() {
+                  (_attributes[attrIndex]['options'] as List<String>).add(ctrl.text.trim());
+                  _generateVariants();
+                });
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Thêm'),
+          ),
+        ],
+      ),
     );
   }
 

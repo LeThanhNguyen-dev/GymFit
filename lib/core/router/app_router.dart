@@ -39,6 +39,8 @@ import '../../features/admin/shops/admin_product_moderation_screen.dart';
 import '../../features/admin/orders/admin_order_detail_screen.dart';
 import '../../features/admin/finance/admin_finance_screen.dart';
 import '../../features/admin/settings/admin_settings_screen.dart';
+import '../../features/admin/shop_registrations/presentation/screens/admin_shop_registrations_screen.dart';
+import '../../features/admin/shop_registrations/presentation/screens/admin_shop_detail_screen.dart' as shop_reg_detail;
 import '../../features/products/presentation/screens/compare_screen.dart';
 import '../../features/register_shop/presentation/screens/register_shop_screen.dart';
 import '../../features/register_shop/data/models/shop_registration_model.dart';
@@ -50,19 +52,20 @@ import '../../features/store/presentation/screens/store_orders/order_list_screen
 import '../../features/store/presentation/screens/store_orders/order_detail_screen.dart' as store_orders;
 import '../../features/store/presentation/screens/store_finance/finance_screen.dart';
 import '../../features/store/presentation/screens/store_settings/settings_screen.dart';
-import '../../features/admin/users/admin_users.dart';
+
 import '../../features/admin/widgets/admin_shell.dart';
 import 'route_names.dart';
 import '../services/deep_link_service.dart';
 
 final routerNotifierProvider = Provider<GoRouter>((ref) {
   final notifier = ValueNotifier<bool>(false);
-  final authState = ref.watch(authProvider);
 
-  if (authState.status == AuthStatus.authenticated) {
+  // Initialize notifier value based on current auth state
+  if (ref.read(authProvider).status == AuthStatus.authenticated) {
     notifier.value = true;
   }
 
+  // Listen to auth changes to trigger GoRouter refresh
   ref.listen(authProvider, (_, next) {
     notifier.value = next.status == AuthStatus.authenticated;
   });
@@ -85,7 +88,7 @@ final routerNotifierProvider = Provider<GoRouter>((ref) {
       }
 
       if (isLoggedIn && publicRoutes.contains(path)) {
-        final user = authState.user;
+        final user = ref.read(authProvider).user;
         if (user != null) {
           if (user.role == 'admin') return RouteNames.adminDashboardPath;
           if (user.role == 'storeowner' || user.sellerStatus == 'approved') {
@@ -96,14 +99,14 @@ final routerNotifierProvider = Provider<GoRouter>((ref) {
       }
 
       if (path.startsWith('/admin')) {
-        final user = authState.user;
+        final user = ref.read(authProvider).user;
         if (user == null || user.role != 'admin') {
           return RouteNames.homePath;
         }
       }
 
       if (path.startsWith('/store')) {
-        final user = authState.user;
+        final user = ref.read(authProvider).user;
         if (user == null || (user.role != 'storeowner' && user.sellerStatus != 'approved')) {
           return RouteNames.homePath;
         }
@@ -334,7 +337,8 @@ List<RouteBase> _buildRoutes() {
         GoRoute(path: RouteNames.adminVouchersPath, name: RouteNames.adminVouchers, builder: (_, _) => const AdminCouponsScreen()),
         GoRoute(path: RouteNames.adminInventoryPath, name: RouteNames.adminInventory, builder: (_, _) => const InventoryScreen()),
         GoRoute(path: RouteNames.adminReviewsPath, name: RouteNames.adminReviews, builder: (_, _) => const AdminReviewsScreen()),
-        GoRoute(path: RouteNames.adminShopRegistrationsPath, name: RouteNames.adminShopRegistrations, builder: (_, _) => const AdminShopsScreen()),
+        GoRoute(path: RouteNames.adminShopRegistrationsPath, name: RouteNames.adminShopRegistrations, builder: (_, _) => const AdminShopRegistrationsScreen()),
+        GoRoute(path: RouteNames.adminShopRegistrationsDetailPath, name: RouteNames.adminShopRegistrationsDetail, builder: (_, state) => shop_reg_detail.AdminShopDetailScreen(registrationId: state.pathParameters['id'] ?? '')),
       ],
     ),
     // Store Owner Shell + Routes

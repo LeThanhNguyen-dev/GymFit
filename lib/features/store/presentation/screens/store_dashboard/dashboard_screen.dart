@@ -53,7 +53,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         const SizedBox(height: AppSpacing.md),
                         _buildStatsGrid(stats, formattedRevenue),
                         const SizedBox(height: AppSpacing.lg),
-                        _buildRevenueChart(),
+                        _buildRevenueChart(userId, supabase),
                         const SizedBox(height: AppSpacing.lg),
                         _buildTopProducts(userId, supabase),
                         const SizedBox(height: AppSpacing.lg),
@@ -89,46 +89,77 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildRevenueChart() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Doanh thu 7 ngày qua', style: AppTextStyles.titleMedium),
-            const SizedBox(height: AppSpacing.md),
-            SizedBox(
-              height: 180,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: 'T23456H'.split('').asMap().entries.map((e) {
-                  final h = [0.3, 0.5, 0.4, 0.7, 0.6, 0.8, 0.5][e.key];
-                  return Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Container(
-                            height: 140 * h,
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-                            ),
+  Widget _buildRevenueChart(String userId, dynamic supabase) {
+    return FutureBuilder<List<dynamic>>(
+      future: supabase.rpc('get_store_daily_revenue', params: {'p_seller_id': userId}).then<List<dynamic>>((res) => List<dynamic>.from(res as List? ?? [])),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Card(child: SizedBox(height: 250, child: Center(child: CircularProgressIndicator())));
+        }
+        
+        final data = snapshot.data ?? [];
+        final revenueData = data.map((e) => double.tryParse(e.toString()) ?? 0.0).toList();
+        
+        // If empty or not exactly 7 days, fallback
+        if (revenueData.isEmpty) {
+          revenueData.addAll(List.filled(7, 0.0));
+        }
+        
+        final maxRevenue = revenueData.isNotEmpty ? revenueData.reduce((a, b) => a > b ? a : b) : 0.0;
+        final chartMax = maxRevenue > 0 ? maxRevenue : 1.0;
+
+        // X labels for the last 7 days
+        final List<String> labels = [];
+        final now = DateTime.now();
+        for (int i = 6; i >= 0; i--) {
+          final d = now.subtract(Duration(days: i));
+          labels.add('${d.day}/${d.month}');
+        }
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Doanh thu 7 ngày qua', style: AppTextStyles.titleMedium),
+                const SizedBox(height: AppSpacing.md),
+                SizedBox(
+                  height: 180,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: revenueData.asMap().entries.map((e) {
+                      final h = e.value / chartMax;
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Tooltip(
+                                message: '${e.value.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}₫',
+                                child: Container(
+                                  height: 140 * h,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: h == 0 ? 0.1 : 1.0),
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(labels[e.key], style: AppTextStyles.labelSmall.copyWith(fontSize: 10)),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(e.value, style: AppTextStyles.labelSmall),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

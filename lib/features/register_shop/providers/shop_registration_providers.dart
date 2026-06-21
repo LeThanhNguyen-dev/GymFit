@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/supabase_providers.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../data/models/shop_registration_model.dart';
 import '../data/repositories/shop_registration_repository.dart';
 
@@ -10,8 +11,7 @@ final shopRegistrationRepositoryProvider = Provider<ShopRegistrationRepository>(
 
 final myShopRegistrationProvider = FutureProvider.autoDispose<ShopRegistrationModel?>(
   (ref) async {
-    final client = ref.read(supabaseClientProvider);
-    final user = client.auth.currentUser;
+    final user = ref.watch(authProvider).user;
     if (user == null) return null;
     final repo = ref.read(shopRegistrationRepositoryProvider);
     return repo.getRegistrationStatus(user.id);

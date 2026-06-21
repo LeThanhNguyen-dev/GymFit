@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class AdminShell extends StatelessWidget {
+import '../../../core/router/route_names.dart';
+import '../../auth/providers/auth_providers.dart';
+
+class AdminShell extends ConsumerWidget {
   const AdminShell({super.key, required this.child});
 
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
     return Scaffold(
       body: Row(
@@ -74,6 +78,22 @@ class AdminShell extends StatelessWidget {
                 label: Text('Settings'),
               ),
             ],
+            trailing: Expanded(
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.red),
+                    tooltip: 'Đăng xuất',
+                    onPressed: () {
+                      ref.read(authProvider.notifier).logout();
+                      context.go(RouteNames.homePath);
+                    },
+                  ),
+                ),
+              ),
+            ),
           ),
           const VerticalDivider(width: 1),
           Expanded(child: child),

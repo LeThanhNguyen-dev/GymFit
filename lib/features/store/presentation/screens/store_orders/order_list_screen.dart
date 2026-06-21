@@ -114,8 +114,8 @@ class _StoreOrderListScreenState extends ConsumerState<StoreOrderListScreen> wit
       child: ListView.separated(
         padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
         itemCount: orders.length,
-        separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-        itemBuilder: (_, i) => _OrderCard(
+        separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.sm),
+        itemBuilder: (context, i) => _OrderCard(
           order: orders[i],
           onTap: () => context.push('${RouteNames.storeOrdersPath}/${orders[i]['id']}'),
         ),
