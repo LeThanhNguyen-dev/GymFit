@@ -18,7 +18,7 @@ class OrdersScreen extends ConsumerWidget {
       length: _tabs.length,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Don hang'),
+          title: const Text('Đơn hàng'),
           bottom: TabBar(
             isScrollable: true,
             onTap: (index) => notifier.setStatus(_tabs[index].status),
@@ -30,7 +30,7 @@ class OrdersScreen extends ConsumerWidget {
           error: (error, _) => Center(child: Text(error.toString())),
           data: (items) {
             if (items.isEmpty) {
-              return const Center(child: Text('Chua co don hang nao.'));
+              return const Center(child: Text('Chưa có đơn hàng nào.'));
             }
             return RefreshIndicator(
               onRefresh: notifier.load,
@@ -88,7 +88,7 @@ class _OrderCard extends ConsumerWidget {
                 title: Text(firstItem.productName),
                 subtitle: Text(
                   extraCount > 0
-                      ? 'Va $extraCount san pham khac'
+                      ? 'Và $extraCount sản phẩm khác'
                       : firstItem.variantInfo,
                 ),
                 trailing: Text(formatCurrency(order.totalAmount)),
@@ -104,7 +104,7 @@ class _OrderCard extends ConsumerWidget {
                       ),
                     );
                   },
-                  child: const Text('Xem chi tiet'),
+                  child: const Text('Xem chi tiết'),
                 ),
                 const Spacer(),
                 if (order.canCancel)
@@ -114,7 +114,7 @@ class _OrderCard extends ConsumerWidget {
                           .read(orderListProvider.notifier)
                           .cancelOrder(order.id);
                     },
-                    child: const Text('Huy don'),
+                    child: const Text('Hủy đơn'),
                   ),
               ],
             ),
@@ -133,10 +133,10 @@ class _OrderTab {
 }
 
 const _tabs = [
-  _OrderTab('Tat ca', null),
-  _OrderTab('Cho xac nhan', 'pending'),
-  _OrderTab('Dang xu ly', 'processing'),
-  _OrderTab('Dang giao', 'shipped'),
-  _OrderTab('Da giao', 'delivered'),
-  _OrderTab('Da huy', 'cancelled'),
+  _OrderTab('Tất cả', null),
+  _OrderTab('Chờ xác nhận', 'pending'),
+  _OrderTab('Đang xử lý', 'processing'),
+  _OrderTab('Đang giao', 'shipped'),
+  _OrderTab('Đã giao', 'delivered'),
+  _OrderTab('Đã hủy', 'cancelled'),
 ];

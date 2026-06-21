@@ -331,7 +331,10 @@ class _MenuCard extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text(title, style: AppTextStyles.labelMedium),
+            child: Text(
+              title,
+              style: AppTextStyles.labelMedium.copyWith(color: AppColors.onSurfaceVariant),
+            ),
           ),
           ...items.map((item) => _MenuRow(item: item)),
         ],
@@ -363,7 +366,10 @@ class _MenuRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: Icon(item.icon, color: AppColors.onSurfaceVariant),
-      title: Text(item.label, style: AppTextStyles.bodyLarge),
+      title: Text(
+        item.label,
+        style: AppTextStyles.bodyLarge.copyWith(color: AppColors.onSurface),
+      ),
       trailing: item.trailing ??
           Icon(Icons.chevron_right, color: AppColors.onSurfaceVariant),
       onTap: item.onTap,

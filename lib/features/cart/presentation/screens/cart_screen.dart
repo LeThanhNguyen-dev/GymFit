@@ -176,9 +176,19 @@ class _CartItemTile extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(
-              item.formattedTotal,
-              style: Theme.of(context).textTheme.titleSmall,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  item.formattedTotal,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: onRemove,
+                  child: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             _QuantitySelector(

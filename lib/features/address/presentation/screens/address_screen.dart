@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../checkout/providers/checkout_providers.dart';
 import '../../../address/providers/address_providers.dart';
 import '../widgets/address_card.dart';
 
@@ -75,18 +76,26 @@ class AddressListScreen extends ConsumerWidget {
             itemCount: addresses.length,
             separatorBuilder: (_, __) =>
                 const SizedBox(height: AppSpacing.md),
-            itemBuilder: (context, index) => AddressCard(
-              address: addresses[index],
-              onEdit: () => context.push(
-                RouteNames.editAddressPath,
-                extra: addresses[index],
+            itemBuilder: (context, index) => InkWell(
+              onTap: () {
+                ref.read(selectedAddressProvider.notifier).setAddress(addresses[index]);
+                if (context.canPop()) {
+                  context.pop();
+                }
+              },
+              child: AddressCard(
+                address: addresses[index],
+                onEdit: () => context.push(
+                  RouteNames.editAddressPath,
+                  extra: addresses[index],
+                ),
+                onDelete: () => _confirmDelete(
+                  context,
+                  ref,
+                  addresses[index].id,
+                ),
+                isDefault: addresses[index].isDefault,
               ),
-              onDelete: () => _confirmDelete(
-                context,
-                ref,
-                addresses[index].id,
-              ),
-              isDefault: addresses[index].isDefault,
             ),
           );
         },

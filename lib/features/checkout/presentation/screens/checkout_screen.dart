@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../address/providers/address_providers.dart';
+import '../../../cart/providers/cart_providers.dart';
 import '../../../payments/presentation/screens/payment_screen.dart';
 import '../../data/models/checkout_model.dart';
 import '../../providers/checkout_providers.dart';
@@ -20,38 +22,41 @@ class CheckoutScreen extends ConsumerWidget {
       });
     }
 
-    ref.listen(defaultAddressProvider, (_, next) {
-      final current = ref.read(selectedAddressProvider);
-      final address = next.value;
-      if (current == null && address != null) {
-        ref.read(selectedAddressProvider.notifier).setAddress(address);
-      }
-    });
-
     final data = ref.watch(checkoutDataProvider);
-    final address = ref.watch(selectedAddressProvider);
+    final addressesAsync = ref.watch(userAddressesProvider);
+    var address = ref.watch(selectedAddressProvider);
+
+    if (address == null && addressesAsync.hasValue && addressesAsync.value!.isNotEmpty) {
+      address = addressesAsync.value!.firstWhere(
+        (a) => a.isDefault,
+        orElse: () => addressesAsync.value!.first,
+      );
+      Future.microtask(() {
+         ref.read(selectedAddressProvider.notifier).setAddress(address);
+      });
+    }
     final shippingFee = ref.watch(shippingFeeProvider).value ?? 30000;
     final total = ref.watch(checkoutTotalProvider);
     final createState = ref.watch(createOrderProvider);
 
     if (data == null) {
       return const Scaffold(
-        body: Center(child: Text('Chua co du lieu thanh toan.')),
+        body: Center(child: Text('Chưa có dữ liệu thanh toán.')),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Thanh toan')),
+      appBar: AppBar(title: const Text('Thanh toán')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
         children: [
           _Section(
-            title: 'Dia chi giao hang',
+            title: 'Địa chỉ giao hàng',
             child: address == null
                 ? FilledButton.icon(
-                    onPressed: () {},
+                    onPressed: () => context.push('/addresses'),
                     icon: const Icon(Icons.add_location_alt_outlined),
-                    label: const Text('Them dia chi'),
+                    label: const Text('Thêm địa chỉ'),
                   )
                 : ListTile(
                     contentPadding: EdgeInsets.zero,
@@ -61,20 +66,20 @@ class CheckoutScreen extends ConsumerWidget {
                       '${address.phone}\n${address.addressLine1}, ${address.city}',
                     ),
                     trailing: TextButton(
-                      onPressed: () {},
-                      child: const Text('Thay doi'),
+                      onPressed: () => context.push('/addresses'),
+                      child: const Text('Thay đổi'),
                     ),
                   ),
           ),
           _Section(
-            title: 'San pham',
+            title: 'Sản phẩm',
             child: Column(
               children: data.cartItems.map((item) {
                 final product = item.product;
                 final variant = item.variant;
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text(product?.name ?? 'San pham'),
+                  title: Text(product?.name ?? 'Sản phẩm'),
                   subtitle: Text(
                     '${variant?.optionDisplay ?? variant?.name ?? ''} x${item.quantity}',
                   ),
@@ -88,14 +93,14 @@ class CheckoutScreen extends ConsumerWidget {
             child: ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.local_offer_outlined),
-              title: Text(data.voucher?.code ?? 'Chua ap dung ma giam gia'),
+              title: Text(data.voucher?.code ?? 'Chưa áp dụng mã giảm giá'),
               subtitle: data.discountAmount > 0
                   ? Text('-${formatCurrency(data.discountAmount)}')
                   : null,
             ),
           ),
           _Section(
-            title: 'Phuong thuc thanh toan',
+            title: 'Phương thức thanh toán',
             child: RadioGroup<String>(
               groupValue: ref.watch(paymentMethodProvider),
               onChanged: (value) {
@@ -125,13 +130,13 @@ class CheckoutScreen extends ConsumerWidget {
             ),
           ),
           _Section(
-            title: 'Ghi chu',
+            title: 'Ghi chú',
             child: TextField(
               minLines: 2,
               maxLines: 4,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
-                hintText: 'Ghi chu cho shop hoac don vi giao hang',
+                hintText: 'Ghi chú cho shop hoặc đơn vị giao hàng',
               ),
               onChanged: (value) {
                 ref.read(orderNoteProvider.notifier).setNote(value);
@@ -139,14 +144,14 @@ class CheckoutScreen extends ConsumerWidget {
             ),
           ),
           _Section(
-            title: 'Tong ket',
+            title: 'Tổng kết',
             child: Column(
               children: [
-                _MoneyRow('Tam tinh', data.subtotal),
-                _MoneyRow('Giam gia', -data.discountAmount),
-                _MoneyRow('Phi van chuyen', shippingFee),
+                _MoneyRow('Tạm tính', data.subtotal),
+                _MoneyRow('Giảm giá', -data.discountAmount),
+                _MoneyRow('Phí vận chuyển', shippingFee),
                 const Divider(),
-                _MoneyRow('Tong cong', total, isTotal: true),
+                _MoneyRow('Tổng cộng', total, isTotal: true),
               ],
             ),
           ),
@@ -181,21 +186,26 @@ class CheckoutScreen extends ConsumerWidget {
                               .submit();
                           if (!context.mounted) return;
                           if (result.paymentMethod == 'cod') {
+                            ref.read(cartItemsProvider.notifier).clearCart();
                             await showDialog<void>(
                               context: context,
                               builder: (context) => AlertDialog(
-                                title: const Text('Dat hang thanh cong'),
-                                content: Text('Ma don: ${result.orderNumber}'),
+                                title: const Text('Đặt hàng thành công'),
+                                content: Text('Mã đơn: ${result.orderNumber}'),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(context),
-                                    child: const Text('Dong'),
+                                    child: const Text('Đóng'),
                                   ),
                                 ],
                               ),
                             );
+                            if (context.mounted) {
+                              context.go('/');
+                            }
                           } else {
-                            navigator.push(
+                            ref.read(cartItemsProvider.notifier).clearCart();
+                            navigator.pushReplacement(
                               MaterialPageRoute<void>(
                                 builder: (_) =>
                                     PaymentScreen(orderId: result.orderId),
@@ -213,7 +223,7 @@ class CheckoutScreen extends ConsumerWidget {
                         dimension: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Dat hang'),
+                    : const Text('Đặt hàng'),
               ),
             ],
           ),
