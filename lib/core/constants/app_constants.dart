@@ -3,9 +3,14 @@ class AppConstants {
 
   static const useMockAuth = false;  // chỉnh true để teesst thôi nhé còn không thì để false
 
-  static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  static const String supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
-
+ static const supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://oigcpptcdbixpnwqycav.supabase.co',
+  );
+  static const supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: 'sb_publishable_jG80ZvjVqynLskXnGnq-Hg_DLUg0cha',
+  );
   static const String vnpayTmnCode = String.fromEnvironment('VNPAY_TMN_CODE');
   static const String vnpayHashSecret = String.fromEnvironment('VNPAY_HASH_SECRET');
   static const String vnpayUrl = String.fromEnvironment('VNPAY_URL', defaultValue: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html');
