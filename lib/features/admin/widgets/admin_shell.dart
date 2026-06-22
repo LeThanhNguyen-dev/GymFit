@@ -172,12 +172,28 @@ class _AdminShellState extends ConsumerState<AdminShell> {
           Positioned(
             left: 16,
             bottom: 16,
-            child: FloatingActionButton(
-              mini: true,
-              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-              foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-              onPressed: () => setState(() => _isSidebarOpen = !_isSidebarOpen),
-              child: Icon(_isSidebarOpen ? Icons.close : Icons.menu),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton(
+                  mini: true,
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+                  onPressed: () => setState(() => _isSidebarOpen = !_isSidebarOpen),
+                  child: Icon(_isSidebarOpen ? Icons.close : Icons.menu),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton(
+                  mini: true,
+                  backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                  foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+                  onPressed: () async {
+                    await ref.read(authProvider.notifier).logout();
+                    if (context.mounted) context.go(RouteNames.loginPath);
+                  },
+                  child: const Icon(Icons.logout),
+                ),
+              ],
             ),
           ),
         ],
