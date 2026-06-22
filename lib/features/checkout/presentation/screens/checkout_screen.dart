@@ -22,6 +22,21 @@ class CheckoutScreen extends ConsumerWidget {
       });
     }
 
+    if (initialData == null && ref.read(checkoutDataProvider) == null) {
+      final cartItems = ref.read(cartItemsProvider).asData?.value;
+      if (cartItems != null && cartItems.isNotEmpty) {
+        final subtotal = ref.read(cartTotalProvider);
+        Future.microtask(() {
+          ref.read(checkoutDataProvider.notifier).setData(CheckoutData(
+            cartItems: cartItems,
+            subtotal: subtotal,
+            discountAmount: 0,
+            total: subtotal,
+          ));
+        });
+      }
+    }
+
     final data = ref.watch(checkoutDataProvider);
     final addressesAsync = ref.watch(userAddressesProvider);
     var address = ref.watch(selectedAddressProvider);
@@ -40,15 +55,16 @@ class CheckoutScreen extends ConsumerWidget {
     final createState = ref.watch(createOrderProvider);
 
     if (data == null) {
-      return const Scaffold(
-        body: Center(child: Text('Chưa có dữ liệu thanh toán.')),
+      return Scaffold(
+        appBar: AppBar(title: const Text('Thanh toán')),
+        body: const _CheckoutShimmer(),
       );
     }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Thanh toán')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+        padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 80),
         children: [
           _Section(
             title: 'Địa chỉ giao hàng',
@@ -280,6 +296,30 @@ class _PaymentRadio extends StatelessWidget {
       value: value,
       secondary: Icon(icon),
       title: Text(title),
+    );
+  }
+}
+
+class _CheckoutShimmer extends StatelessWidget {
+  const _CheckoutShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.surfaceContainerHighest;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+      children: List.generate(5, (_) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Card(
+          child: Container(
+            height: 80,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      )),
     );
   }
 }

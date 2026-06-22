@@ -47,11 +47,11 @@ class AddressListScreen extends ConsumerWidget {
             );
           }
           return ListView.builder(
-            padding: const EdgeInsets.only(
+            padding: EdgeInsets.only(
               left: 16,
               right: 16,
               top: 16,
-              bottom: 80,
+              bottom: MediaQuery.of(context).padding.bottom + 60,
             ),
             itemCount: addresses.length,
             itemBuilder: (_, index) => _AddressCard(

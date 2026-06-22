@@ -373,7 +373,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   ),
                 ],
 
-                const SizedBox(height: 100),
+                  SizedBox(height: MediaQuery.of(context).padding.bottom + 60),
               ],
             ),
           ),
@@ -796,7 +796,7 @@ class ProductDetailBottomBar extends ConsumerWidget {
                                 quantity,
                               );
                           if (context.mounted) {
-                            context.push('/cart');
+                            context.push('/checkout');
                           }
                         } catch (e) {
                           if (context.mounted) {

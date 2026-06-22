@@ -291,7 +291,7 @@ class _CategoryLandingScreenState
             )
           else
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+              padding: EdgeInsets.fromLTRB(16, 0, 16, MediaQuery.of(context).padding.bottom + 60),
               sliver: SliverGrid(
                 gridDelegate:
                     const SliverGridDelegateWithFixedCrossAxisCount(
