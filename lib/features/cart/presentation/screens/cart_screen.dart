@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../checkout/data/models/checkout_model.dart';
 import '../../../voucher/providers/voucher_provider.dart';
@@ -133,7 +134,7 @@ class _CartItemTile extends StatelessWidget {
         color: Theme.of(context).colorScheme.error,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: const Icon(Icons.delete, color: Colors.white),
+        child: Icon(Icons.delete, color: Theme.of(context).colorScheme.onError),
       ),
       onDismissed: (_) => onRemove(),
       child: ListTile(
@@ -176,9 +177,19 @@ class _CartItemTile extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(
-              item.formattedTotal,
-              style: Theme.of(context).textTheme.titleSmall,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  item.formattedTotal,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: onRemove,
+                  child: Icon(Icons.delete_outline, size: 20, color: Theme.of(context).colorScheme.error),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             _QuantitySelector(
@@ -215,7 +226,7 @@ class _QuantitySelector extends StatelessWidget {
           icon: const Icon(Icons.remove),
         ),
         SizedBox(
-          width: 36,
+          width: 44,
           child: Text('$quantity', textAlign: TextAlign.center),
         ),
         IconButton.filledTonal(
@@ -349,22 +360,54 @@ class _EmptyCart extends StatelessWidget {
   }
 }
 
-class _CartLoading extends StatelessWidget {
+class _CartLoading extends StatefulWidget {
   const _CartLoading();
+  @override
+  State<_CartLoading> createState() => _CartLoadingState();
+}
+
+class _CartLoadingState extends State<_CartLoading>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.3, end: 0.7).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemBuilder: (_, _) => Container(
-        height: 96,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
-      itemCount: 4,
+    final color = Theme.of(context).colorScheme.surfaceContainerHighest;
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return ListView.separated(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          itemBuilder: (_, _) => Container(
+            height: 96,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: _animation.value),
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          separatorBuilder: (_, _) => SizedBox(height: 12),
+          itemCount: 4,
+        );
+      },
     );
   }
 }
@@ -377,14 +420,19 @@ class _CartError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(message, textAlign: TextAlign.center),
+            Icon(Icons.error_outline, size: 48, color: colorScheme.error),
             const SizedBox(height: 12),
+            Text(message, textAlign: TextAlign.center,
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 16),
             OutlinedButton(onPressed: onRetry, child: const Text('Thử lại')),
           ],
         ),

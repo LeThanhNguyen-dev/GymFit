@@ -95,8 +95,32 @@ class _StoreOrderListScreenState extends ConsumerState<StoreOrderListScreen> wit
                   ],
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, _) => Center(child: Text('Lỗi: $err')),
+              loading: () => const _OrdersShimmer(),
+              error: (err, _) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.error_outline, size: 48,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      const SizedBox(height: 12),
+                      Text('Lỗi: $err',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton(
+                        onPressed: () => ref.refresh(storeOrdersProvider),
+                        child: const Text('Thử lại'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -106,7 +130,23 @@ class _StoreOrderListScreenState extends ConsumerState<StoreOrderListScreen> wit
 
   Widget _buildOrderList(List<Map<String, dynamic>> orders) {
     if (orders.isEmpty) {
-      return const Center(child: Text('Không có đơn hàng nào.'));
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.receipt_long, size: 64,
+                color: Theme.of(context).colorScheme.outline,
+              ),
+              const SizedBox(height: 16),
+              Text('Không có đơn hàng nào.',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return RefreshIndicator(
@@ -114,8 +154,8 @@ class _StoreOrderListScreenState extends ConsumerState<StoreOrderListScreen> wit
       child: ListView.separated(
         padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
         itemCount: orders.length,
-        separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-        itemBuilder: (_, i) => _OrderCard(
+        separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.sm),
+        itemBuilder: (context, i) => _OrderCard(
           order: orders[i],
           onTap: () => context.push('${RouteNames.storeOrdersPath}/${orders[i]['id']}'),
         ),
@@ -134,7 +174,7 @@ class _OrderCard extends StatelessWidget {
         'confirmed' || 'processing' => AppColors.info,
         'shipped' => AppColors.primary,
         'delivered' => AppColors.success,
-        'cancelled' => Colors.grey,
+        'cancelled' => AppColors.outline,
         _ => AppColors.error,
       };
 
@@ -190,6 +230,58 @@ class _OrderCard extends StatelessWidget {
         ),
         onTap: onTap,
       ),
+    );
+  }
+}
+
+class _OrdersShimmer extends StatefulWidget {
+  const _OrdersShimmer();
+  @override
+  State<_OrdersShimmer> createState() => _OrdersShimmerState();
+}
+
+class _OrdersShimmerState extends State<_OrdersShimmer>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.3, end: 0.7).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.surfaceContainerHighest;
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return ListView.separated(
+          padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
+          itemBuilder: (_, _) => Container(
+            height: 120,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: _animation.value),
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+          itemCount: 4,
+        );
+      },
     );
   }
 }

@@ -22,6 +22,10 @@ final adminUsersProvider =
       );
 });
 
+final adminUserDetailProvider = FutureProvider.family<AdminUserModel, String>((ref, userId) {
+  return ref.watch(adminUserRepositoryProvider).getUserById(userId);
+});
+
 class AdminUsersFilter {
   const AdminUsersFilter({
     this.search,

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
 import '../../data/models/order_model.dart';
 import '../../providers/order_providers.dart';
-import 'order_detail_screen.dart';
 
 class OrdersScreen extends ConsumerWidget {
   const OrdersScreen({super.key});
@@ -18,7 +18,7 @@ class OrdersScreen extends ConsumerWidget {
       length: _tabs.length,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Don hang'),
+          title: const Text('Đơn hàng'),
           bottom: TabBar(
             isScrollable: true,
             onTap: (index) => notifier.setStatus(_tabs[index].status),
@@ -26,11 +26,56 @@ class OrdersScreen extends ConsumerWidget {
           ),
         ),
         body: orders.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(child: Text(error.toString())),
+          loading: () => const _OrdersShimmer(),
+          error: (error, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.error_outline, size: 48,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(error.toString(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton(
+                    onPressed: () => ref.read(orderListProvider.notifier).load(),
+                    child: const Text('Thử lại'),
+                  ),
+                ],
+              ),
+            ),
+          ),
           data: (items) {
             if (items.isEmpty) {
-              return const Center(child: Text('Chua co don hang nao.'));
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.receipt_long, size: 64,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                      const SizedBox(height: 16),
+                      Text('Chưa có đơn hàng nào.',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      FilledButton(
+                        onPressed: () => context.go('/'),
+                        child: const Text('Tiếp tục mua sắm'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
             }
             return RefreshIndicator(
               onRefresh: notifier.load,
@@ -88,7 +133,7 @@ class _OrderCard extends ConsumerWidget {
                 title: Text(firstItem.productName),
                 subtitle: Text(
                   extraCount > 0
-                      ? 'Va $extraCount san pham khac'
+                      ? 'Và $extraCount sản phẩm khác'
                       : firstItem.variantInfo,
                 ),
                 trailing: Text(formatCurrency(order.totalAmount)),
@@ -96,15 +141,8 @@ class _OrderCard extends ConsumerWidget {
             Row(
               children: [
                 TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(
-                        builder: (_) => OrderDetailScreen(orderId: order.id),
-                      ),
-                    );
-                  },
-                  child: const Text('Xem chi tiet'),
+                  onPressed: () => context.push('/orders/${order.id}'),
+                  child: const Text('Xem chi tiết'),
                 ),
                 const Spacer(),
                 if (order.canCancel)
@@ -114,7 +152,7 @@ class _OrderCard extends ConsumerWidget {
                           .read(orderListProvider.notifier)
                           .cancelOrder(order.id);
                     },
-                    child: const Text('Huy don'),
+                    child: const Text('Hủy đơn'),
                   ),
               ],
             ),
@@ -132,11 +170,63 @@ class _OrderTab {
   final String? status;
 }
 
+class _OrdersShimmer extends StatefulWidget {
+  const _OrdersShimmer();
+  @override
+  State<_OrdersShimmer> createState() => _OrdersShimmerState();
+}
+
+class _OrdersShimmerState extends State<_OrdersShimmer>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.3, end: 0.7).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.surfaceContainerHighest;
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemBuilder: (_, _) => Container(
+            height: 120,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: _animation.value),
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          separatorBuilder: (_, _) => const SizedBox(height: 12),
+          itemCount: 4,
+        );
+      },
+    );
+  }
+}
+
 const _tabs = [
-  _OrderTab('Tat ca', null),
-  _OrderTab('Cho xac nhan', 'pending'),
-  _OrderTab('Dang xu ly', 'processing'),
-  _OrderTab('Dang giao', 'shipped'),
-  _OrderTab('Da giao', 'delivered'),
-  _OrderTab('Da huy', 'cancelled'),
+  _OrderTab('Tất cả', null),
+  _OrderTab('Chờ xác nhận', 'pending'),
+  _OrderTab('Đang xử lý', 'processing'),
+  _OrderTab('Đang giao', 'shipped'),
+  _OrderTab('Đã giao', 'delivered'),
+  _OrderTab('Đã hủy', 'cancelled'),
 ];

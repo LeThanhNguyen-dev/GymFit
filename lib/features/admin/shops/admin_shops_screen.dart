@@ -62,7 +62,7 @@ class _AdminShopsScreenState extends ConsumerState<AdminShopsScreen> with Single
             separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
             itemBuilder: (_, i) => _ShopCard(
               data: shops[i],
-              onTap: () => context.go('${RouteNames.adminShopDetailPath}/${shops[i]['id']}'),
+              onTap: () => context.go('/admin/shops/${shops[i]['id']}'),
             ),
           );
   }

@@ -140,6 +140,7 @@ class AppTheme {
           side: const BorderSide(color: AppColors.lightOutline),
         ),
         clipBehavior: Clip.antiAlias,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       ),
 
       // Buttons
@@ -218,7 +219,7 @@ class AppTheme {
         secondaryLabelStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.lightOnPrimaryContainer),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          side: const BorderSide(color: Colors.transparent),
+          side: const BorderSide(color: AppColors.lightOutline),
         ),
       ),
 
@@ -234,12 +235,14 @@ class AppTheme {
       ),
 
       // Bottom Sheet
-      bottomSheetTheme: const BottomSheetThemeData(
+      bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: AppColors.lightSurface,
         elevation: 0,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
+        dragHandleColor: AppColors.lightOutline,
+        dragHandleSize: const Size(32, 4),
       ),
 
       // SnackBar
@@ -250,10 +253,11 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
         ),
         behavior: SnackBarBehavior.floating,
+        elevation: 0,
       ),
 
       // Divider
-      dividerTheme: const DividerThemeData(
+      dividerTheme: DividerThemeData(
         color: AppColors.lightOutline,
         thickness: 1,
         space: 1,
@@ -262,6 +266,47 @@ class AppTheme {
       listTileTheme: ListTileThemeData(
         iconColor: AppColors.lightOnSurfaceVariant,
         textColor: AppColors.lightOnSurface,
+        titleTextStyle: AppTextStyles.bodyLarge.copyWith(color: AppColors.lightOnSurface),
+        subtitleTextStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.lightOnSurfaceVariant),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.lightPrimary,
+          foregroundColor: AppColors.lightOnPrimary,
+          disabledBackgroundColor: AppColors.lightSurfaceVariant,
+          disabledForegroundColor: AppColors.lightOnSurfaceVariant.withAlpha(100),
+          minimumSize: const Size(double.infinity, 56),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle: AppTextStyles.buttonLarge,
+        ),
+      ),
+
+      badgeTheme: BadgeThemeData(
+        backgroundColor: AppColors.lightPrimary,
+        textColor: AppColors.lightOnPrimary,
+        textStyle: AppTextStyles.labelSmall,
+      ),
+
+      iconTheme: const IconThemeData(
+        color: AppColors.lightOnSurfaceVariant,
+        size: 24,
+      ),
+
+      tabBarTheme: TabBarThemeData(
+        labelColor: AppColors.lightPrimary,
+        unselectedLabelColor: AppColors.lightOnSurfaceVariant,
+        labelStyle: AppTextStyles.labelLarge,
+        unselectedLabelStyle: AppTextStyles.labelLarge,
+        indicatorColor: AppColors.lightPrimary,
+        indicatorSize: TabBarIndicatorSize.tab,
+      ),
+
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: AppColors.lightPrimary,
+        foregroundColor: AppColors.lightOnPrimary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
@@ -368,10 +413,46 @@ class AppTheme {
         color: AppColors.surfaceContainer,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
         ),
         clipBehavior: Clip.antiAlias,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      ),
+
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.surfaceContainerHighest,
+          foregroundColor: AppColors.primary,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          textStyle: AppTextStyles.buttonLarge,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.onPrimary;
+          return AppColors.outline;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.primary;
+          return AppColors.surfaceContainerHighest;
+        }),
+      ),
+
+      checkboxTheme: CheckboxThemeData(
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.primary;
+          return Colors.transparent;
+        }),
+        checkColor: WidgetStateProperty.all(AppColors.onPrimary),
+        side: const BorderSide(color: AppColors.outline),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4),
+        ),
       ),
 
       // Buttons - Filled
@@ -383,7 +464,7 @@ class AppTheme {
           disabledForegroundColor: AppColors.onSurfaceVariant.withAlpha(100),
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
           ),
           textStyle: AppTextStyles.buttonLarge,
         ),
@@ -397,9 +478,10 @@ class AppTheme {
           foregroundColor: AppColors.primary,
           disabledForegroundColor: AppColors.onSurfaceVariant.withAlpha(100),
           side: const BorderSide(color: AppColors.outline),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
           ),
           textStyle: AppTextStyles.buttonLarge,
         ),
@@ -409,7 +491,11 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primaryFixed,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           textStyle: AppTextStyles.buttonLarge,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
 
@@ -422,23 +508,23 @@ class AppTheme {
           vertical: 16,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.primaryContainer, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.error, width: 2),
         ),
         labelStyle: AppTextStyles.bodyMedium.copyWith(
@@ -454,6 +540,7 @@ class AppTheme {
       // Dialogs
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.surfaceContainerHigh,
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
         ),
@@ -553,3 +640,4 @@ class AppTheme {
     );
   }
 }
+

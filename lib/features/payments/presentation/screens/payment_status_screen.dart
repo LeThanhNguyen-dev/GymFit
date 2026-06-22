@@ -18,29 +18,43 @@ class PaymentStatusScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final success = payment.status == PaymentStatus.paid;
+    final pending = payment.status == PaymentStatus.pending;
+    
     return Scaffold(
-      appBar: AppBar(title: const Text('Ket qua thanh toan')),
+      appBar: AppBar(title: const Text('Kết quả thanh toán')),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Icon(
-              success ? Icons.check_circle : Icons.cancel,
+              success
+                  ? Icons.check_circle
+                  : pending
+                      ? Icons.hourglass_empty
+                      : Icons.cancel,
               size: 96,
-              color: success ? Colors.green : Colors.red,
+              color: success
+                  ? Colors.green
+                  : pending
+                      ? Colors.orange
+                      : Colors.red,
             ),
             const SizedBox(height: 16),
             Text(
-              success ? 'Thanh toan thanh cong!' : 'Thanh toan that bai',
+              success
+                  ? 'Thanh toán thành công!'
+                  : pending
+                      ? 'Thanh toán đang chờ xử lý'
+                      : 'Thanh toán thất bại',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 16),
             Text(
-              'Ma don: $orderId\n'
-              'So tien: ${formatCurrency(payment.amount)}\n'
-              'Phuong thuc: ${payment.methodDisplay}',
+              'Mã đơn: $orderId\n'
+              'Số tiền: ${formatCurrency(payment.amount)}\n'
+              'Phương thức: ${payment.methodDisplay}',
               textAlign: TextAlign.center,
             ),
             const Spacer(),

@@ -9,8 +9,9 @@ class SupportTicketModel {
     required this.subject,
     required this.description,
     this.orderId,
+    this.category = 'other',
     this.status = 'open',
-    this.priority = 'normal',
+    this.priority = 'medium',
     this.adminReply,
     this.repliedAt,
     this.createdAt,
@@ -22,6 +23,7 @@ class SupportTicketModel {
   final String? orderId;
   final String subject;
   final String description;
+  final String category;
   final String status;
   final String priority;
   final String? adminReply;
@@ -44,14 +46,16 @@ class SupportTicketModel {
   };
 
   String get priorityDisplay => switch (priority) {
-    'low' => 'Low',
-    'high' => 'High',
-    'urgent' => 'Urgent',
-    _ => 'Normal',
+    'low' => 'Thấp',
+    'medium' => 'Trung bình',
+    'high' => 'Cao',
+    'urgent' => 'Khẩn cấp',
+    _ => 'Trung bình',
   };
 
   Color get priorityColor => switch (priority) {
     'low' => Colors.grey,
+    'medium' => Colors.indigo,
     'high' => Colors.deepOrange,
     'urgent' => Colors.red,
     _ => Colors.indigo,
@@ -64,8 +68,9 @@ class SupportTicketModel {
       orderId: json['order_id'] as String?,
       subject: json['subject'].toString(),
       description: json['description'].toString(),
+      category: json['category']?.toString() ?? 'other',
       status: json['status']?.toString() ?? 'open',
-      priority: json['priority']?.toString() ?? 'normal',
+      priority: json['priority']?.toString() ?? 'medium',
       adminReply: (json['admin_reply'] ?? json['resolution_note']) as String?,
       repliedAt: dateTimeFromJson(
         json['replied_at'] ?? json['first_response_at'],
@@ -81,6 +86,7 @@ class SupportTicketModel {
     'order_id': orderId,
     'subject': subject,
     'description': description,
+    'category': category,
     'status': status,
     'priority': priority,
     'admin_reply': adminReply,
@@ -95,6 +101,7 @@ class SupportTicketModel {
     String? orderId,
     String? subject,
     String? description,
+    String? category,
     String? status,
     String? priority,
     String? adminReply,
@@ -108,6 +115,7 @@ class SupportTicketModel {
       orderId: orderId ?? this.orderId,
       subject: subject ?? this.subject,
       description: description ?? this.description,
+      category: category ?? this.category,
       status: status ?? this.status,
       priority: priority ?? this.priority,
       adminReply: adminReply ?? this.adminReply,

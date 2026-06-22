@@ -6,12 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
-import '../../../../core/providers/supabase_providers.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../auth/providers/auth_providers.dart';
 import '../../data/models/shop_registration_model.dart';
 import '../../providers/shop_registration_providers.dart';
 
@@ -88,7 +89,12 @@ class _RegisterShopScreenState extends ConsumerState<RegisterShopScreen> {
     final picker = ImagePicker();
     final result = await picker.pickImage(source: ImageSource.gallery);
     if (result != null) {
-      setter(result);
+      final tempDir = await getTemporaryDirectory();
+      final ext = result.name.split('.').last;
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
+      final savedPath = '${tempDir.path}/$fileName';
+      await result.saveTo(savedPath);
+      setter(XFile(savedPath));
     }
   }
 
@@ -127,8 +133,14 @@ class _RegisterShopScreenState extends ConsumerState<RegisterShopScreen> {
     if (!_agreeTerms) return;
     setState(() => _isSubmitting = true);
     try {
-      final user = ref.read(supabaseClientProvider).auth.currentUser;
-      if (user == null) return;
+      final user = ref.read(authProvider).user;
+      if (user == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lỗi: Không tìm thấy thông tin đăng nhập!')),
+        );
+        return;
+      }
 
       final repo = ref.read(shopRegistrationRepositoryProvider);
 

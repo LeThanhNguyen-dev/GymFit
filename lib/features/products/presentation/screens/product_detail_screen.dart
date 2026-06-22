@@ -49,6 +49,16 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
           return _buildContent(context, product, isInWishlist, cartCount);
         },
       ),
+      bottomNavigationBar: productAsync.whenOrNull(
+        data: (product) {
+          if (product == null) return null;
+          return ProductDetailBottomBar(
+            product: product,
+            selectedVariant: _selectedVariant,
+            quantity: _quantity,
+          );
+        },
+      ),
     );
   }
 
@@ -363,7 +373,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   ),
                 ],
 
-                const SizedBox(height: 100),
+                  SizedBox(height: MediaQuery.of(context).padding.bottom + 60),
               ],
             ),
           ),
@@ -773,7 +783,29 @@ class ProductDetailBottomBar extends ConsumerWidget {
             const SizedBox(width: 12),
             Expanded(
               child: FilledButton.icon(
-                onPressed: isOutOfStock ? null : () => context.push('/cart'),
+                onPressed: isOutOfStock
+                    ? null
+                    : () async {
+                        if (selectedVariant == null) return;
+                        try {
+                          await ref
+                              .read(cartItemsProvider.notifier)
+                              .addToCart(
+                                product.id,
+                                selectedVariant!.id,
+                                quantity,
+                              );
+                          if (context.mounted) {
+                            context.push('/checkout');
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(e.toString())),
+                            );
+                          }
+                        }
+                      },
                 icon: const Icon(Icons.flash_on_rounded),
                 label: const Text('Mua ngay'),
               ),

@@ -33,7 +33,8 @@ class SupportRepository {
     String? orderId,
     required String subject,
     required String description,
-    String priority = 'normal',
+    String category = 'other',
+    String priority = 'medium',
   }) async {
     final row = await _client
         .from(AppConstants.supportTicketsTable)
@@ -42,6 +43,7 @@ class SupportRepository {
           'order_id': orderId,
           'subject': subject.trim(),
           'description': description.trim(),
+          'category': category,
           'priority': priority,
           'status': 'open',
         })

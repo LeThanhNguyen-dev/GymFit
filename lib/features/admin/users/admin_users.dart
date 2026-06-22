@@ -243,67 +243,171 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
 
   Widget _buildUserTile(AdminUserModel user) {
     final banned = user.isBanned;
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: banned
-            ? Colors.red.shade100
-            : Theme.of(context).colorScheme.primaryContainer,
-        child: Text(
-          user.initials,
-          style: TextStyle(
-            color: banned
-                ? Colors.red.shade700
-                : Theme.of(context).colorScheme.onPrimaryContainer,
-            fontWeight: FontWeight.bold,
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    if (!isMobile) {
+      return ListTile(
+        leading: CircleAvatar(
+          backgroundColor: banned
+              ? Colors.red.shade100
+              : Theme.of(context).colorScheme.primaryContainer,
+          child: Text(
+            user.initials,
+            style: TextStyle(
+              color: banned
+                  ? Colors.red.shade700
+                  : Theme.of(context).colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-      ),
-      title: Text(
-        user.fullName ?? user.email,
-        style: TextStyle(
-          color: banned ? Colors.red : null,
-          decoration: banned ? TextDecoration.lineThrough : null,
+        title: Text(
+          user.fullName ?? user.email,
+          style: TextStyle(
+            color: banned ? Colors.red : null,
+            decoration: banned ? TextDecoration.lineThrough : null,
+          ),
         ),
-      ),
-      subtitle: Row(
-        children: [
-          if (banned)
+        subtitle: Row(
+          children: [
+            if (banned)
               const Padding(
                 padding: EdgeInsets.only(right: 4),
                 child: Icon(Icons.block_flipped, size: 14, color: Colors.red),
               ),
-          Expanded(
-            child: Text(
-              '${user.roleLabel}${user.sellerStatus != 'none' ? ' · ${user.sellerStatusLabel}' : ''}',
-              style: TextStyle(color: banned ? Colors.red.shade300 : null),
+            Expanded(
+              child: Text(
+                '${user.roleLabel}${user.sellerStatus != 'none' ? ' · ${user.sellerStatusLabel}' : ''}',
+                style: TextStyle(color: banned ? Colors.red.shade300 : null),
+              ),
+            ),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (user.sellerStatus == 'pending')
+              Icon(Icons.pending, color: Colors.orange.shade300, size: 20),
+            const SizedBox(width: 4),
+            if (banned)
+              IconButton(
+                icon: const Icon(Icons.check_circle_outline, color: Colors.orange),
+                tooltip: 'Unban',
+                onPressed: () => _toggleBan(user, false),
+              )
+            else
+              IconButton(
+                icon: const Icon(Icons.block_flipped, color: Colors.grey),
+                tooltip: 'Ban',
+                onPressed: () => _toggleBan(user, true),
+              ),
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              tooltip: 'Details',
+              onPressed: () => _showUserDetailDialog(user),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Mobile layout
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: InkWell(
+          onTap: () => _showUserDetailDialog(user),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: banned
+                          ? Colors.red.shade100
+                          : Theme.of(context).colorScheme.primaryContainer,
+                      child: Text(
+                        user.initials,
+                        style: TextStyle(
+                          color: banned
+                              ? Colors.red.shade700
+                              : Theme.of(context).colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.fullName ?? user.email,
+                            style: TextStyle(
+                              color: banned ? Colors.red : null,
+                              decoration: banned ? TextDecoration.lineThrough : null,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            user.email,
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (user.sellerStatus == 'pending')
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Icon(Icons.pending, color: Colors.orange.shade300, size: 20),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Divider(height: 1),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${user.roleLabel}${user.sellerStatus != 'none' ? ' · ${user.sellerStatusLabel}' : ''}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: banned ? Colors.red.shade300 : Colors.grey.shade700,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            banned ? Icons.check_circle_outline : Icons.block_flipped,
+                            color: banned ? Colors.orange : Colors.grey,
+                            size: 20,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => _toggleBan(user, !banned),
+                        ),
+                        const SizedBox(width: 16),
+                        IconButton(
+                          icon: const Icon(Icons.info_outline, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => _showUserDetailDialog(user),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (user.sellerStatus == 'pending')
-            Icon(Icons.pending, color: Colors.orange.shade300, size: 20),
-          const SizedBox(width: 4),
-          if (banned)
-            IconButton(
-              icon: const Icon(Icons.check_circle_outline, color: Colors.orange),
-              tooltip: 'Unban',
-              onPressed: () => _toggleBan(user, false),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.block_flipped, color: Colors.grey),
-              tooltip: 'Ban',
-              onPressed: () => _toggleBan(user, true),
-            ),
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            tooltip: 'Details',
-            onPressed: () => _showUserDetailDialog(user),
-          ),
-        ],
+        ),
       ),
     );
   }

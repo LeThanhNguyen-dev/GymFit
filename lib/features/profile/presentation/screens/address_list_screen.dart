@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -14,6 +15,7 @@ import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../address/data/models/address_model.dart';
 import '../../../address/providers/address_providers.dart';
+import '../../../checkout/providers/checkout_providers.dart';
 
 class AddressListScreen extends ConsumerWidget {
   const AddressListScreen({super.key});
@@ -45,11 +47,11 @@ class AddressListScreen extends ConsumerWidget {
             );
           }
           return ListView.builder(
-            padding: const EdgeInsets.only(
+            padding: EdgeInsets.only(
               left: 16,
               right: 16,
               top: 16,
-              bottom: 80,
+              bottom: MediaQuery.of(context).padding.bottom + 60,
             ),
             itemCount: addresses.length,
             itemBuilder: (_, index) => _AddressCard(
@@ -59,6 +61,10 @@ class AddressListScreen extends ConsumerWidget {
               onSetDefault: addresses[index].isDefault
                   ? null
                   : () => _setDefault(context, ref, addresses[index]),
+              onSelect: () {
+                ref.read(selectedAddressProvider.notifier).setAddress(addresses[index]);
+                if (context.canPop()) context.pop();
+              },
             ),
           );
         },
@@ -89,6 +95,7 @@ class AddressListScreen extends ConsumerWidget {
               await repo.createAddress(address);
             }
             ref.invalidate(userAddressesProvider);
+            ref.invalidate(defaultAddressProvider);
             if (context.mounted) {
               showAppSnackbar(context,
                   message: existing != null
@@ -125,6 +132,7 @@ class AddressListScreen extends ConsumerWidget {
         final repo = ref.read(addressRepositoryProvider);
         await repo.deleteAddress(address.id);
         ref.invalidate(userAddressesProvider);
+        ref.invalidate(defaultAddressProvider);
         if (context.mounted) {
           showAppSnackbar(context,
               message: 'Đã xóa địa chỉ', type: SnackbarType.success);
@@ -148,6 +156,8 @@ class AddressListScreen extends ConsumerWidget {
       final repo = ref.read(addressRepositoryProvider);
       await repo.setDefaultAddress(address.id, address.userId);
       ref.invalidate(userAddressesProvider);
+      ref.invalidate(defaultAddressProvider);
+      ref.read(selectedAddressProvider.notifier).setAddress(address);
       if (context.mounted) {
         showAppSnackbar(context,
             message: 'Đã đặt làm mặc định', type: SnackbarType.success);
@@ -168,17 +178,20 @@ class _AddressCard extends StatelessWidget {
     this.onEdit,
     this.onDelete,
     this.onSetDefault,
+    this.onSelect,
   });
 
   final AddressModel address;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onSetDefault;
+  final VoidCallback? onSelect;
 
   @override
   Widget build(BuildContext context) {
     return AppCard(
       margin: const EdgeInsets.only(bottom: 8),
+      onTap: onSelect,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -87,11 +87,21 @@ class _AdminProductsScreenState extends ConsumerState<AdminProductsScreen> {
                               ? const TextStyle(color: Colors.grey)
                               : null,
                         ),
-                        subtitle: Text(
-                          '${product.status.name} - ${product.basePrice.round()}d'
-                          '  |  $variantCount variants'
-                          '  |  $totalStock in stock'
-                          '${product.seller != null ? '  |  ${product.seller!.fullName ?? product.seller!.email ?? ''}' : ''}',
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${product.status.name} - ${product.basePrice.round()}d'
+                              '  |  $variantCount variants'
+                              '  |  $totalStock in stock',
+                            ),
+                            if (product.seller != null)
+                              Row(children: [
+                                const Icon(Icons.store, size: 14, color: Colors.grey),
+                                const SizedBox(width: 4),
+                                Text(product.seller!.fullName ?? product.seller!.email ?? '', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                              ]),
+                          ],
                         ),
                         trailing: Wrap(
                           spacing: 4,
@@ -186,36 +196,50 @@ class _AdminProductsScreenState extends ConsumerState<AdminProductsScreen> {
   }
 
   Widget _buildFilterRow() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Row(
           children: [
-            _buildStatusChip('All', null),
-            const SizedBox(width: 8),
-            _buildStatusChip('Active', 'active'),
-            const SizedBox(width: 8),
-            _buildStatusChip('Draft', 'draft'),
-            const SizedBox(width: 8),
-            _buildStatusChip('Inactive', 'inactive'),
+            DropdownButton<String>(
+              value: _statusFilter ?? 'all',
+              underline: const SizedBox.shrink(),
+              items: const [
+                DropdownMenuItem(value: 'all', child: Text('All status')),
+                DropdownMenuItem(value: 'active', child: Text('Active')),
+                DropdownMenuItem(value: 'draft', child: Text('Draft')),
+                DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
+              ],
+              onChanged: (v) => setState(() { _statusFilter = v == 'all' ? null : v; _page = 1; }),
+            ),
+            const SizedBox(width: 12),
+            DropdownButton<String>(
+              value: _categoryFilter ?? 'all',
+              underline: const SizedBox.shrink(),
+              items: const [
+                DropdownMenuItem(value: 'all', child: Text('All categories')),
+                DropdownMenuItem(value: 'cat1', child: Text('Dụng cụ tập')),
+                DropdownMenuItem(value: 'cat2', child: Text('Thực phẩm bổ sung')),
+                DropdownMenuItem(value: 'cat3', child: Text('Trang phục')),
+              ],
+              onChanged: (v) => setState(() { _categoryFilter = v == 'all' ? null : v; _page = 1; }),
+            ),
+            const SizedBox(width: 12),
+            DropdownButton<String>(
+              value: _brandFilter ?? 'all',
+              underline: const SizedBox.shrink(),
+              items: const [
+                DropdownMenuItem(value: 'all', child: Text('All brands')),
+                DropdownMenuItem(value: 'b1', child: Text('Nike')),
+                DropdownMenuItem(value: 'b2', child: Text('Adidas')),
+                DropdownMenuItem(value: 'b3', child: Text('MyProtein')),
+              ],
+              onChanged: (v) => setState(() { _brandFilter = v == 'all' ? null : v; _page = 1; }),
+            ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildStatusChip(String label, String? value) {
-    final selected = _statusFilter == value;
-    return FilterChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) {
-        setState(() {
-          _statusFilter = selected ? null : value;
-          _page = 1;
-        });
-      },
     );
   }
 

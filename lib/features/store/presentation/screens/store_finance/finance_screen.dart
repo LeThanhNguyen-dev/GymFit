@@ -174,7 +174,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
       const SizedBox(height: AppSpacing.md),
       DropdownButtonFormField<String>(
         decoration: const InputDecoration(labelText: 'Tài khoản nhận', border: OutlineInputBorder()),
-        value: _bankDetails['account_number']?.isNotEmpty == true ? '1' : null,
+        initialValue: _bankDetails['account_number']?.isNotEmpty == true ? '1' : null,
         items: [
           if (_bankDetails['account_number']?.isNotEmpty == true)
             DropdownMenuItem(
@@ -230,8 +230,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
         return ListView.separated(
           padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
           itemCount: items.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
-          itemBuilder: (_, i) {
+          separatorBuilder: (context, index) => const Divider(height: 1),
+          itemBuilder: (context, i) {
             final item = items[i];
             final price = double.tryParse(item['total_price']?.toString() ?? '0') ?? 0.0;
             final formattedPrice = price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');

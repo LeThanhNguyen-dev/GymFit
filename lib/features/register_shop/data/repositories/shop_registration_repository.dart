@@ -206,15 +206,11 @@ class ShopRegistrationRepository {
           'updated_at': now,
         })
         .eq('id', id);
-    // Update role + sellerStatus trong profiles table
-    await _client
-        .from('profiles')
-        .update({
-          'role': 'storeowner',
-          'seller_status': 'approved',
-          'updated_at': now,
-        })
-        .eq('id', userId);
+    // Update role + sellerStatus trong profiles table bằng RPC để tránh lỗi RLS recursion
+    await _client.rpc('admin_update_seller_status', params: {
+      'target_id': userId,
+      'new_status': 'approved',
+    });
   }
 
   Future<void> rejectRegistration(String id, String reason) async {
@@ -228,6 +224,19 @@ class ShopRegistrationRepository {
           'updated_at': now,
         })
         .eq('id', id);
+
+    // Lấy user_id để update profile
+    final reg = await _client
+        .from(AppConstants.shopRegistrationsTable)
+        .select('user_id')
+        .eq('id', id)
+        .single();
+    final userId = reg['user_id'] as String;
+
+    await _client.rpc('admin_update_seller_status', params: {
+      'target_id': userId,
+      'new_status': 'rejected',
+    });
   }
 
   Future<String> _uploadImage(

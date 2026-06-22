@@ -58,13 +58,35 @@ class PaymentScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
                 if (payment.method == PaymentMethod.vnpay)
-                  const DropdownMenu<String>(
-                    initialSelection: 'vcb',
-                    dropdownMenuEntries: [
-                      DropdownMenuEntry(value: 'vcb', label: 'Vietcombank'),
-                      DropdownMenuEntry(value: 'tcb', label: 'Techcombank'),
-                      DropdownMenuEntry(value: 'mb', label: 'MB Bank'),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.08),
+                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Thanh toán qua VNPay',
+                              style: TextStyle(
+                                color: Colors.blue[700],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Bạn sẽ được chuyển sang trang VNPay để hoàn tất thanh toán. Có thể chọn ATM nội địa, thẻ quốc tế hoặc QR Code tại đó.',
+                          style: TextStyle(fontSize: 13, color: Colors.black87),
+                        ),
+                      ],
+                    ),
                   ),
                 const Spacer(),
                 FilledButton(
