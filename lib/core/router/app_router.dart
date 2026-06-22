@@ -25,7 +25,7 @@ import '../../features/profile/presentation/screens/address_list_screen.dart';
 import '../../features/reviews/presentation/screens/review_form_screen.dart';
 import '../../features/admin/dashboard/admin_dashboard_screen.dart';
 import '../../features/admin/products/admin_products.dart';
-import '../../features/admin/orders/admin_orders_screen.dart';
+import '../../features/admin/orders/admin_orders.dart';
 import '../../features/admin/categories/admin_categories.dart';
 import '../../features/admin/brands/admin_brands.dart';
 import '../../features/admin/coupons/admin_coupons.dart';
@@ -33,8 +33,8 @@ import '../../features/admin/reviews/admin_reviews.dart';
 import '../../features/admin/dashboard/presentation/inventory_screen.dart';
 import '../../features/admin/users/admin_users_screen.dart';
 import '../../features/admin/users/admin_user_detail_screen.dart';
-import '../../features/admin/shops/admin_shops_screen.dart';
-import '../../features/admin/shops/admin_shop_detail_screen.dart';
+import '../../features/admin/shop_registrations/presentation/screens/admin_shop_registrations_screen.dart';
+import '../../features/admin/shop_registrations/presentation/screens/admin_shop_detail_screen.dart';
 import '../../features/admin/shops/admin_product_moderation_screen.dart';
 import '../../features/admin/orders/admin_order_detail_screen.dart';
 import '../../features/admin/finance/admin_finance_screen.dart';
@@ -50,21 +50,25 @@ import '../../features/store/presentation/screens/store_orders/order_list_screen
 import '../../features/store/presentation/screens/store_orders/order_detail_screen.dart' as store_orders;
 import '../../features/store/presentation/screens/store_finance/finance_screen.dart';
 import '../../features/store/presentation/screens/store_settings/settings_screen.dart';
-import '../../features/admin/users/admin_users.dart';
 import '../../features/admin/widgets/admin_shell.dart';
 import 'route_names.dart';
 import '../services/deep_link_service.dart';
 
 final routerNotifierProvider = Provider<GoRouter>((ref) {
   final notifier = ValueNotifier<bool>(false);
-  final authState = ref.watch(authProvider);
 
-  if (authState.status == AuthStatus.authenticated) {
-    notifier.value = true;
-  }
-
+  // Wait for auth to be ready before firing the notifier.
+  var initialFired = false;
   ref.listen(authProvider, (_, next) {
-    notifier.value = next.status == AuthStatus.authenticated;
+    // Skip the uninitialized state to avoid mid-frame redirect evaluation.
+    if (next.status == AuthStatus.uninitialized) return;
+    // Defer notifier changes to after the current frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!initialFired) initialFired = true;
+      if (notifier.value != (next.status == AuthStatus.authenticated)) {
+        notifier.value = next.status == AuthStatus.authenticated;
+      }
+    });
   });
 
   return GoRouter(
@@ -72,11 +76,16 @@ final routerNotifierProvider = Provider<GoRouter>((ref) {
     initialLocation: '/login',
     refreshListenable: notifier,
     redirect: (context, state) {
-      final isLoggedIn = notifier.value;
       final path = state.matchedLocation;
-
       final publicRoutes = ['/login', '/register', '/forgot-password'];
       final deepLinkRoutes = ['/reset-password', '/verify-success'];
+
+      final currentAuth = ref.read(authProvider);
+
+      // Do NOT redirect during initial uninitialized state — prevents mid-frame navigation.
+      if (currentAuth.status == AuthStatus.uninitialized) return null;
+
+      final isLoggedIn = currentAuth.status == AuthStatus.authenticated;
 
       if (!isLoggedIn &&
           !publicRoutes.contains(path) &&
@@ -85,7 +94,7 @@ final routerNotifierProvider = Provider<GoRouter>((ref) {
       }
 
       if (isLoggedIn && publicRoutes.contains(path)) {
-        final user = authState.user;
+        final user = currentAuth.user;
         if (user != null) {
           if (user.role == 'admin') return RouteNames.adminDashboardPath;
           if (user.role == 'storeowner' || user.sellerStatus == 'approved') {
@@ -96,14 +105,14 @@ final routerNotifierProvider = Provider<GoRouter>((ref) {
       }
 
       if (path.startsWith('/admin')) {
-        final user = authState.user;
+        final user = currentAuth.user;
         if (user == null || user.role != 'admin') {
           return RouteNames.homePath;
         }
       }
 
       if (path.startsWith('/store')) {
-        final user = authState.user;
+        final user = currentAuth.user;
         if (user == null || (user.role != 'storeowner' && user.sellerStatus != 'approved')) {
           return RouteNames.homePath;
         }
@@ -316,13 +325,13 @@ List<RouteBase> _buildRoutes() {
         GoRoute(path: RouteNames.adminPath, name: RouteNames.admin, redirect: (_, _) => RouteNames.adminDashboardPath),
         // 6 main tabs
         GoRoute(path: RouteNames.adminDashboardPath, name: RouteNames.adminDashboard, builder: (_, _) => const AdminDashboardScreen()),
-        GoRoute(path: RouteNames.adminShopsPath, name: RouteNames.adminShops, builder: (_, _) => const AdminShopsScreen()),
+        GoRoute(path: RouteNames.adminShopsPath, name: RouteNames.adminShops, builder: (_, _) => const AdminShopRegistrationsScreen()),
         GoRoute(path: RouteNames.adminUsersPath, name: RouteNames.adminUsers, builder: (_, _) => const AdminUsersScreen()),
         GoRoute(path: RouteNames.adminOrdersPath, name: RouteNames.adminOrders, builder: (_, _) => const AdminOrdersScreen()),
         GoRoute(path: RouteNames.adminFinancePath, name: RouteNames.adminFinance, builder: (_, _) => const AdminFinanceScreen()),
         GoRoute(path: RouteNames.adminSettingsPath, name: RouteNames.adminSettings, builder: (_, _) => const AdminSettingsScreen()),
         // Sub-screens (detail pages)
-        GoRoute(path: RouteNames.adminShopDetailPath, name: RouteNames.adminShopDetail, builder: (_, state) => AdminShopDetailScreen(shopId: state.pathParameters['id'] ?? '')),
+        GoRoute(path: RouteNames.adminShopDetailPath, name: RouteNames.adminShopDetail, builder: (_, state) => AdminShopDetailScreen(registrationId: state.pathParameters['id'] ?? '')),
         GoRoute(path: RouteNames.adminUserDetailPath, name: RouteNames.adminUserDetail, builder: (_, state) => AdminUserDetailScreen(userId: state.pathParameters['id'] ?? '')),
         GoRoute(path: RouteNames.adminOrderDetailPath, name: RouteNames.adminOrderDetail, builder: (_, state) => AdminOrderDetailScreen(orderId: state.pathParameters['id'] ?? '')),
         GoRoute(path: RouteNames.adminDisputesPath, name: RouteNames.adminDisputes, builder: (_, _) => const AdminOrdersScreen()),
@@ -334,7 +343,8 @@ List<RouteBase> _buildRoutes() {
         GoRoute(path: RouteNames.adminVouchersPath, name: RouteNames.adminVouchers, builder: (_, _) => const AdminCouponsScreen()),
         GoRoute(path: RouteNames.adminInventoryPath, name: RouteNames.adminInventory, builder: (_, _) => const InventoryScreen()),
         GoRoute(path: RouteNames.adminReviewsPath, name: RouteNames.adminReviews, builder: (_, _) => const AdminReviewsScreen()),
-        GoRoute(path: RouteNames.adminShopRegistrationsPath, name: RouteNames.adminShopRegistrations, builder: (_, _) => const AdminShopsScreen()),
+        GoRoute(path: RouteNames.adminShopRegistrationsPath, name: RouteNames.adminShopRegistrations, builder: (_, _) => const AdminShopRegistrationsScreen()),
+        GoRoute(path: '${RouteNames.adminShopRegistrationsPath}/:id', builder: (_, state) => AdminShopDetailScreen(registrationId: state.pathParameters['id'] ?? '')),
       ],
     ),
     // Store Owner Shell + Routes

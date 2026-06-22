@@ -1,82 +1,172 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class AdminShell extends StatelessWidget {
+class AdminShell extends StatefulWidget {
   const AdminShell({super.key, required this.child});
 
   final Widget child;
 
   @override
+  State<AdminShell> createState() => _AdminShellState();
+}
+
+class _AdminShellState extends State<AdminShell> {
+  bool _isSidebarOpen = false;
+
+  @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    return Scaffold(
-      body: Row(
-        children: [
-          NavigationRail(
-            selectedIndex: _currentIndex(location),
-            onDestinationSelected: (index) => _onNavigate(context, index),
-            labelType: NavigationRailLabelType.all,
-            leading: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: IconButton(
-                icon: const Icon(Icons.fitness_center),
-                tooltip: 'GymFit Admin',
-                onPressed: () => context.go('/admin/dashboard'),
+    final isMobile = MediaQuery.of(context).size.width < 768;
+
+    if (!isMobile) {
+      // Desktop: Row with scrollable NavigationRail.
+      return SizedBox.expand(
+        child: Row(
+          children: [
+            SizedBox(
+              width: 80,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: IntrinsicHeight(
+                        child: NavigationRail(
+                          selectedIndex: _currentIndex(location),
+                          onDestinationSelected: (index) => _onNavigate(context, index),
+                          labelType: NavigationRailLabelType.all,
+                          leading: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: IconButton(
+                              icon: const Icon(Icons.fitness_center),
+                              tooltip: 'GymFit Admin',
+                              onPressed: () => context.go('/admin/dashboard'),
+                            ),
+                          ),
+                          destinations: const [
+                            NavigationRailDestination(icon: Icon(Icons.dashboard), label: Text('Dashboard')),
+                            NavigationRailDestination(icon: Icon(Icons.store), label: Text('Shops')),
+                            NavigationRailDestination(icon: Icon(Icons.shopping_bag), label: Text('Products')),
+                            NavigationRailDestination(icon: Icon(Icons.category), label: Text('Categories')),
+                            NavigationRailDestination(icon: Icon(Icons.verified), label: Text('Brands')),
+                            NavigationRailDestination(icon: Icon(Icons.local_shipping), label: Text('Orders')),
+                            NavigationRailDestination(icon: Icon(Icons.people), label: Text('Users')),
+                            NavigationRailDestination(icon: Icon(Icons.sell), label: Text('Vouchers')),
+                            NavigationRailDestination(icon: Icon(Icons.reviews), label: Text('Reviews')),
+                            NavigationRailDestination(icon: Icon(Icons.warehouse), label: Text('Inventory')),
+                            NavigationRailDestination(icon: Icon(Icons.account_balance_wallet), label: Text('Finance')),
+                            NavigationRailDestination(icon: Icon(Icons.settings), label: Text('Settings')),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
-            destinations: const [
-              NavigationRailDestination(
-                icon: Icon(Icons.dashboard),
-                label: Text('Dashboard'),
+            const VerticalDivider(width: 1),
+            Expanded(child: widget.child),
+          ],
+        ),
+      );
+    }
+
+    // Mobile: Overlay sidebar sliding from the left + floating toggle button
+    return SizedBox.expand(
+      child: Stack(
+        children: [
+          // Main content
+          Positioned.fill(child: widget.child),
+
+          // Backdrop overlay
+          if (_isSidebarOpen)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => setState(() => _isSidebarOpen = false),
+                child: Container(
+                  color: Colors.black54,
+                ),
               ),
-              NavigationRailDestination(
-                icon: Icon(Icons.store),
-                label: Text('Shops'),
+            ),
+
+          // Drawer Sidebar
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            left: _isSidebarOpen ? 0 : -80,
+            top: 0,
+            bottom: 0,
+            width: 80,
+            child: Material(
+              elevation: 16,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border(right: BorderSide(color: Theme.of(context).dividerColor)),
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: IntrinsicHeight(
+                          child: NavigationRail(
+                            selectedIndex: _currentIndex(location),
+                            onDestinationSelected: (index) {
+                              setState(() => _isSidebarOpen = false);
+                              _onNavigate(context, index);
+                            },
+                            labelType: NavigationRailLabelType.all,
+                            leading: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: IconButton(
+                                icon: const Icon(Icons.fitness_center),
+                                tooltip: 'GymFit Admin',
+                                onPressed: () {
+                                  setState(() => _isSidebarOpen = false);
+                                  context.go('/admin/dashboard');
+                                },
+                              ),
+                            ),
+                            destinations: const [
+                              NavigationRailDestination(icon: Icon(Icons.dashboard), label: Text('Dashboard')),
+                              NavigationRailDestination(icon: Icon(Icons.store), label: Text('Shops')),
+                              NavigationRailDestination(icon: Icon(Icons.shopping_bag), label: Text('Products')),
+                              NavigationRailDestination(icon: Icon(Icons.category), label: Text('Categories')),
+                              NavigationRailDestination(icon: Icon(Icons.verified), label: Text('Brands')),
+                              NavigationRailDestination(icon: Icon(Icons.local_shipping), label: Text('Orders')),
+                              NavigationRailDestination(icon: Icon(Icons.people), label: Text('Users')),
+                              NavigationRailDestination(icon: Icon(Icons.sell), label: Text('Vouchers')),
+                              NavigationRailDestination(icon: Icon(Icons.reviews), label: Text('Reviews')),
+                              NavigationRailDestination(icon: Icon(Icons.warehouse), label: Text('Inventory')),
+                              NavigationRailDestination(icon: Icon(Icons.account_balance_wallet), label: Text('Finance')),
+                              NavigationRailDestination(icon: Icon(Icons.settings), label: Text('Settings')),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
-              NavigationRailDestination(
-                icon: Icon(Icons.shopping_bag),
-                label: Text('Products'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.category),
-                label: Text('Categories'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.verified),
-                label: Text('Brands'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.local_shipping),
-                label: Text('Orders'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.people),
-                label: Text('Users'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.sell),
-                label: Text('Vouchers'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.reviews),
-                label: Text('Reviews'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.warehouse),
-                label: Text('Inventory'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.account_balance_wallet),
-                label: Text('Finance'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.settings),
-                label: Text('Settings'),
-              ),
-            ],
+            ),
           ),
-          const VerticalDivider(width: 1),
-          Expanded(child: child),
+
+          // Menu button floating at the bottom left
+          Positioned(
+            left: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              mini: true,
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+              onPressed: () => setState(() => _isSidebarOpen = !_isSidebarOpen),
+              child: Icon(_isSidebarOpen ? Icons.close : Icons.menu),
+            ),
+          ),
         ],
       ),
     );
