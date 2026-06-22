@@ -5,147 +5,185 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/route_names.dart';
 import '../../auth/providers/auth_providers.dart';
 
-class AdminShell extends ConsumerWidget {
+class AdminShell extends ConsumerStatefulWidget {
   const AdminShell({super.key, required this.child});
 
   final Widget child;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminShell> createState() => _AdminShellState();
+}
+
+class _AdminShellState extends ConsumerState<AdminShell> {
+  bool _isSidebarOpen = false;
+
+  @override
+  Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    final currentIdx = _currentIndex(location);
+    final isMobile = MediaQuery.of(context).size.width < 768;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth > 600) {
-          return _buildRail(context, ref, location, currentIdx);
-        }
-        return _buildMobile(context, ref, location, currentIdx);
-      },
-    );
-  }
-
-  Widget _buildRail(BuildContext context, WidgetRef ref, String location, int currentIdx) {
-    return Scaffold(
-      body: Row(
-        children: [
-          NavigationRail(
-            selectedIndex: currentIdx,
-            onDestinationSelected: (index) => _onNavigate(context, index),
-            labelType: NavigationRailLabelType.all,
-            leading: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: IconButton(
-                icon: const Icon(Icons.fitness_center),
-                tooltip: 'GymFit Admin',
-                onPressed: () => context.go('/admin/dashboard'),
-              ),
-            ),
-            destinations: const [
-              NavigationRailDestination(icon: Icon(Icons.dashboard), label: Text('Dashboard')),
-              NavigationRailDestination(icon: Icon(Icons.store), label: Text('Shops')),
-              NavigationRailDestination(icon: Icon(Icons.shopping_bag), label: Text('Products')),
-              NavigationRailDestination(icon: Icon(Icons.category), label: Text('Categories')),
-              NavigationRailDestination(icon: Icon(Icons.verified), label: Text('Brands')),
-              NavigationRailDestination(icon: Icon(Icons.local_shipping), label: Text('Orders')),
-              NavigationRailDestination(icon: Icon(Icons.people), label: Text('Users')),
-              NavigationRailDestination(icon: Icon(Icons.sell), label: Text('Vouchers')),
-              NavigationRailDestination(icon: Icon(Icons.reviews), label: Text('Reviews')),
-              NavigationRailDestination(icon: Icon(Icons.warehouse), label: Text('Inventory')),
-              NavigationRailDestination(icon: Icon(Icons.account_balance_wallet), label: Text('Finance')),
-              NavigationRailDestination(icon: Icon(Icons.settings), label: Text('Settings')),
-            ],
-            trailing: Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: IconButton(
-                icon: const Icon(Icons.logout, color: Colors.red),
-                tooltip: 'Đăng xuất',
-                onPressed: () async {
-                  await ref.read(authProvider.notifier).logout();
-                  if (context.mounted) context.go(RouteNames.loginPath);
+    if (!isMobile) {
+      return SizedBox.expand(
+        child: Row(
+          children: [
+            SizedBox(
+              width: 80,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: IntrinsicHeight(
+                        child: NavigationRail(
+                          selectedIndex: _currentIndex(location),
+                          onDestinationSelected: (index) => _onNavigate(context, index),
+                          labelType: NavigationRailLabelType.all,
+                          leading: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: IconButton(
+                              icon: const Icon(Icons.fitness_center),
+                              tooltip: 'GymFit Admin',
+                              onPressed: () => context.go('/admin/dashboard'),
+                            ),
+                          ),
+                          destinations: const [
+                            NavigationRailDestination(icon: Icon(Icons.dashboard), label: Text('Dashboard')),
+                            NavigationRailDestination(icon: Icon(Icons.store), label: Text('Shops')),
+                            NavigationRailDestination(icon: Icon(Icons.shopping_bag), label: Text('Products')),
+                            NavigationRailDestination(icon: Icon(Icons.category), label: Text('Categories')),
+                            NavigationRailDestination(icon: Icon(Icons.verified), label: Text('Brands')),
+                            NavigationRailDestination(icon: Icon(Icons.local_shipping), label: Text('Orders')),
+                            NavigationRailDestination(icon: Icon(Icons.people), label: Text('Users')),
+                            NavigationRailDestination(icon: Icon(Icons.sell), label: Text('Vouchers')),
+                            NavigationRailDestination(icon: Icon(Icons.reviews), label: Text('Reviews')),
+                            NavigationRailDestination(icon: Icon(Icons.warehouse), label: Text('Inventory')),
+                            NavigationRailDestination(icon: Icon(Icons.account_balance_wallet), label: Text('Finance')),
+                            NavigationRailDestination(icon: Icon(Icons.settings), label: Text('Settings')),
+                          ],
+                          trailing: Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: IconButton(
+                              icon: const Icon(Icons.logout, color: Colors.red),
+                              tooltip: 'Đăng xuất',
+                              onPressed: () async {
+                                await ref.read(authProvider.notifier).logout();
+                                if (context.mounted) context.go(RouteNames.loginPath);
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
                 },
               ),
             ),
+            const VerticalDivider(width: 1),
+            Expanded(child: widget.child),
+          ],
+        ),
+      );
+    }
+
+    // Mobile: overlay sidebar
+    return SizedBox.expand(
+      child: Stack(
+        children: [
+          Positioned.fill(child: widget.child),
+          if (_isSidebarOpen)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => setState(() => _isSidebarOpen = false),
+                child: Container(color: Colors.black54),
+              ),
+            ),
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            left: _isSidebarOpen ? 0 : -80,
+            top: 0,
+            bottom: 0,
+            width: 80,
+            child: Material(
+              elevation: 16,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border(right: BorderSide(color: Theme.of(context).dividerColor)),
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                        child: IntrinsicHeight(
+                          child: NavigationRail(
+                            selectedIndex: _currentIndex(location),
+                            onDestinationSelected: (index) {
+                              setState(() => _isSidebarOpen = false);
+                              _onNavigate(context, index);
+                            },
+                            labelType: NavigationRailLabelType.all,
+                            leading: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: IconButton(
+                                icon: const Icon(Icons.fitness_center),
+                                tooltip: 'GymFit Admin',
+                                onPressed: () {
+                                  setState(() => _isSidebarOpen = false);
+                                  context.go('/admin/dashboard');
+                                },
+                              ),
+                            ),
+                            destinations: const [
+                              NavigationRailDestination(icon: Icon(Icons.dashboard), label: Text('Dashboard')),
+                              NavigationRailDestination(icon: Icon(Icons.store), label: Text('Shops')),
+                              NavigationRailDestination(icon: Icon(Icons.shopping_bag), label: Text('Products')),
+                              NavigationRailDestination(icon: Icon(Icons.category), label: Text('Categories')),
+                              NavigationRailDestination(icon: Icon(Icons.verified), label: Text('Brands')),
+                              NavigationRailDestination(icon: Icon(Icons.local_shipping), label: Text('Orders')),
+                              NavigationRailDestination(icon: Icon(Icons.people), label: Text('Users')),
+                              NavigationRailDestination(icon: Icon(Icons.sell), label: Text('Vouchers')),
+                              NavigationRailDestination(icon: Icon(Icons.reviews), label: Text('Reviews')),
+                              NavigationRailDestination(icon: Icon(Icons.warehouse), label: Text('Inventory')),
+                              NavigationRailDestination(icon: Icon(Icons.account_balance_wallet), label: Text('Finance')),
+                              NavigationRailDestination(icon: Icon(Icons.settings), label: Text('Settings')),
+                            ],
+                            trailing: Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: IconButton(
+                                icon: const Icon(Icons.logout, color: Colors.red),
+                                tooltip: 'Đăng xuất',
+                                onPressed: () async {
+                                  setState(() => _isSidebarOpen = false);
+                                  await ref.read(authProvider.notifier).logout();
+                                  if (context.mounted) context.go(RouteNames.loginPath);
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
           ),
-          const VerticalDivider(width: 1),
-          Expanded(child: child),
+          Positioned(
+            left: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              mini: true,
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+              onPressed: () => setState(() => _isSidebarOpen = !_isSidebarOpen),
+              child: Icon(_isSidebarOpen ? Icons.close : Icons.menu),
+            ),
+          ),
         ],
       ),
     );
   }
-
-  Widget _buildMobile(BuildContext context, WidgetRef ref, String location, int currentIdx) {
-    final scaffoldKey = GlobalKey<ScaffoldState>();
-    return Scaffold(
-      key: scaffoldKey,
-      appBar: AppBar(
-        title: Text(_labelForIndex(currentIdx)),
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () => scaffoldKey.currentState?.openDrawer(),
-        ),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  const Icon(Icons.fitness_center, size: 40),
-                  const SizedBox(height: 8),
-                  Text('GymFit Admin', style: Theme.of(context).textTheme.titleLarge),
-                ],
-              ),
-            ),
-            ...List.generate(_destinations.length, (i) {
-              final d = _destinations[i];
-              return ListTile(
-                leading: Icon(d.icon),
-                title: Text(d.label),
-                selected: i == currentIdx,
-                onTap: () {
-                  scaffoldKey.currentState?.closeDrawer();
-                  _onNavigate(context, i);
-                },
-              );
-            }),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Đăng xuất'),
-              onTap: () async {
-                scaffoldKey.currentState?.closeDrawer();
-                await ref.read(authProvider.notifier).logout();
-                if (context.mounted) context.go(RouteNames.loginPath);
-              },
-            ),
-          ],
-        ),
-      ),
-      body: child,
-    );
-  }
-
-  static const _destinations = [
-    _NavItem(Icons.dashboard, 'Dashboard'),
-    _NavItem(Icons.store, 'Shops'),
-    _NavItem(Icons.shopping_bag, 'Products'),
-    _NavItem(Icons.category, 'Categories'),
-    _NavItem(Icons.verified, 'Brands'),
-    _NavItem(Icons.local_shipping, 'Orders'),
-    _NavItem(Icons.people, 'Users'),
-    _NavItem(Icons.sell, 'Vouchers'),
-    _NavItem(Icons.reviews, 'Reviews'),
-    _NavItem(Icons.warehouse, 'Inventory'),
-    _NavItem(Icons.account_balance_wallet, 'Finance'),
-    _NavItem(Icons.settings, 'Settings'),
-  ];
-
-  String _labelForIndex(int i) => _destinations[i].label;
 
   int _currentIndex(String location) {
     if (location.startsWith('/admin/dashboard')) return 0;
@@ -179,10 +217,4 @@ class AdminShell extends ConsumerWidget {
       case 11: context.go('/admin/settings');
     }
   }
-}
-
-class _NavItem {
-  final IconData icon;
-  final String label;
-  const _NavItem(this.icon, this.label);
 }

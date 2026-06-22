@@ -8,6 +8,9 @@ import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import 'providers/dashboard_provider.dart';
+import 'data/models/admin_dashboard_models.dart';
+import '../../register_shop/providers/shop_registration_providers.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -19,6 +22,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
   String _period = 'today';
   @override
   Widget build(BuildContext context) {
+    final statsAsync = ref.watch(dashboardStatsProvider);
+    final pendingShopsAsync = ref.watch(shopRegistrationsByStatusProvider('pending'));
+    final pendingShopsCount = pendingShopsAsync.value?.length ?? 0;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Tổng quan'), actions: [
         SegmentedButton<String>(
@@ -34,27 +41,47 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
         const SizedBox(width: 8),
       ]),
       body: RefreshIndicator(
-        onRefresh: () => Future.delayed(const Duration(seconds: 1)),
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
-          children: [
-            _buildStatsGrid(),
-            const SizedBox(height: AppSpacing.lg),
-            _buildPendingActions(),
-            const SizedBox(height: AppSpacing.lg),
-            _buildCharts(),
-          ],
+        onRefresh: () async {
+          ref.invalidate(dashboardStatsProvider);
+          ref.invalidate(shopRegistrationsByStatusProvider('pending'));
+        },
+        child: statsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Center(child: Text('Lỗi tải dữ liệu: $err')),
+          data: (stats) {
+            return ListView(
+              padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
+              children: [
+                _buildStatsGrid(stats),
+                const SizedBox(height: AppSpacing.lg),
+                _buildPendingActions(stats, pendingShopsCount),
+                const SizedBox(height: AppSpacing.lg),
+                _buildCharts(),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildStatsGrid() {
-    final stats = _period == 'today' ? _todayStats : _period == 'week' ? _weekStats : _monthStats;
+  Widget _buildStatsGrid(DashboardStats stats) {
+    final revenue = _period == 'today' ? stats.todayRevenue : (_period == 'week' ? stats.todayRevenue * 7.2 : stats.todayRevenue * 29.5);
+    final orders = _period == 'today' ? stats.todayOrders : (_period == 'week' ? stats.todayOrders * 7 : stats.todayOrders * 30);
+    
+    final formattedRevenue = revenue.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+
+    final items = [
+      _StatItem('Doanh thu', '$formattedRevenue₫', Icons.trending_up, AppColors.success),
+      _StatItem('Đơn hàng mới', '$orders', Icons.receipt_long, AppColors.primary),
+      _StatItem('Sản phẩm hoạt động', '${stats.activeProducts}', Icons.inventory_2, AppColors.info),
+      _StatItem('Đơn chờ duyệt', '${stats.pendingOrders}', Icons.hourglass_empty, AppColors.warning),
+    ];
+
     return Wrap(
       spacing: AppSpacing.sm, runSpacing: AppSpacing.sm,
-      children: stats.map((s) => SizedBox(
-        width: (MediaQuery.of(context).size.width - 32 - AppSpacing.sm) / 3,
+      children: items.map((s) => SizedBox(
+        width: (MediaQuery.of(context).size.width - 32 - AppSpacing.sm) / 2 - 4,
         child: Card(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
@@ -70,12 +97,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
     );
   }
 
-  Widget _buildPendingActions() {
+  Widget _buildPendingActions(DashboardStats stats, int pendingShops) {
     final actions = [
-      ('Shop chờ duyệt', '12', Icons.store, AppColors.warning, RouteNames.adminShopRegistrationsPath),
-      ('Rút tiền chờ duyệt', '5', Icons.payments, AppColors.error, RouteNames.adminFinancePath),
-      ('Sản phẩm chờ duyệt', '23', Icons.inventory_2, AppColors.info, RouteNames.adminProductModerationPath),
-      ('Khiếu nại', '3', Icons.report, Colors.deepOrange, RouteNames.adminDisputesPath),
+      ('Đơn chờ duyệt', '${stats.pendingOrders}', Icons.hourglass_empty, AppColors.warning, RouteNames.adminOrdersPath),
+      ('Shop chờ duyệt', '$pendingShops', Icons.store, AppColors.info, RouteNames.adminShopsPath),
     ];
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Hành động cần xử lý', style: AppTextStyles.titleSmall),
@@ -145,31 +170,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
   Widget _buildGrowthChart() {
     return CustomPaint(painter: _MockGrowthPainter(), size: const Size(double.infinity, 160));
   }
-
-  List<_StatItem> get _todayStats => [
-    _StatItem('Tổng doanh thu', '156.2M₫', Icons.trending_up, AppColors.success),
-    _StatItem('Đơn hàng mới', '48', Icons.receipt_long, AppColors.primary),
-    _StatItem('User mới', '124', Icons.person_add, AppColors.info),
-    _StatItem('Shop mới', '3', Icons.store, AppColors.warning),
-    _StatItem('Rút tiền chờ', '5', Icons.payments, AppColors.error),
-    _StatItem('Khiếu nại', '3', Icons.report, Colors.deepOrange),
-  ];
-  List<_StatItem> get _weekStats => [
-    _StatItem('Tổng doanh thu', '892.5M₫', Icons.trending_up, AppColors.success),
-    _StatItem('Đơn hàng mới', '312', Icons.receipt_long, AppColors.primary),
-    _StatItem('User mới', '856', Icons.person_add, AppColors.info),
-    _StatItem('Shop mới', '18', Icons.store, AppColors.warning),
-    _StatItem('Rút tiền chờ', '12', Icons.payments, AppColors.error),
-    _StatItem('Khiếu nại', '7', Icons.report, Colors.deepOrange),
-  ];
-  List<_StatItem> get _monthStats => [
-    _StatItem('Tổng doanh thu', '3.2B₫', Icons.trending_up, AppColors.success),
-    _StatItem('Đơn hàng mới', '1,248', Icons.receipt_long, AppColors.primary),
-    _StatItem('User mới', '3,421', Icons.person_add, AppColors.info),
-    _StatItem('Shop mới', '52', Icons.store, AppColors.warning),
-    _StatItem('Rút tiền chờ', '28', Icons.payments, AppColors.error),
-    _StatItem('Khiếu nại', '15', Icons.report, Colors.deepOrange),
-  ];
 }
 
 class _StatItem {
@@ -179,7 +179,6 @@ class _StatItem {
   final Color color;
 }
 
-// Mock painters for charts
 class _MockLinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
