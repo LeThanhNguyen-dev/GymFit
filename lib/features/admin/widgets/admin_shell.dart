@@ -13,11 +13,24 @@ class AdminShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
+    final currentIdx = _currentIndex(location);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth > 600) {
+          return _buildRail(context, ref, location, currentIdx);
+        }
+        return _buildMobile(context, ref, location, currentIdx);
+      },
+    );
+  }
+
+  Widget _buildRail(BuildContext context, WidgetRef ref, String location, int currentIdx) {
     return Scaffold(
       body: Row(
         children: [
           NavigationRail(
-            selectedIndex: _currentIndex(location),
+            selectedIndex: currentIdx,
             onDestinationSelected: (index) => _onNavigate(context, index),
             labelType: NavigationRailLabelType.all,
             leading: Padding(
@@ -29,69 +42,28 @@ class AdminShell extends ConsumerWidget {
               ),
             ),
             destinations: const [
-              NavigationRailDestination(
-                icon: Icon(Icons.dashboard),
-                label: Text('Dashboard'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.store),
-                label: Text('Shops'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.shopping_bag),
-                label: Text('Products'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.category),
-                label: Text('Categories'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.verified),
-                label: Text('Brands'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.local_shipping),
-                label: Text('Orders'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.people),
-                label: Text('Users'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.sell),
-                label: Text('Vouchers'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.reviews),
-                label: Text('Reviews'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.warehouse),
-                label: Text('Inventory'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.account_balance_wallet),
-                label: Text('Finance'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.settings),
-                label: Text('Settings'),
-              ),
+              NavigationRailDestination(icon: Icon(Icons.dashboard), label: Text('Dashboard')),
+              NavigationRailDestination(icon: Icon(Icons.store), label: Text('Shops')),
+              NavigationRailDestination(icon: Icon(Icons.shopping_bag), label: Text('Products')),
+              NavigationRailDestination(icon: Icon(Icons.category), label: Text('Categories')),
+              NavigationRailDestination(icon: Icon(Icons.verified), label: Text('Brands')),
+              NavigationRailDestination(icon: Icon(Icons.local_shipping), label: Text('Orders')),
+              NavigationRailDestination(icon: Icon(Icons.people), label: Text('Users')),
+              NavigationRailDestination(icon: Icon(Icons.sell), label: Text('Vouchers')),
+              NavigationRailDestination(icon: Icon(Icons.reviews), label: Text('Reviews')),
+              NavigationRailDestination(icon: Icon(Icons.warehouse), label: Text('Inventory')),
+              NavigationRailDestination(icon: Icon(Icons.account_balance_wallet), label: Text('Finance')),
+              NavigationRailDestination(icon: Icon(Icons.settings), label: Text('Settings')),
             ],
-            trailing: Expanded(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: IconButton(
-                    icon: const Icon(Icons.logout, color: Colors.red),
-                    tooltip: 'Đăng xuất',
-                    onPressed: () async {
-                      await ref.read(authProvider.notifier).logout();
-                      if (context.mounted) context.go(RouteNames.loginPath);
-                    },
-                  ),
-                ),
+            trailing: Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: IconButton(
+                icon: const Icon(Icons.logout, color: Colors.red),
+                tooltip: 'Đăng xuất',
+                onPressed: () async {
+                  await ref.read(authProvider.notifier).logout();
+                  if (context.mounted) context.go(RouteNames.loginPath);
+                },
               ),
             ),
           ),
@@ -101,6 +73,79 @@ class AdminShell extends ConsumerWidget {
       ),
     );
   }
+
+  Widget _buildMobile(BuildContext context, WidgetRef ref, String location, int currentIdx) {
+    final scaffoldKey = GlobalKey<ScaffoldState>();
+    return Scaffold(
+      key: scaffoldKey,
+      appBar: AppBar(
+        title: Text(_labelForIndex(currentIdx)),
+        leading: IconButton(
+          icon: const Icon(Icons.menu),
+          onPressed: () => scaffoldKey.currentState?.openDrawer(),
+        ),
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  const Icon(Icons.fitness_center, size: 40),
+                  const SizedBox(height: 8),
+                  Text('GymFit Admin', style: Theme.of(context).textTheme.titleLarge),
+                ],
+              ),
+            ),
+            ...List.generate(_destinations.length, (i) {
+              final d = _destinations[i];
+              return ListTile(
+                leading: Icon(d.icon),
+                title: Text(d.label),
+                selected: i == currentIdx,
+                onTap: () {
+                  scaffoldKey.currentState?.closeDrawer();
+                  _onNavigate(context, i);
+                },
+              );
+            }),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Đăng xuất'),
+              onTap: () async {
+                scaffoldKey.currentState?.closeDrawer();
+                await ref.read(authProvider.notifier).logout();
+                if (context.mounted) context.go(RouteNames.loginPath);
+              },
+            ),
+          ],
+        ),
+      ),
+      body: child,
+    );
+  }
+
+  static const _destinations = [
+    _NavItem(Icons.dashboard, 'Dashboard'),
+    _NavItem(Icons.store, 'Shops'),
+    _NavItem(Icons.shopping_bag, 'Products'),
+    _NavItem(Icons.category, 'Categories'),
+    _NavItem(Icons.verified, 'Brands'),
+    _NavItem(Icons.local_shipping, 'Orders'),
+    _NavItem(Icons.people, 'Users'),
+    _NavItem(Icons.sell, 'Vouchers'),
+    _NavItem(Icons.reviews, 'Reviews'),
+    _NavItem(Icons.warehouse, 'Inventory'),
+    _NavItem(Icons.account_balance_wallet, 'Finance'),
+    _NavItem(Icons.settings, 'Settings'),
+  ];
+
+  String _labelForIndex(int i) => _destinations[i].label;
 
   int _currentIndex(String location) {
     if (location.startsWith('/admin/dashboard')) return 0;
@@ -134,4 +179,10 @@ class AdminShell extends ConsumerWidget {
       case 11: context.go('/admin/settings');
     }
   }
+}
+
+class _NavItem {
+  final IconData icon;
+  final String label;
+  const _NavItem(this.icon, this.label);
 }
