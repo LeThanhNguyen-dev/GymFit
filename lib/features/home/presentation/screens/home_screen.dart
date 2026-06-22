@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/providers/menu_providers.dart';
 import '../../../../core/widgets/navbar.dart';
 import '../../../cart/providers/cart_providers.dart';
 import '../../../products/providers/product_providers.dart';
@@ -44,6 +45,7 @@ class HomeScreen extends ConsumerWidget {
     ref.invalidate(newArrivalsProvider);
     ref.invalidate(recommendedProductsProvider);
     ref.invalidate(categoryListProvider);
+    ref.invalidate(completeMenuProvider);
     ref.invalidate(brandListProvider);
     ref.invalidate(bannerListProvider);
   }

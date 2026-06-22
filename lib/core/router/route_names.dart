@@ -144,6 +144,10 @@ class RouteNames {
   static const String adminInventoryPath = '/admin/inventory';
   static const String adminReviewsPath = '/admin/reviews';
 
+  // Categories
+  static const String categoryDetail = 'categoryDetail';
+  static const String categoryDetailPath = '/categories/:slug';
+
   // Services
   static const String serviceDetail = 'serviceDetail';
   static const String serviceDetailPath = '/services/:slug';

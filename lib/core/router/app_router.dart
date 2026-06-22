@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/providers/menu_providers.dart';
 import '../../features/auth/presentation/screens/auth_screen.dart';
 import '../../features/auth/providers/auth_providers.dart';
 import '../../features/cart/presentation/screens/cart_screen.dart';
@@ -14,6 +15,7 @@ import '../../features/orders/presentation/screens/orders_screen.dart';
 import '../../features/payments/presentation/screens/payment_screen.dart';
 import '../../features/payments/presentation/screens/payment_status_screen.dart';
 import '../../features/payments/presentation/screens/payment_vnpay_return_screen.dart';
+import '../../features/products/presentation/screens/category_detail_screen.dart';
 import '../../features/products/presentation/screens/product_detail_screen.dart';
 import '../../features/products/presentation/screens/product_list_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
@@ -326,6 +328,19 @@ List<RouteBase> _buildRoutes() {
       path: RouteNames.supportListPath,
       name: RouteNames.supportList,
       builder: (_, _) => const SupportListScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.categoryDetailPath,
+      name: RouteNames.categoryDetail,
+      builder: (_, state) {
+        final extra = state.extra;
+        if (extra is MenuItemModel) {
+          return CategoryDetailScreen(item: extra);
+        }
+        return const Scaffold(
+          body: Center(child: Text('Category not found')),
+        );
+      },
     ),
     GoRoute(
       path: RouteNames.serviceDetailPath,
