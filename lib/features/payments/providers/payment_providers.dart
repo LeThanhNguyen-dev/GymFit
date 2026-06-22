@@ -1,12 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
-
-import '../../../core/services/vnpay_service.dart';
 
 import '../../../core/providers/supabase_providers.dart';
 import '../../../shared/enums/database_enums.dart';
-import '../data/repositories/payment_repository.dart';
 import '../../orders/data/models/order_model.dart';
+import '../data/repositories/payment_repository.dart';
 
 final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
   return PaymentRepository(ref.watch(supabaseClientProvider));
@@ -25,6 +22,11 @@ final paymentHistoryProvider = FutureProvider<List<PaymentModel>>((ref) {
   return ref.watch(paymentRepositoryProvider).getPaymentHistory(user.id);
 });
 
+final payOsPaymentProvider =
+    AsyncNotifierProvider<PayOsPaymentNotifier, PayOsPaymentSession?>(
+      PayOsPaymentNotifier.new,
+    );
+
 final paymentProcessingProvider =
     AsyncNotifierProvider<PaymentProcessingNotifier, PaymentModel?>(
       PaymentProcessingNotifier.new,
@@ -42,23 +44,6 @@ class PaymentProcessingNotifier extends AsyncNotifier<PaymentModel?> {
             .read(paymentRepositoryProvider)
             .mockMomoPayment(payment.id, payment.amount);
       }
-      if (payment.method == PaymentMethod.vnpay) {
-        final vnpayService = VnPayService();
-        final url = vnpayService.createPaymentUrl(
-          amount: payment.amount.toInt(),
-          orderInfo: 'Thanh toan don hang ${payment.orderId}',
-          returnUrl: 'gymfit://app/payment-vnpay-return?payment_id=${payment.id}&order_id=${payment.orderId}',
-          txnRef: payment.id.replaceAll('-', ''), // VNPay chỉ nhận [a-zA-Z0-9]
-        );
-
-        final uri = Uri.parse(url);
-        await launchUrl(uri, mode: LaunchMode.platformDefault);
-        
-        // Cập nhật trạng thái thành pending, hệ thống có thể poll hoặc xử lý qua deep link sau
-        return ref
-            .read(paymentRepositoryProvider)
-            .updatePaymentStatus(payment.id, PaymentStatus.pending);
-      }
       return ref
           .read(paymentRepositoryProvider)
           .updatePaymentStatus(payment.id, PaymentStatus.pending);
@@ -68,21 +53,20 @@ class PaymentProcessingNotifier extends AsyncNotifier<PaymentModel?> {
   }
 }
 
-final vnpayReturnProvider = FutureProvider.family<PaymentModel, Map<String, String>>((ref, queryParams) async {
-  final vnpayService = VnPayService();
-  final isValid = vnpayService.verifyPaymentReturn(queryParams);
-  
-  final paymentId = queryParams['payment_id'];
-  if (paymentId == null) {
-    throw Exception('Khong tim thay ma thanh toan trong URL tra ve');
+class PayOsPaymentNotifier extends AsyncNotifier<PayOsPaymentSession?> {
+  @override
+  Future<PayOsPaymentSession?> build() async => null;
+
+  Future<PayOsPaymentSession> create(PaymentModel payment) async {
+    state = const AsyncValue.loading();
+    final result = await AsyncValue.guard(
+      () => ref.read(paymentRepositoryProvider).createPayOsPayment(payment),
+    );
+    state = result;
+    return result.requireValue;
   }
 
-  final responseCode = queryParams['vnp_ResponseCode'];
-  final repo = ref.read(paymentRepositoryProvider);
-
-  if (isValid && responseCode == '00') {
-    return repo.updatePaymentStatus(paymentId, PaymentStatus.paid);
-  } else {
-    return repo.updatePaymentStatus(paymentId, PaymentStatus.failed);
+  Future<PaymentModel> sync(PaymentModel payment) {
+    return ref.read(paymentRepositoryProvider).syncPayOsPayment(payment);
   }
-});
+}

@@ -12,10 +12,6 @@ class AppConstants {
     defaultValue: 'sb_publishable_jG80ZvjVqynLskXnGnq-Hg_DLUg0cha',
   );
 
-  static const String vnpayTmnCode = 'YC4BRBNY';
-  static const String vnpayHashSecret = 'EQLQ6WERR3A3731LSXL5RMQSP1LD0CB0';
-  static const String vnpayUrl = String.fromEnvironment('VNPAY_URL', defaultValue: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html');
-
   static const productsTable = 'products';
   static const usersTable = 'users';
   static const cartsTable = 'carts';

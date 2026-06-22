@@ -13,7 +13,6 @@ import '../../features/orders/presentation/screens/order_detail_screen.dart';
 import '../../features/orders/presentation/screens/orders_screen.dart';
 import '../../features/payments/presentation/screens/payment_screen.dart';
 import '../../features/payments/presentation/screens/payment_status_screen.dart';
-import '../../features/payments/presentation/screens/payment_vnpay_return_screen.dart';
 import '../../features/products/presentation/screens/product_detail_screen.dart';
 import '../../features/products/presentation/screens/product_list_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
@@ -41,7 +40,8 @@ import '../../features/admin/orders/admin_order_detail_screen.dart';
 import '../../features/admin/finance/admin_finance_screen.dart';
 import '../../features/admin/settings/admin_settings_screen.dart';
 import '../../features/admin/shop_registrations/presentation/screens/admin_shop_registrations_screen.dart';
-import '../../features/admin/shop_registrations/presentation/screens/admin_shop_detail_screen.dart' as shop_reg_detail;
+import '../../features/admin/shop_registrations/presentation/screens/admin_shop_detail_screen.dart'
+    as shop_reg_detail;
 import '../../features/products/presentation/screens/compare_screen.dart';
 import '../../features/register_shop/presentation/screens/register_shop_screen.dart';
 import '../../features/register_shop/data/models/shop_registration_model.dart';
@@ -49,10 +49,14 @@ import '../../features/support/presentation/support_list_screen.dart';
 import '../../features/services/presentation/screens/service_detail_screen.dart';
 import '../../features/store/presentation/screens/store_shell.dart';
 import '../../features/store/presentation/screens/store_dashboard/dashboard_screen.dart';
-import '../../features/store/presentation/screens/store_products/product_list_screen.dart' as store_products;
-import '../../features/store/presentation/screens/store_products/product_form_screen.dart' as store_products;
-import '../../features/store/presentation/screens/store_orders/order_list_screen.dart' as store_orders;
-import '../../features/store/presentation/screens/store_orders/order_detail_screen.dart' as store_orders;
+import '../../features/store/presentation/screens/store_products/product_list_screen.dart'
+    as store_products;
+import '../../features/store/presentation/screens/store_products/product_form_screen.dart'
+    as store_products;
+import '../../features/store/presentation/screens/store_orders/order_list_screen.dart'
+    as store_orders;
+import '../../features/store/presentation/screens/store_orders/order_detail_screen.dart'
+    as store_orders;
 import '../../features/store/presentation/screens/store_finance/finance_screen.dart';
 import '../../features/store/presentation/screens/store_settings/settings_screen.dart';
 import '../../features/admin/widgets/admin_shell.dart';
@@ -109,7 +113,8 @@ final routerNotifierProvider = Provider<GoRouter>((ref) {
 
       if (path.startsWith('/store')) {
         final user = ref.read(authProvider).user;
-        if (user == null || (user.role != 'storeowner' && user.sellerStatus != 'approved')) {
+        if (user == null ||
+            (user.role != 'storeowner' && user.sellerStatus != 'approved')) {
           return RouteNames.homePath;
         }
       }
@@ -135,7 +140,8 @@ List<RouteBase> _buildRoutes() {
     GoRoute(
       path: RouteNames.forgotPasswordPath,
       name: RouteNames.forgotPassword,
-      builder: (_, _) => const AuthScreen(initialPage: AuthPageType.forgotPassword),
+      builder: (_, _) =>
+          const AuthScreen(initialPage: AuthPageType.forgotPassword),
     ),
     GoRoute(
       path: '/reset-password',
@@ -195,18 +201,8 @@ List<RouteBase> _buildRoutes() {
             }
 
             return const Scaffold(
-              body: Center(
-                child: Text('Payment data not available.'),
-              ),
+              body: Center(child: Text('Payment data not available.')),
             );
-          },
-        ),
-        GoRoute(
-          path: RouteNames.paymentVnPayReturnPath,
-          name: RouteNames.paymentVnPayReturn,
-          builder: (_, state) {
-            final queryParams = state.uri.queryParameters;
-            return PaymentVnPayReturnScreen(queryParams: queryParams);
           },
         ),
         GoRoute(
@@ -330,37 +326,121 @@ List<RouteBase> _buildRoutes() {
     GoRoute(
       path: RouteNames.serviceDetailPath,
       name: RouteNames.serviceDetail,
-      builder: (_, state) => ServiceDetailScreen(
-        slug: state.pathParameters['slug'] ?? '',
-      ),
+      builder: (_, state) =>
+          ServiceDetailScreen(slug: state.pathParameters['slug'] ?? ''),
     ),
     // Admin Shell + Routes
     ShellRoute(
       builder: (_, _, child) => AdminShell(child: child),
       routes: [
-        GoRoute(path: RouteNames.adminPath, name: RouteNames.admin, redirect: (_, _) => RouteNames.adminDashboardPath),
+        GoRoute(
+          path: RouteNames.adminPath,
+          name: RouteNames.admin,
+          redirect: (_, _) => RouteNames.adminDashboardPath,
+        ),
         // 6 main tabs
-        GoRoute(path: RouteNames.adminDashboardPath, name: RouteNames.adminDashboard, builder: (_, _) => const AdminDashboardScreen()),
-        GoRoute(path: RouteNames.adminShopsPath, name: RouteNames.adminShops, builder: (_, _) => const AdminShopsScreen()),
-        GoRoute(path: RouteNames.adminUsersPath, name: RouteNames.adminUsers, builder: (_, _) => const AdminUsersScreen()),
-        GoRoute(path: RouteNames.adminOrdersPath, name: RouteNames.adminOrders, builder: (_, _) => const AdminOrdersScreen()),
-        GoRoute(path: RouteNames.adminFinancePath, name: RouteNames.adminFinance, builder: (_, _) => const AdminFinanceScreen()),
-        GoRoute(path: RouteNames.adminSettingsPath, name: RouteNames.adminSettings, builder: (_, _) => const AdminSettingsScreen()),
+        GoRoute(
+          path: RouteNames.adminDashboardPath,
+          name: RouteNames.adminDashboard,
+          builder: (_, _) => const AdminDashboardScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminShopsPath,
+          name: RouteNames.adminShops,
+          builder: (_, _) => const AdminShopsScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminUsersPath,
+          name: RouteNames.adminUsers,
+          builder: (_, _) => const AdminUsersScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminOrdersPath,
+          name: RouteNames.adminOrders,
+          builder: (_, _) => const AdminOrdersScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminFinancePath,
+          name: RouteNames.adminFinance,
+          builder: (_, _) => const AdminFinanceScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminSettingsPath,
+          name: RouteNames.adminSettings,
+          builder: (_, _) => const AdminSettingsScreen(),
+        ),
         // Sub-screens (detail pages)
-        GoRoute(path: RouteNames.adminShopDetailPath, name: RouteNames.adminShopDetail, builder: (_, state) => AdminShopDetailScreen(shopId: state.pathParameters['id'] ?? '')),
-        GoRoute(path: RouteNames.adminUserDetailPath, name: RouteNames.adminUserDetail, builder: (_, state) => AdminUserDetailScreen(userId: state.pathParameters['id'] ?? '')),
-        GoRoute(path: RouteNames.adminOrderDetailPath, name: RouteNames.adminOrderDetail, builder: (_, state) => AdminOrderDetailScreen(orderId: state.pathParameters['id'] ?? '')),
-        GoRoute(path: RouteNames.adminDisputesPath, name: RouteNames.adminDisputes, builder: (_, _) => const AdminOrdersScreen()),
-        GoRoute(path: RouteNames.adminProductModerationPath, name: RouteNames.adminProductModeration, builder: (_, _) => const AdminProductModerationScreen()),
+        GoRoute(
+          path: RouteNames.adminShopDetailPath,
+          name: RouteNames.adminShopDetail,
+          builder: (_, state) =>
+              AdminShopDetailScreen(shopId: state.pathParameters['id'] ?? ''),
+        ),
+        GoRoute(
+          path: RouteNames.adminUserDetailPath,
+          name: RouteNames.adminUserDetail,
+          builder: (_, state) =>
+              AdminUserDetailScreen(userId: state.pathParameters['id'] ?? ''),
+        ),
+        GoRoute(
+          path: RouteNames.adminOrderDetailPath,
+          name: RouteNames.adminOrderDetail,
+          builder: (_, state) =>
+              AdminOrderDetailScreen(orderId: state.pathParameters['id'] ?? ''),
+        ),
+        GoRoute(
+          path: RouteNames.adminDisputesPath,
+          name: RouteNames.adminDisputes,
+          builder: (_, _) => const AdminOrdersScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminProductModerationPath,
+          name: RouteNames.adminProductModeration,
+          builder: (_, _) => const AdminProductModerationScreen(),
+        ),
         // Legacy routes (keep backward compat)
-        GoRoute(path: RouteNames.adminProductsPath, name: RouteNames.adminProducts, builder: (_, _) => const AdminProductsScreen()),
-        GoRoute(path: RouteNames.adminCategoriesPath, name: RouteNames.adminCategories, builder: (_, _) => const AdminCategoriesScreen()),
-        GoRoute(path: RouteNames.adminBrandsPath, name: RouteNames.adminBrands, builder: (_, _) => const AdminBrandsScreen()),
-        GoRoute(path: RouteNames.adminVouchersPath, name: RouteNames.adminVouchers, builder: (_, _) => const AdminCouponsScreen()),
-        GoRoute(path: RouteNames.adminInventoryPath, name: RouteNames.adminInventory, builder: (_, _) => const InventoryScreen()),
-        GoRoute(path: RouteNames.adminReviewsPath, name: RouteNames.adminReviews, builder: (_, _) => const AdminReviewsScreen()),
-        GoRoute(path: RouteNames.adminShopRegistrationsPath, name: RouteNames.adminShopRegistrations, builder: (_, _) => const AdminShopRegistrationsScreen()),
-        GoRoute(path: RouteNames.adminShopRegistrationsDetailPath, name: RouteNames.adminShopRegistrationsDetail, builder: (_, state) => shop_reg_detail.AdminShopDetailScreen(registrationId: state.pathParameters['id'] ?? '')),
+        GoRoute(
+          path: RouteNames.adminProductsPath,
+          name: RouteNames.adminProducts,
+          builder: (_, _) => const AdminProductsScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminCategoriesPath,
+          name: RouteNames.adminCategories,
+          builder: (_, _) => const AdminCategoriesScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminBrandsPath,
+          name: RouteNames.adminBrands,
+          builder: (_, _) => const AdminBrandsScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminVouchersPath,
+          name: RouteNames.adminVouchers,
+          builder: (_, _) => const AdminCouponsScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminInventoryPath,
+          name: RouteNames.adminInventory,
+          builder: (_, _) => const InventoryScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminReviewsPath,
+          name: RouteNames.adminReviews,
+          builder: (_, _) => const AdminReviewsScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminShopRegistrationsPath,
+          name: RouteNames.adminShopRegistrations,
+          builder: (_, _) => const AdminShopRegistrationsScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminShopRegistrationsDetailPath,
+          name: RouteNames.adminShopRegistrationsDetail,
+          builder: (_, state) => shop_reg_detail.AdminShopDetailScreen(
+            registrationId: state.pathParameters['id'] ?? '',
+          ),
+        ),
       ],
     ),
     // Store Owner Shell + Routes
@@ -406,18 +486,21 @@ List<RouteBase> _buildRoutes() {
         GoRoute(
           path: RouteNames.storeEditProductPath,
           name: RouteNames.storeEditProduct,
-          builder: (_, state) => store_products.StoreProductFormScreen(productId: state.pathParameters['id']),
+          builder: (_, state) => store_products.StoreProductFormScreen(
+            productId: state.pathParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.storeOrderDetailPath,
           name: RouteNames.storeOrderDetail,
-          builder: (_, state) => store_orders.StoreOrderDetailScreen(orderId: state.pathParameters['id'] ?? ''),
+          builder: (_, state) => store_orders.StoreOrderDetailScreen(
+            orderId: state.pathParameters['id'] ?? '',
+          ),
         ),
       ],
     ),
   ];
 }
-
 
 class _MainShell extends StatelessWidget {
   const _MainShell({required this.child});
@@ -476,4 +559,3 @@ class _MainShell extends StatelessWidget {
     return 0;
   }
 }
-

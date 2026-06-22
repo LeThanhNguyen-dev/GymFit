@@ -72,12 +72,24 @@ class PaymentRepository {
     return rows.map((row) => PaymentModel.fromJson(row)).toList();
   }
 
-  Future<PaymentModel> mockMomoPayment(String paymentId, double amount) {
-    return _mockGatewayPayment(paymentId, 'MOMO');
+  Future<PayOsPaymentSession> createPayOsPayment(PaymentModel payment) async {
+    final response = await _client.functions.invoke(
+      'create-payos-payment',
+      body: {'payment_id': payment.id, 'order_id': payment.orderId},
+    );
+    return PayOsPaymentSession.fromJson(_functionData(response.data));
   }
 
-  Future<PaymentModel> mockVnPayPayment(String paymentId, double amount) {
-    return _mockGatewayPayment(paymentId, 'VNPAY');
+  Future<PaymentModel> syncPayOsPayment(PaymentModel payment) async {
+    final response = await _client.functions.invoke(
+      'sync-payos-payment',
+      body: {'payment_id': payment.id, 'order_id': payment.orderId},
+    );
+    return PaymentModel.fromJson(_functionData(response.data));
+  }
+
+  Future<PaymentModel> mockMomoPayment(String paymentId, double amount) {
+    return _mockGatewayPayment(paymentId, 'MOMO');
   }
 
   Future<PaymentModel> _mockGatewayPayment(
@@ -93,6 +105,55 @@ class PaymentRepository {
       transactionId: success
           ? '$prefix-${DateTime.now().millisecondsSinceEpoch}'
           : null,
+    );
+  }
+
+  Map<String, dynamic> _functionData(Object? body) {
+    final root = Map<String, dynamic>.from(body as Map);
+    if (root['error'] != null) {
+      throw StateError(root['error'].toString());
+    }
+    return Map<String, dynamic>.from(root['data'] as Map);
+  }
+}
+
+class PayOsPaymentSession {
+  const PayOsPaymentSession({
+    required this.orderCode,
+    required this.amount,
+    required this.description,
+    required this.qrCode,
+    required this.paymentLinkId,
+    this.checkoutUrl,
+    this.accountNumber,
+    this.accountName,
+    this.bin,
+    this.status = 'PENDING',
+  });
+
+  final int orderCode;
+  final int amount;
+  final String description;
+  final String qrCode;
+  final String paymentLinkId;
+  final String? checkoutUrl;
+  final String? accountNumber;
+  final String? accountName;
+  final String? bin;
+  final String status;
+
+  factory PayOsPaymentSession.fromJson(Map<String, dynamic> json) {
+    return PayOsPaymentSession(
+      orderCode: (json['orderCode'] as num?)?.toInt() ?? 0,
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
+      description: json['description']?.toString() ?? '',
+      qrCode: json['qrCode']?.toString() ?? '',
+      paymentLinkId: json['paymentLinkId']?.toString() ?? '',
+      checkoutUrl: json['checkoutUrl'] as String?,
+      accountNumber: json['accountNumber']?.toString(),
+      accountName: json['accountName']?.toString(),
+      bin: json['bin']?.toString(),
+      status: json['status']?.toString() ?? 'PENDING',
     );
   }
 }

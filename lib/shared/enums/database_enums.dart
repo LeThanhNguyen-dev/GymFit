@@ -41,7 +41,7 @@ enum PaymentMethod {
   cod,
   momo,
   zalopay,
-  vnpay,
+  payos,
   applePay,
   googlePay,
 }
