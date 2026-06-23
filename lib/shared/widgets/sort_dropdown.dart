@@ -16,6 +16,7 @@ class SortDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
       value: value,
+      isExpanded: true,
       decoration: const InputDecoration(
         labelText: 'Sort',
         border: OutlineInputBorder(),

@@ -131,4 +131,46 @@ class VoucherRepository {
 
     return VoucherModel.fromJson(row);
   }
+
+  Future<void> deleteVoucher(String id) async {
+    await _client.from(AppConstants.vouchersTable).update({
+      'is_active': false,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', id);
+  }
+
+  Future<void> restoreVoucher(String id) async {
+    await _client.from(AppConstants.vouchersTable).update({
+      'is_active': true,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', id);
+  }
+
+  Future<Map<String, int>> getVoucherStats() async {
+    final rows = await _client
+        .from(AppConstants.vouchersTable)
+        .select('is_active, end_date');
+
+    int total = rows.length;
+    int active = 0;
+    int inactive = 0;
+    final now = DateTime.now();
+
+    for (final row in rows) {
+      final isActive = row['is_active'] as bool? ?? false;
+      final endDateStr = row['end_date'] as String?;
+      final isExpired = endDateStr != null && DateTime.parse(endDateStr).isBefore(now);
+      if (isActive && !isExpired) {
+        active++;
+      } else {
+        inactive++;
+      }
+    }
+
+    return {
+      'total': total,
+      'active': active,
+      'inactive': inactive,
+    };
+  }
 }
