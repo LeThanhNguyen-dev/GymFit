@@ -477,7 +477,7 @@ class PaymentModel {
   String get methodDisplay => switch (method) {
     PaymentMethod.cod => 'Thanh toan khi nhan hang',
     PaymentMethod.momo => 'Vi Momo',
-    PaymentMethod.vnpay => 'VNPay',
+    PaymentMethod.payos => 'payOS / VietQR',
     PaymentMethod.bankTransfer => 'Chuyen khoan',
     PaymentMethod.creditCard || PaymentMethod.debitCard => 'The ngan hang',
     _ => method.name,

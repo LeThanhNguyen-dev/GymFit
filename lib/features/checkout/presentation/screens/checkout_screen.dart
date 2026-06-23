@@ -41,13 +41,15 @@ class CheckoutScreen extends ConsumerWidget {
     final addressesAsync = ref.watch(userAddressesProvider);
     var address = ref.watch(selectedAddressProvider);
 
-    if (address == null && addressesAsync.hasValue && addressesAsync.value!.isNotEmpty) {
+    if (address == null &&
+        addressesAsync.hasValue &&
+        addressesAsync.value!.isNotEmpty) {
       address = addressesAsync.value!.firstWhere(
         (a) => a.isDefault,
         orElse: () => addressesAsync.value!.first,
       );
       Future.microtask(() {
-         ref.read(selectedAddressProvider.notifier).setAddress(address);
+        ref.read(selectedAddressProvider.notifier).setAddress(address);
       });
     }
     final shippingFee = ref.watch(shippingFeeProvider).value ?? 30000;
@@ -137,9 +139,9 @@ class CheckoutScreen extends ConsumerWidget {
                     icon: Icons.account_balance_wallet,
                   ),
                   _PaymentRadio(
-                    value: 'vnpay',
-                    title: 'VNPay',
-                    icon: Icons.credit_card,
+                    value: 'payos',
+                    title: 'payOS / VietQR',
+                    icon: Icons.qr_code_2,
                   ),
                 ],
               ),

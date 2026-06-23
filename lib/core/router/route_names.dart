@@ -35,7 +35,6 @@ class RouteNames {
   // Payment
   static const String payment = 'payment';
   static const String paymentStatus = 'paymentStatus';
-  static const String paymentVnPayReturn = 'paymentVnPayReturn';
 
   // Shipping
   static const String shippingTracking = 'shippingTracking';
@@ -73,7 +72,8 @@ class RouteNames {
   // Admin sub-screens
   static const String adminShopDetail = 'adminShopDetail';
   static const String adminShopRegistrations = 'adminShopRegistrations';
-  static const String adminShopRegistrationsDetail = 'adminShopRegistrationsDetail';
+  static const String adminShopRegistrationsDetail =
+      'adminShopRegistrationsDetail';
   static const String adminProductModeration = 'adminProductModeration';
   static const String adminUserDetail = 'adminUserDetail';
   static const String adminOrderDetail = 'adminOrderDetail';
@@ -111,7 +111,6 @@ class RouteNames {
   static const String voucherListPath = '/vouchers';
   static const String paymentPath = '/payment';
   static const String paymentStatusPath = '/payment/status';
-  static const String paymentVnPayReturnPath = '/payment-vnpay-return';
   static const String shippingTrackingPath = '/shipping/:orderId';
   static const String reviewFormPath = '/review';
   static const String supportListPath = '/support';
@@ -128,7 +127,8 @@ class RouteNames {
   // Admin sub paths
   static const String adminShopDetailPath = '/admin/shops/:id';
   static const String adminShopRegistrationsPath = '/admin/shop-registrations';
-  static const String adminShopRegistrationsDetailPath = '/admin/shop-registrations/:id';
+  static const String adminShopRegistrationsDetailPath =
+      '/admin/shop-registrations/:id';
   static const String adminProductModerationPath = '/admin/product-moderation';
   static const String adminUserDetailPath = '/admin/users/:id';
   static const String adminOrderDetailPath = '/admin/orders/:id';
