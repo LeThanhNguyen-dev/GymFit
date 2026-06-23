@@ -9,16 +9,28 @@ import '../../../voucher/providers/voucher_provider.dart';
 import '../../data/models/cart_model.dart';
 import '../../providers/cart_providers.dart';
 
-class CartScreen extends ConsumerWidget {
+class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends ConsumerState<CartScreen> {
+  final Set<String> _selectedItemIds = <String>{};
+
+  void _syncSelection(List<CartItemModel> items) {
+    final existingIds = items.map((item) => item.id).toSet();
+    _selectedItemIds.removeWhere((id) => !existingIds.contains(id));
+    if (_selectedItemIds.isEmpty && items.isNotEmpty) {
+      _selectedItemIds.addAll(existingIds);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final cartState = ref.watch(cartItemsProvider);
-    final summary = ref.watch(cartSummaryProvider);
     final voucher = ref.watch(appliedVoucherProvider);
-    final discount = voucher?.calculateDiscount(summary.subtotal) ?? 0;
-    final total = (summary.subtotal - discount).clamp(0, double.infinity);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Giỏ hàng')),
@@ -41,22 +53,67 @@ class CartScreen extends ConsumerWidget {
             );
           }
 
-          final hasStockIssue = items.any((item) => !item.isInStock);
+          _syncSelection(items);
+          final selectedItems = items
+              .where((item) => _selectedItemIds.contains(item.id))
+              .toList();
+          final selectedSubtotal = selectedItems.fold<double>(
+            0,
+            (sum, item) => sum + item.itemTotal,
+          );
+          final discount = voucher?.calculateDiscount(selectedSubtotal) ?? 0;
+          final total = (selectedSubtotal - discount).clamp(0, double.infinity);
+          final summary = CartSummary(
+            subtotal: selectedSubtotal,
+            itemCount: selectedItems.fold<int>(
+              0,
+              (sum, item) => sum + item.quantity,
+            ),
+          );
+          final hasStockIssue = selectedItems.any((item) => !item.isInStock);
 
           return RefreshIndicator(
             onRefresh: () => ref.read(cartItemsProvider.notifier).loadCart(),
             child: CustomScrollView(
               slivers: [
+                SliverToBoxAdapter(
+                  child: _SelectionHeader(
+                    selectedCount: selectedItems.length,
+                    totalCount: items.length,
+                    allSelected: selectedItems.length == items.length,
+                    onChanged: (selected) {
+                      setState(() {
+                        _selectedItemIds.clear();
+                        if (selected) {
+                          _selectedItemIds.addAll(items.map((item) => item.id));
+                        }
+                      });
+                    },
+                  ),
+                ),
                 SliverList.builder(
                   itemCount: items.length,
                   itemBuilder: (context, index) => _CartItemTile(
                     item: items[index],
+                    isSelected: _selectedItemIds.contains(items[index].id),
+                    onSelectionChanged: (selected) {
+                      setState(() {
+                        if (selected) {
+                          _selectedItemIds.add(items[index].id);
+                        } else {
+                          _selectedItemIds.remove(items[index].id);
+                        }
+                      });
+                    },
                     onQuantityChanged: (quantity) => ref
                         .read(cartItemsProvider.notifier)
                         .updateQuantity(items[index].id, quantity),
-                    onRemove: () => ref
-                        .read(cartItemsProvider.notifier)
-                        .removeItem(items[index].id),
+                    onRemove: () {
+                      setState(() => _selectedItemIds.remove(items[index].id));
+                      ref
+                          .read(cartItemsProvider.notifier)
+                          .removeItem(items[index].id);
+                    },
                   ),
                 ),
                 SliverToBoxAdapter(
@@ -66,22 +123,39 @@ class CartScreen extends ConsumerWidget {
                     total: total.toDouble(),
                     voucherCode: voucher?.code,
                     hasStockIssue: hasStockIssue,
+                    hasSelection: selectedItems.isNotEmpty,
                     onVoucherTap: () =>
-                        context.push('/vouchers', extra: summary.subtotal),
+                        context.push('/vouchers', extra: selectedSubtotal),
                     onRemoveVoucher: () {
                       ref
                           .read(appliedVoucherProvider.notifier)
                           .setVoucher(null);
                     },
                     onCheckout: () async {
+                      if (selectedItems.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Vui lòng chọn sản phẩm để thanh toán.'),
+                          ),
+                        );
+                        return;
+                      }
+
                       final stockIssues = await ref
                           .read(cartItemsProvider.notifier)
                           .checkStock();
                       if (!context.mounted) return;
-                      if (stockIssues.isNotEmpty) {
+                      final selectedIssueIds = selectedItems
+                          .map((item) => item.id)
+                          .toSet();
+                      if (stockIssues.any(
+                        (item) => selectedIssueIds.contains(item.id),
+                      )) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Một số sản phẩm không đủ tồn kho.'),
+                            content: Text(
+                              'Một số sản phẩm đã chọn không đủ tồn kho.',
+                            ),
                           ),
                         );
                         return;
@@ -90,9 +164,12 @@ class CartScreen extends ConsumerWidget {
                       context.push(
                         '/checkout',
                         extra: CheckoutData(
-                          cartItems: items,
+                          cartItems: selectedItems,
+                          source: CheckoutSource.cart,
+                          cartItemIds:
+                              selectedItems.map((item) => item.id).toList(),
                           voucher: voucher,
-                          subtotal: summary.subtotal,
+                          subtotal: selectedSubtotal,
                           discountAmount: discount,
                           total: total.toDouble(),
                         ),
@@ -109,14 +186,53 @@ class CartScreen extends ConsumerWidget {
   }
 }
 
+class _SelectionHeader extends StatelessWidget {
+  const _SelectionHeader({
+    required this.selectedCount,
+    required this.totalCount,
+    required this.allSelected,
+    required this.onChanged,
+  });
+
+  final int selectedCount;
+  final int totalCount;
+  final bool allSelected;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
+      child: Row(
+        children: [
+          Checkbox(
+            value: allSelected,
+            onChanged: (value) => onChanged(value ?? false),
+          ),
+          Expanded(
+            child: Text(
+              'Đã chọn $selectedCount/$totalCount sản phẩm',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CartItemTile extends StatelessWidget {
   const _CartItemTile({
     required this.item,
+    required this.isSelected,
+    required this.onSelectionChanged,
     required this.onQuantityChanged,
     required this.onRemove,
   });
 
   final CartItemModel item;
+  final bool isSelected;
+  final ValueChanged<bool> onSelectionChanged;
   final ValueChanged<int> onQuantityChanged;
   final VoidCallback onRemove;
 
@@ -137,65 +253,86 @@ class _CartItemTile extends StatelessWidget {
         child: Icon(Icons.delete, color: Theme.of(context).colorScheme.onError),
       ),
       onDismissed: (_) => onRemove(),
-      child: ListTile(
-        minVerticalPadding: 12,
-        leading: SizedBox.square(
-          dimension: 64,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: imageUrl == null
-                ? ColoredBox(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                    child: const Icon(Icons.image_not_supported_outlined),
-                  )
-                : Image.network(imageUrl, fit: BoxFit.cover),
-          ),
-        ),
-        title: Text(
-          product?.name ?? 'Sản phẩm',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            if ((variant?.optionDisplay ?? '').isNotEmpty)
-              Text(variant!.optionDisplay),
-            Text(formatCurrency(variant?.price ?? product?.basePrice ?? 0)),
-            if (!item.isInStock)
-              Text(
-                stock == 0
-                    ? 'Đã hết hàng'
-                    : 'Chỉ còn $stock sản phẩm trong kho',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-          ],
-        ),
-        trailing: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  item.formattedTotal,
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                const SizedBox(width: 8),
-                InkWell(
-                  onTap: onRemove,
-                  child: Icon(Icons.delete_outline, size: 20, color: Theme.of(context).colorScheme.error),
-                ),
-              ],
+            Checkbox(
+              value: isSelected,
+              onChanged: (value) => onSelectionChanged(value ?? false),
             ),
-            const SizedBox(height: 8),
-            _QuantitySelector(
-              quantity: item.quantity,
-              maxQuantity: stock,
-              onChanged: onQuantityChanged,
+            Expanded(
+              child: ListTile(
+                minVerticalPadding: 12,
+                leading: SizedBox.square(
+                  dimension: 64,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: imageUrl == null
+                        ? ColoredBox(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                            child:
+                                const Icon(Icons.image_not_supported_outlined),
+                          )
+                        : Image.network(imageUrl, fit: BoxFit.cover),
+                  ),
+                ),
+                title: Text(
+                  product?.name ?? 'Sản phẩm',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if ((variant?.optionDisplay ?? '').isNotEmpty)
+                      Text(variant!.optionDisplay),
+                    Text(formatCurrency(variant?.price ?? product?.basePrice ?? 0)),
+                    if (!item.isInStock)
+                      Text(
+                        stock == 0
+                            ? 'Đã hết hàng'
+                            : 'Chỉ còn $stock sản phẩm trong kho',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                  ],
+                ),
+                trailing: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          item.formattedTotal,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: onRemove,
+                          child: Icon(
+                            Icons.delete_outline,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _QuantitySelector(
+                      quantity: item.quantity,
+                      maxQuantity: stock,
+                      onChanged: onQuantityChanged,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -247,6 +384,7 @@ class _CartSummarySection extends StatelessWidget {
     required this.discount,
     required this.total,
     required this.hasStockIssue,
+    required this.hasSelection,
     required this.onVoucherTap,
     required this.onCheckout,
     required this.onRemoveVoucher,
@@ -257,6 +395,7 @@ class _CartSummarySection extends StatelessWidget {
   final double discount;
   final double total;
   final bool hasStockIssue;
+  final bool hasSelection;
   final String? voucherCode;
   final VoidCallback onVoucherTap;
   final VoidCallback onCheckout;
@@ -273,7 +412,7 @@ class _CartSummarySection extends StatelessWidget {
           _SummaryRow('Tổng số lượng', '${summary.itemCount} sản phẩm'),
           _SummaryRow('Tạm tính', summary.formattedSubtotal),
           TextButton.icon(
-            onPressed: onVoucherTap,
+            onPressed: hasSelection ? onVoucherTap : null,
             icon: const Icon(Icons.local_offer_outlined),
             label: const Text('Áp mã giảm giá'),
           ),
@@ -289,7 +428,7 @@ class _CartSummarySection extends StatelessWidget {
           _SummaryRow('Tổng cộng', formatCurrency(total), isEmphasis: true),
           const SizedBox(height: 16),
           FilledButton(
-            onPressed: hasStockIssue ? null : onCheckout,
+            onPressed: hasStockIssue || !hasSelection ? null : onCheckout,
             child: const Text('Thanh toán'),
           ),
         ],
@@ -322,7 +461,7 @@ class _SummaryRow extends StatelessWidget {
         children: [
           Expanded(child: Text(label, style: style)),
           Text(value, style: style),
-          ?trailing,
+          if (trailing != null) trailing!,
         ],
       ),
     );
@@ -362,6 +501,7 @@ class _EmptyCart extends StatelessWidget {
 
 class _CartLoading extends StatefulWidget {
   const _CartLoading();
+
   @override
   State<_CartLoading> createState() => _CartLoadingState();
 }
@@ -404,7 +544,7 @@ class _CartLoadingState extends State<_CartLoading>
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          separatorBuilder: (_, _) => SizedBox(height: 12),
+          separatorBuilder: (_, _) => const SizedBox(height: 12),
           itemCount: 4,
         );
       },
@@ -429,7 +569,9 @@ class _CartError extends StatelessWidget {
           children: [
             Icon(Icons.error_outline, size: 48, color: colorScheme.error),
             const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center,
+            Text(
+              message,
+              textAlign: TextAlign.center,
               style: TextStyle(color: colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 16),

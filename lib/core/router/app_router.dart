@@ -570,7 +570,13 @@ class _MainShell extends StatelessWidget {
 
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    if (location == RouteNames.cartPath) return 1;
+    if (location == RouteNames.cartPath ||
+        location == RouteNames.checkoutPath ||
+        location == RouteNames.voucherListPath ||
+        location.startsWith('${RouteNames.paymentPath}/') ||
+        location == RouteNames.paymentStatusPath) {
+      return 1;
+    }
     if (location == RouteNames.wishlistPath) return 2;
     if (location == RouteNames.profilePath) return 3;
     return 0;

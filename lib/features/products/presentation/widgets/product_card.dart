@@ -40,120 +40,143 @@ class ProductCard extends ConsumerWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Product Image
-              AspectRatio(
-                aspectRatio: 1,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _ProductImage(imageUrl: product.primaryImageUrl),
-                    // Wishlist button
-                    Positioned(
-                      top: AppSpacing.xs,
-                      right: AppSpacing.xs,
-                      child: _WishlistButton(
-                        productId: product.id,
-                        isInWishlist: isInWishlist,
-                        onToggle: () {
-                          ref
-                              .read(wishlistItemsProvider.notifier)
-                              .toggleWishlist(product.id);
-                        },
-                      ),
-                    ),
-                    // Badges
-                    if (product.compareAtPrice != null && product.compareAtPrice! > product.basePrice)
-                      Positioned(
-                        top: AppSpacing.xs,
-                        left: AppSpacing.xs,
-                        child: _Badge(
-                          label: '-${((product.compareAtPrice! - product.basePrice) / product.compareAtPrice! * 100).round()}%',
-                          color: colorScheme.error,
-                          textColor: colorScheme.onError,
-                        ),
-                      ),
-                    if (product.isFeatured)
-                      Positioned(
-                        top: product.compareAtPrice != null && product.compareAtPrice! > product.basePrice ? 40 : AppSpacing.xs,
-                        left: AppSpacing.xs,
-                        child: _Badge(
-                          label: 'Nổi bật',
-                          color: colorScheme.primary,
-                          textColor: colorScheme.onPrimary,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              // Product Info
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        height: 1.3,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xxs),
-                    Row(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxHeight <= 230;
+              final imageHeight = constraints.maxHeight * (compact ? 0.48 : 0.52);
+              final infoPadding = compact ? 8.0 : 10.0;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    height: imageHeight,
+                    child: Stack(
+                      fit: StackFit.expand,
                       children: [
-                        Text(
-                          formatCurrency(product.basePrice),
-                          style: theme.textTheme.titleSmall?.copyWith(
-                          color: product.compareAtPrice != null && product.compareAtPrice! > product.basePrice
-                              ? colorScheme.error
-                              : colorScheme.primary,
-                            fontWeight: FontWeight.bold,
+                        _ProductImage(imageUrl: product.primaryImageUrl),
+                        Positioned(
+                          top: AppSpacing.xs,
+                          right: AppSpacing.xs,
+                          child: _WishlistButton(
+                            productId: product.id,
+                            isInWishlist: isInWishlist,
+                            onToggle: () {
+                              ref
+                                  .read(wishlistItemsProvider.notifier)
+                                  .toggleWishlist(product.id);
+                            },
                           ),
                         ),
-                        if (product.compareAtPrice != null && product.compareAtPrice! > product.basePrice) ...[
-                          const SizedBox(width: 6),
-                          Text(
-                            formatCurrency(product.compareAtPrice!),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              decoration: TextDecoration.lineThrough,
-                              color: colorScheme.outline,
+                        if (product.compareAtPrice != null &&
+                            product.compareAtPrice! > product.basePrice)
+                          Positioned(
+                            top: AppSpacing.xs,
+                            left: AppSpacing.xs,
+                            child: _Badge(
+                              label:
+                                  '-${((product.compareAtPrice! - product.basePrice) / product.compareAtPrice! * 100).round()}%',
+                              color: colorScheme.error,
+                              textColor: colorScheme.onError,
                             ),
                           ),
-                        ],
+                        if (product.isFeatured)
+                          Positioned(
+                            top: product.compareAtPrice != null &&
+                                    product.compareAtPrice! > product.basePrice
+                                ? 40
+                                : AppSpacing.xs,
+                            left: AppSpacing.xs,
+                            child: _Badge(
+                              label: 'Noi bat',
+                              color: colorScheme.primary,
+                              textColor: colorScheme.onPrimary,
+                            ),
+                          ),
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.xxs),
-                    if (product.averageRating > 0)
-                      Row(
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.all(infoPadding),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.star_rounded,
-                            size: 14,
-                            color: colorScheme.tertiary,
-                          ),
-                          const SizedBox(width: AppSpacing.xxs),
                           Text(
-                            product.averageRating.toStringAsFixed(1),
-                            style: theme.textTheme.bodySmall,
-                          ),
-                          const SizedBox(width: AppSpacing.xxs),
-                          Text(
-                            '(${product.totalReviews})',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.outline,
+                            product.name,
+                            maxLines: compact ? 1 : 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              height: 1.2,
                             ),
                           ),
+                          SizedBox(height: compact ? 2 : AppSpacing.xxs),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 2,
+                            children: [
+                              Text(
+                                formatCurrency(product.basePrice),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: product.compareAtPrice != null &&
+                                          product.compareAtPrice! >
+                                              product.basePrice
+                                      ? colorScheme.error
+                                      : colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              if (product.compareAtPrice != null &&
+                                  product.compareAtPrice! > product.basePrice)
+                                Text(
+                                  formatCurrency(product.compareAtPrice!),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    decoration: TextDecoration.lineThrough,
+                                    color: colorScheme.outline,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const Spacer(),
+                          if (product.averageRating > 0)
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.star_rounded,
+                                  size: 14,
+                                  color: colorScheme.tertiary,
+                                ),
+                                const SizedBox(width: AppSpacing.xxs),
+                                Text(
+                                  product.averageRating.toStringAsFixed(1),
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                                const SizedBox(width: AppSpacing.xxs),
+                                Expanded(
+                                  child: Text(
+                                    '(${product.totalReviews})',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.outline,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                         ],
                       ),
-                  ],
-                ),
-              ),
-            ],
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -163,6 +186,7 @@ class ProductCard extends ConsumerWidget {
 
 class _ProductImage extends StatelessWidget {
   const _ProductImage({this.imageUrl});
+
   final String? imageUrl;
 
   @override
@@ -170,31 +194,42 @@ class _ProductImage extends StatelessWidget {
     if (imageUrl == null || imageUrl!.isEmpty) {
       return Container(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          child: Center(
-            child: Icon(Icons.fitness_center, size: 48,
-              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
-            ),
-          ),
-        );
-      }
-      return Image.network(
-        imageUrl!,
-        fit: BoxFit.cover,
-        loadingBuilder: (_, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-          );
-        },
-        errorBuilder: (ctx, e, st) => Container(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          child: Center(
-            child: Icon(Icons.broken_image_outlined, size: 40,
-              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
-            ),
+        child: Center(
+          child: Icon(
+            Icons.fitness_center,
+            size: 48,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
           ),
         ),
+      );
+    }
+
+    return Image.network(
+      imageUrl!,
+      fit: BoxFit.cover,
+      loadingBuilder: (_, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          child: const Center(
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        );
+      },
+      errorBuilder: (ctx, e, st) => Container(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: Center(
+          child: Icon(
+            Icons.broken_image_outlined,
+            size: 40,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -205,6 +240,7 @@ class _WishlistButton extends StatelessWidget {
     required this.isInWishlist,
     required this.onToggle,
   });
+
   final String productId;
   final bool isInWishlist;
   final VoidCallback onToggle;
@@ -216,13 +252,13 @@ class _WishlistButton extends StatelessWidget {
       onTap: onToggle,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(AppSpacing.xxs),
+        padding: const EdgeInsets.all(AppSpacing.xxs),
         decoration: BoxDecoration(
-          color: colorScheme.surface.withOpacity(0.9),
+          color: colorScheme.surface.withValues(alpha: 0.9),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: colorScheme.shadow.withOpacity(0.1),
+              color: colorScheme.shadow.withValues(alpha: 0.1),
               blurRadius: 4,
             ),
           ],
@@ -239,6 +275,7 @@ class _WishlistButton extends StatelessWidget {
 
 class _Badge extends StatelessWidget {
   const _Badge({required this.label, required this.color, this.textColor});
+
   final String label;
   final Color color;
   final Color? textColor;
@@ -263,7 +300,6 @@ class _Badge extends StatelessWidget {
   }
 }
 
-/// Shimmer placeholder card for loading state
 class ProductCardShimmer extends StatefulWidget {
   const ProductCardShimmer({super.key});
 
@@ -308,33 +344,48 @@ class _ProductCardShimmerState extends State<ProductCardShimmer>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AspectRatio(
-                aspectRatio: 1,
-                child: Container(color: color.withValues(alpha: _animation.value)),
+              Expanded(
+                flex: 5,
+                child: Container(
+                  width: double.infinity,
+                  color: color.withValues(alpha: _animation.value),
+                ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      height: 12,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(4),
+              Expanded(
+                flex: 3,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 12,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      height: 12,
-                      width: 80,
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(4),
+                      const SizedBox(height: 6),
+                      Container(
+                        height: 12,
+                        width: 80,
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                       ),
-                    ),
-                  ],
+                      const Spacer(),
+                      Container(
+                        height: 10,
+                        width: 60,
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

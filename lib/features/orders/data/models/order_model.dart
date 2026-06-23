@@ -169,6 +169,8 @@ class OrderModel {
   bool get canCancel =>
       status == OrderStatus.pending || status == OrderStatus.confirmed;
 
+  bool get canConfirmDelivery => status == OrderStatus.shipped;
+
   String get statusText => switch (status) {
     OrderStatus.pending => 'Cho xac nhan',
     OrderStatus.confirmed => 'Da xac nhan',

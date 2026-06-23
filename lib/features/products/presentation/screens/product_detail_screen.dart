@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../cart/data/models/cart_model.dart';
 import '../../../cart/providers/cart_providers.dart';
+import '../../../checkout/data/models/checkout_model.dart';
 import '../../../wishlist/providers/wishlist_providers.dart';
 import '../../data/models/product_model.dart';
 import '../../providers/product_providers.dart';
@@ -739,7 +741,8 @@ class ProductDetailBottomBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isOutOfStock = (selectedVariant?.stock ?? 0) == 0;
+    final stock = selectedVariant?.stock ?? 0;
+    final isOutOfStock = stock <= 0 || quantity > stock;
 
     return SafeArea(
       child: Padding(
@@ -785,26 +788,28 @@ class ProductDetailBottomBar extends ConsumerWidget {
               child: FilledButton.icon(
                 onPressed: isOutOfStock
                     ? null
-                    : () async {
+                    : () {
                         if (selectedVariant == null) return;
-                        try {
-                          await ref
-                              .read(cartItemsProvider.notifier)
-                              .addToCart(
-                                product.id,
-                                selectedVariant!.id,
-                                quantity,
-                              );
-                          if (context.mounted) {
-                            context.push('/checkout');
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(e.toString())),
-                            );
-                          }
-                        }
+                        final item = CartItemModel(
+                          id: 'buy_now_${selectedVariant!.id}',
+                          userId: '',
+                          productId: product.id,
+                          variantId: selectedVariant!.id,
+                          quantity: quantity,
+                          product: product,
+                          variant: selectedVariant,
+                        );
+                        final subtotal = item.itemTotal;
+                        context.push(
+                          '/checkout',
+                          extra: CheckoutData(
+                            cartItems: [item],
+                            source: CheckoutSource.buyNow,
+                            subtotal: subtotal,
+                            discountAmount: 0,
+                            total: subtotal,
+                          ),
+                        );
                       },
                 icon: const Icon(Icons.flash_on_rounded),
                 label: const Text('Mua ngay'),

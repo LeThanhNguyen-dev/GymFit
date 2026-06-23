@@ -78,6 +78,13 @@ class OrderListNotifier extends Notifier<AsyncValue<List<OrderModel>>> {
     await load();
   }
 
+  Future<void> confirmDelivery(String orderId) async {
+    final user = ref.read(supabaseClientProvider).auth.currentUser;
+    if (user == null) throw StateError('Ban can dang nhap.');
+    await ref.read(orderRepositoryProvider).customerConfirmDelivery(orderId, user.id);
+    await load();
+  }
+
   Future<List<OrderModel>> _fetchPage(int page) {
     final user = ref.read(supabaseClientProvider).auth.currentUser;
     if (user == null) return Future.value(const <OrderModel>[]);

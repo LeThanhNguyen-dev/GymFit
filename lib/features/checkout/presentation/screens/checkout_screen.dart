@@ -2,44 +2,76 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/route_names.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../address/providers/address_providers.dart';
 import '../../../cart/providers/cart_providers.dart';
-import '../../../payments/presentation/screens/payment_screen.dart';
 import '../../data/models/checkout_model.dart';
 import '../../providers/checkout_providers.dart';
 
-class CheckoutScreen extends ConsumerWidget {
+class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key, this.initialData});
 
   final CheckoutData? initialData;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (initialData != null && ref.read(checkoutDataProvider) == null) {
-      Future.microtask(() {
-        ref.read(checkoutDataProvider.notifier).setData(initialData);
-      });
+  ConsumerState<CheckoutScreen> createState() => _CheckoutScreenState();
+}
+
+class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
+  bool _didInit = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _initCheckoutData();
+    });
+  }
+
+  void _initCheckoutData() {
+    if (_didInit) return;
+    _didInit = true;
+    if (widget.initialData != null) {
+      ref.read(checkoutDataProvider.notifier).setData(widget.initialData);
+      return;
     }
 
-    if (initialData == null && ref.read(checkoutDataProvider) == null) {
-      final cartItems = ref.read(cartItemsProvider).asData?.value;
-      if (cartItems != null && cartItems.isNotEmpty) {
-        final subtotal = ref.read(cartTotalProvider);
-        Future.microtask(() {
-          ref.read(checkoutDataProvider.notifier).setData(CheckoutData(
-            cartItems: cartItems,
-            subtotal: subtotal,
-            discountAmount: 0,
-            total: subtotal,
-          ));
-        });
-      }
-    }
+    if (ref.read(checkoutDataProvider) != null) return;
 
+    final cartItems = ref.read(cartItemsProvider).asData?.value;
+    if (cartItems != null && cartItems.isNotEmpty) {
+      final subtotal = cartItems.fold<double>(
+        0,
+        (sum, item) => sum + item.itemTotal,
+      );
+      ref.read(checkoutDataProvider.notifier).setData(
+        CheckoutData(
+          cartItems: cartItems,
+          source: CheckoutSource.cart,
+          cartItemIds: cartItems.map((item) => item.id).toList(),
+          subtotal: subtotal,
+          discountAmount: 0,
+          total: subtotal,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final data = ref.watch(checkoutDataProvider);
+    ref.watch(cartItemsProvider);
     final addressesAsync = ref.watch(userAddressesProvider);
     var address = ref.watch(selectedAddressProvider);
+
+    if (data == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _initCheckoutData();
+      });
+    }
 
     if (address == null &&
         addressesAsync.hasValue &&
@@ -48,10 +80,13 @@ class CheckoutScreen extends ConsumerWidget {
         (a) => a.isDefault,
         orElse: () => addressesAsync.value!.first,
       );
-      Future.microtask(() {
-        ref.read(selectedAddressProvider.notifier).setAddress(address);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(selectedAddressProvider.notifier).setAddress(address);
+        }
       });
     }
+
     final shippingFee = ref.watch(shippingFeeProvider).value ?? 30000;
     final total = ref.watch(checkoutTotalProvider);
     final createState = ref.watch(createOrderProvider);
@@ -66,7 +101,12 @@ class CheckoutScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Thanh toán')),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 80),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          MediaQuery.of(context).padding.bottom + 120,
+        ),
         children: [
           _Section(
             title: 'Địa chỉ giao hàng',
@@ -90,7 +130,7 @@ class CheckoutScreen extends ConsumerWidget {
                   ),
           ),
           _Section(
-            title: 'Sản phẩm',
+            title: data.isBuyNow ? 'Sản phẩm mua ngay' : 'Sản phẩm đã chọn',
             child: Column(
               children: data.cartItems.map((item) {
                 final product = item.product;
@@ -108,13 +148,33 @@ class CheckoutScreen extends ConsumerWidget {
           ),
           _Section(
             title: 'Voucher',
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.local_offer_outlined),
-              title: Text(data.voucher?.code ?? 'Chưa áp dụng mã giảm giá'),
-              subtitle: data.discountAmount > 0
-                  ? Text('-${formatCurrency(data.discountAmount)}')
-                  : null,
+            child: Column(
+              children: [
+                _VoucherLine(
+                  label: 'Voucher admin',
+                  voucherCode: data.voucher?.code,
+                ),
+                const Divider(height: 16),
+                _VoucherLine(
+                  label: 'Voucher shop',
+                  voucherCode: data.shopVoucher?.code,
+                ),
+                if (data.isBuyNow) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Mua ngay không tự áp dụng voucher từ giỏ hàng.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ] else if (data.discountAmount > 0) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('-${formatCurrency(data.discountAmount)}'),
+                  ),
+                ],
+              ],
             ),
           ),
           _Section(
@@ -169,42 +229,54 @@ class CheckoutScreen extends ConsumerWidget {
                 _MoneyRow('Giảm giá', -data.discountAmount),
                 _MoneyRow('Phí vận chuyển', shippingFee),
                 const Divider(),
-                _MoneyRow('Tổng cộng', total, isTotal: true),
+                _MoneyRow('Tổng cộng dự kiến', total, isTotal: true),
               ],
             ),
           ),
         ],
       ),
       bottomNavigationBar: SafeArea(
+        top: false,
         child: Container(
+          width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            boxShadow: const [BoxShadow(blurRadius: 12, color: Colors.black12)],
+            boxShadow: const [
+              BoxShadow(blurRadius: 12, color: Colors.black12),
+            ],
           ),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: Text(
-                  formatCurrency(total),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
+              Text(
+                formatCurrency(total),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
+              const SizedBox(height: 12),
               FilledButton(
-                onPressed: address == null || createState.isLoading
+                onPressed: address == null ||
+                        data.cartItems.isEmpty ||
+                        createState.isLoading
                     ? null
                     : () async {
                         final messenger = ScaffoldMessenger.of(context);
-                        final navigator = Navigator.of(context);
+                        final checkoutData = data;
                         try {
                           final result = await ref
                               .read(createOrderProvider.notifier)
                               .submit();
                           if (!context.mounted) return;
+                          if (checkoutData.isCartCheckout) {
+                            await ref.read(cartItemsProvider.notifier).loadCart();
+                          }
+                          ref.read(checkoutDataProvider.notifier).setData(null);
                           if (result.paymentMethod == 'cod') {
-                            ref.read(cartItemsProvider.notifier).clearCart();
                             await showDialog<void>(
                               context: context,
                               builder: (context) => AlertDialog(
@@ -222,12 +294,9 @@ class CheckoutScreen extends ConsumerWidget {
                               context.go('/');
                             }
                           } else {
-                            ref.read(cartItemsProvider.notifier).clearCart();
-                            navigator.pushReplacement(
-                              MaterialPageRoute<void>(
-                                builder: (_) =>
-                                    PaymentScreen(orderId: result.orderId),
-                              ),
+                            context.pushReplacementNamed(
+                              RouteNames.payment,
+                              pathParameters: {'orderId': result.orderId},
                             );
                           }
                         } catch (error) {
@@ -281,6 +350,23 @@ class _Section extends StatelessWidget {
   }
 }
 
+class _VoucherLine extends StatelessWidget {
+  const _VoucherLine({required this.label, this.voucherCode});
+
+  final String label;
+  final String? voucherCode;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.local_offer_outlined),
+      title: Text(label),
+      subtitle: Text(voucherCode ?? 'Chưa áp dụng'),
+    );
+  }
+}
+
 class _PaymentRadio extends StatelessWidget {
   const _PaymentRadio({
     required this.value,
@@ -310,18 +396,21 @@ class _CheckoutShimmer extends StatelessWidget {
     final color = Theme.of(context).colorScheme.surfaceContainerHighest;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-      children: List.generate(5, (_) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Card(
-          child: Container(
-            height: 80,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(12),
+      children: List.generate(
+        5,
+        (_) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Card(
+            child: Container(
+              height: 80,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ),
-      )),
+      ),
     );
   }
 }

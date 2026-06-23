@@ -16,7 +16,7 @@ class CheckoutRepository {
     await _validateStock(request);
 
     final response = await _client.rpc(
-      'create_checkout_order',
+      'create_checkout_order_v2',
       params: {
         'p_user_id': request.userId,
         'p_address': {
@@ -32,26 +32,15 @@ class CheckoutRepository {
           'postal_code': request.address.postalCode,
         },
         'p_items': request.checkoutData.cartItems.map((item) {
-          final product = item.product;
-          final variant = item.variant;
-          final unitPrice = variant?.price ?? product?.basePrice ?? 0;
           return {
-            'product_id': item.productId,
             'variant_id': item.variantId,
-            'product_name': product?.name ?? 'San pham',
-            'variant_name': variant?.optionDisplay ?? variant?.name,
-            'sku': variant?.sku,
-            'image_url': variant?.imageUrl ?? product?.primaryImageUrl,
-            'unit_price': unitPrice,
             'quantity': item.quantity,
+            if (request.checkoutData.isCartCheckout) 'cart_item_id': item.id,
           };
         }).toList(),
-        'p_voucher_id': request.checkoutData.voucher?.id,
-        'p_voucher_code': request.checkoutData.voucher?.code,
-        'p_subtotal': request.checkoutData.subtotal,
-        'p_discount_amount': request.checkoutData.discountAmount,
+        'p_admin_voucher_id': request.checkoutData.voucher?.id,
+        'p_shop_voucher_id': request.checkoutData.shopVoucher?.id,
         'p_shipping_fee': request.shippingFee,
-        'p_total_amount': request.totalAmount,
         'p_payment_method': request.paymentMethod,
         'p_note': request.note,
       },

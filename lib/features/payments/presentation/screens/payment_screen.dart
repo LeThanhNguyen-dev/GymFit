@@ -212,50 +212,53 @@ class _PayOsPaymentPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    return SingleChildScrollView(
       padding: const EdgeInsets.only(top: 16),
-      children: [
-        Center(
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            color: Colors.white,
-            child: QrImageView(
-              data: session.qrCode,
-              version: QrVersions.auto,
-              size: 230,
-              backgroundColor: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              color: Colors.white,
+              child: QrImageView(
+                data: session.qrCode,
+                version: QrVersions.auto,
+                size: 230,
+                backgroundColor: Colors.white,
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _PayOsInfoRow('So tien', formatCurrency(session.amount)),
-                _PayOsInfoRow('Noi dung', session.description),
-                if (session.accountName != null)
-                  _PayOsInfoRow('Chu tai khoan', session.accountName!),
-                if (session.accountNumber != null)
-                  _PayOsInfoRow('So tai khoan', session.accountNumber!),
-              ],
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _PayOsInfoRow('So tien', formatCurrency(session.amount)),
+                  _PayOsInfoRow('Noi dung', session.description),
+                  if (session.accountName != null)
+                    _PayOsInfoRow('Chu tai khoan', session.accountName!),
+                  if (session.accountNumber != null)
+                    _PayOsInfoRow('So tai khoan', session.accountNumber!),
+                ],
+              ),
             ),
           ),
-        ),
-        OutlinedButton.icon(
-          onPressed: () => onCopy(session),
-          icon: const Icon(Icons.copy),
-          label: const Text('Sao chep thong tin chuyen khoan'),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Mo ung dung ngan hang va quet QR de thanh toan. Sau khi chuyen khoan, bam "Toi da thanh toan" de cap nhat trang thai.',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
+          OutlinedButton.icon(
+            onPressed: () => onCopy(session),
+            icon: const Icon(Icons.copy),
+            label: const Text('Sao chep thong tin chuyen khoan'),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Mo ung dung ngan hang va quet QR de thanh toan. Sau khi chuyen khoan, bam "Toi da thanh toan" de cap nhat trang thai.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
     );
   }
 }

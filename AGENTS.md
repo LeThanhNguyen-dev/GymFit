@@ -51,13 +51,34 @@
 - **Đặt tên lại store screen classes**: `StoreProductListScreen`, `StoreProductFormScreen`, `StoreOrderListScreen`, `StoreOrderDetailScreen` — tránh conflict với product/order feature screens
 - **Clean warnings**: xoá unused imports, fix `?.` không cần thiết trên store screens
 - ✅ **Merge `feature/infrastructure-setup`**: resolve conflicts, fix 8 post-merge errors (CardTheme, DialogTheme, duplicate `light`, address model/repository methods, unused imports)
+- **E-commerce overhaul (checkout source separation, cart selection, Buy Now, voucher scope, seller isolation)**:
+  - `CheckoutModel`/`CheckoutSource`: cart vs buyNow, `cartItemIds`, `shopVoucher`, `CheckoutState`
+  - `CheckoutRepository.createOrder`: switched to `create_checkout_order_v2` RPC — server computes price/stock/vouchers
+  - `CheckoutScreen`: ConsumerWidget→ConsumerStatefulWidget + `addPostFrameCallback` (fixes Riverpod 3.x lifecycle)
+  - `CartScreen`: item checkboxes, partial checkout, voucher apply flow, empty/error/loading
+  - `ProductDetailScreen`: Buy Now creates temp `CartItemModel` (prefix `buy_now_`) — no cart mutation
+  - `VoucherModel`/`VoucherRepository`: scope (admin/shop) + sellerId filters, validateVoucher, admin/shop CRUD
+  - `AdminCouponsScreen`: admin voucher CRUD via real Supabase
+  - `StoreSettingsScreen`: 3-tab (info/policies/shop vouchers), shop voucher CRUD via Supabase
+  - `StoreShell._tabIndex`: sub-route handling for add/edit/detail
+  - `AppRouter._currentIndex`: maps checkout/payment → Cart tab (fixed `startsWith`), Vietnamese labels
+  - Admin route paths: fixed `:id` path params with `replaceAll`
+  - `PaymentScreen._PayOsPaymentPanel`: fixed infinite width (ListView→SingleChildScrollView+Column)
+  - `ProductCard`: fixed overflow (FittedBox inside 160px card)
+- **Fix migration SQL enum cast errors**:
+  - Convert `voucher_scope` enum→TEXT to avoid unsafe enum value in transaction
+  - Convert `order_status_history.from_status/to_status` from `order_status_type`→TEXT at migration top
+  - Convert `payments.status` from `payment_status_type`→TEXT at migration top
+  - Cast `orders.status` INSERT to `::order_status_type` (column is enum)
+  - Cast `payments.status` INSERT to `::payment_status_type` (gets implicitly converted to TEXT)
+  - Cast `order_status_history` INSERT values in RPCs to `::order_status_type` (columns now TEXT after conversion)
 
 ### In Progress
 - (none — chờ user test)
 
 ### Blocked
 - RLS trên `shop_registrations` bị **DISABLE** tạm thời — cần enable lại với policy đúng trước deploy
-- Admin approve/reject chưa update `sellerStatus` + `role` của user trong `users` table
+- Migration SQL 20260623 chưa được apply lên Supabase
 
 ## Key Decisions
 - Dùng `FutureProvider.autoDispose` + `ref.read` cho `myShopRegistrationProvider` — tránh re-run vô hạn
@@ -68,22 +89,28 @@
 - State image lưu `XFile?` thay `File?` — cross-platform (web + mobile)
 - Upload image dùng `Uint8List` bytes + `uploadBinary()` — tránh dart:io trên web
 - Store screen classes prefix `Store*` để tránh conflict import với feature screens cùng tên
+- Convert externally-created enum columns (voucher_scope, order_status_type in history, payment_status_type in payments) to TEXT at migration top to avoid cast errors in INSERT/UPDATE statements
+- `orders.status` remains `order_status_type` enum — INSERT values explicitly cast to avoid TEXT→enum ambiguity
 
 ## Next Steps
-- Enable RLS lại đúng cách: tạo `SECURITY DEFINER` RPC cho admin queries, giữ `auth.uid() = user_id` cho user thường
-- ✅ Khi admin approve → đã update `role = 'storeowner'` và `seller_status = 'approved'` trong `profiles` table
-- Kết nối store screens với real Supabase data (hiện đang dùng mock data)
-- Test full flow: register → admin approve → user login as storeowner → see store dashboard
+1. Apply migration `20260623_harden_checkout_vouchers_seller_orders.sql` to Supabase via SQL editor or CLI
+2. Run `flutter analyze lib/` — expect 0 errors
+3. Execute test plan: checkout → cart → Buy Now → payment → store settings → admin vouchers
+4. Re-enable RLS on `shop_registrations` table before production
 
 ## Critical Context
-- `flutter analyze lib/` — 0 errors, warnings chỉ từ pre-existing files
+- `flutter analyze lib/` — 0 errors, warnings chỉ từ pre-existing files (109 total, 0 errors)
+- **Migration error history**: `voucher_scope` enum value conflict (converted to TEXT), `order_status_type` cast errors in `order_status_history` INSERTs (columns converted to TEXT at top), `payment_status_type` cast error (converted to TEXT at top)
 - **RLS bị DISABLE** trên `shop_registrations` — cần fix trước deploy
-- `public.users` table không tồn tại trong Supabase project hiện tại
+- `public.users` table không tồn tại trong Supabase project hiện tại — all user queries go through `profiles` table
 - `is_admin()` function tồn tại sẵn (dùng bởi nhiều table khác) — không drop được
 - `ShopRegistrationModel` là const class → hot reload không hiệu quả khi sửa field, cần hot restart
-- Admin redirect hoạt động dựa trên `auth.appMetadata['role']` — cần set qua Supabase Dashboard
-- Store owner redirect hoạt động dựa trên `role == 'storeowner'` hoặc `sellerStatus == 'approved'`
-- Store screen classes dùng prefix `Store*` để tránh conflict import với `ProductListScreen` (products feature) và `OrderDetailScreen` (orders feature)
+- Admin redirect dựa trên `auth.appMetadata['role']` — set qua Supabase Dashboard
+- Store owner redirect dựa trên `role == 'storeowner'` hoặc `sellerStatus == 'approved'`
+- `CheckoutScreen` dùng `ConsumerStatefulWidget` + `addPostFrameCallback` — Riverpod 3.x không cho `ref.read` provider trong build
+- `PaymentScreen._PayOsPaymentPanel` dùng `SingleChildScrollView`+`Column` — tránh `BoxConstraints infinite width`
+- **Migration file**: `supabase/migrations/20260623_harden_checkout_vouchers_seller_orders.sql`
+- **Test plan**: 9 sections, ~40 test cases (checkout/cart/Buy Now/payment/store/seller isolation/admin)
 
 ## Relevant Files
 - `lib/features/register_shop/data/models/shop_registration_model.dart`: model chính
@@ -92,7 +119,7 @@
 - `lib/features/register_shop/presentation/screens/register_shop_screen.dart`: multi-step form (XFile + _handleNext)
 - `lib/features/profile/presentation/screens/profile_screen.dart`: _ShopRegistrationSection + "Quản lý Shop" link
 - `lib/features/admin/shop_registrations/presentation/screens/admin_shop_registrations_screen.dart`: admin list
-- `lib/features/admin/shop_registrations/presentation/screens/admin_shop_detail_screen.dart`: admin detail + approve/reject (dùng invalidate + pop thay go)
+- `lib/features/admin/shop_registrations/presentation/screens/admin_shop_detail_screen.dart`: admin detail + approve/reject
 - `lib/features/store/presentation/screens/store_shell.dart`: bottom nav 5 tabs
 - `lib/features/store/presentation/screens/store_dashboard/dashboard_screen.dart`: dashboard stats + charts
 - `lib/features/store/presentation/screens/store_products/product_list_screen.dart`: StoreProductListScreen
@@ -100,9 +127,19 @@
 - `lib/features/store/presentation/screens/store_orders/order_list_screen.dart`: StoreOrderListScreen
 - `lib/features/store/presentation/screens/store_orders/order_detail_screen.dart`: StoreOrderDetailScreen
 - `lib/features/store/presentation/screens/store_finance/finance_screen.dart`: FinanceScreen
-- `lib/features/store/presentation/screens/store_settings/settings_screen.dart`: SettingsScreen
-- `lib/features/auth/providers/auth_providers.dart`: fallback role từ auth metadata
-- `lib/features/auth/data/repositories/auth_repository.dart`: fetchProfile fallback
-- `lib/core/router/route_names.dart`: thêm store routes
-- `lib/core/router/app_router.dart`: storeowner redirect + store shell routes (aliased imports)
-- `supabase/migrations/20260617_create_shop_registrations.sql`: table + storage + RLS (hiện đã disable)
+- `lib/features/store/presentation/screens/store_settings/settings_screen.dart`: SettingsScreen (3-tab, shop voucher CRUD)
+- `lib/features/checkout/data/models/checkout_model.dart`: CheckoutSource, CheckoutState, CheckoutRequest/Result
+- `lib/features/checkout/data/repositories/checkout_repository.dart`: createOrder → RPC v2
+- `lib/features/checkout/presentation/screens/checkout_screen.dart`: ConsumerStatefulWidget, addPostFrameCallback
+- `lib/features/checkout/providers/checkout_providers.dart`: CreateOrderNotifier.submit()
+- `lib/features/cart/presentation/screens/cart_screen.dart`: item selection, partial checkout, voucher
+- `lib/features/products/presentation/screens/product_detail_screen.dart`: Buy Now (no cart mutation)
+- `lib/features/voucher/data/models/voucher_model.dart`: scope/sellerId, isAdminVoucher/isShopVoucher
+- `lib/features/voucher/data/repositories/voucher_repository.dart`: scope filters, validateVoucher, getAdminVouchers, saveVoucher
+- `lib/features/voucher/providers/voucher_provider.dart`: voucherRepositoryProvider, availableVouchersProvider
+- `lib/features/admin/coupons/admin_coupons.dart`: admin voucher CRUD via Supabase
+- `lib/features/payments/presentation/screens/payment_screen.dart`: fixed QrImageView layout
+- `lib/features/products/presentation/widgets/product_card.dart`: fixed price overflow
+- `lib/core/router/app_router.dart`: _currentIndex with startsWith, Vietnamese labels
+- `lib/core/router/route_names.dart`: all route path/name constants
+- `supabase/migrations/20260623_harden_checkout_vouchers_seller_orders.sql`: full backend (RPC v2, voucher scope, seller isolation, enum→TEXT conversions)

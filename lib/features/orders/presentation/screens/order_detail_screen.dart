@@ -96,6 +96,17 @@ class OrderDetailScreen extends ConsumerWidget {
                   },
                   child: const Text('Hủy đơn'),
                 ),
+              if (order.canConfirmDelivery)
+                FilledButton.icon(
+                  onPressed: () async {
+                    await ref
+                        .read(orderListProvider.notifier)
+                        .confirmDelivery(order.id);
+                    ref.invalidate(orderDetailProvider(order.id));
+                  },
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: const Text('Đã nhận hàng'),
+                ),
             ],
           );
         },

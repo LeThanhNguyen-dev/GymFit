@@ -261,14 +261,18 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
               ),
             ],
           ),
-          onTap: () => context.go('${RouteNames.adminUserDetailPath}/${user.id}'),
+          onTap: () => context.go(
+            RouteNames.adminUserDetailPath.replaceAll(':id', user.id),
+          ),
         ),
       );
     }
 
     return Card(
       child: InkWell(
-        onTap: () => context.go('${RouteNames.adminUserDetailPath}/${user.id}'),
+        onTap: () => context.go(
+          RouteNames.adminUserDetailPath.replaceAll(':id', user.id),
+        ),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),

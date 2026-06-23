@@ -134,7 +134,7 @@ class _AdminCouponsScreenState extends ConsumerState<AdminCouponsScreen> {
             const SizedBox(width: 8),
             _buildChip('Percentage', 'percentage', _discountType),
             const SizedBox(width: 8),
-            _buildChip('Fixed', 'fixed_amount', _discountType),
+            _buildChip('Fixed', 'fixed', _discountType),
           ],
         ),
       ),
@@ -265,7 +265,7 @@ class _AdminCouponsScreenState extends ConsumerState<AdminCouponsScreen> {
                       child: Text('Percentage'),
                     ),
                     DropdownMenuItem(
-                      value: 'fixed_amount',
+                      value: 'fixed',
                       child: Text('Fixed amount'),
                     ),
                   ],
@@ -338,6 +338,8 @@ class _AdminCouponsScreenState extends ConsumerState<AdminCouponsScreen> {
                 await ref.read(voucherRepositoryProvider).saveVoucher({
                   'code': code.text.trim().toUpperCase(),
                   'description': description.text.trim(),
+                  'scope': 'admin',
+                  'seller_id': null,
                   'discount_type': discountType,
                   'discount_value': double.tryParse(value.text.trim()) ?? 0,
                   'min_order_amount':

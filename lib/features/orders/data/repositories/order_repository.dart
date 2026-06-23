@@ -159,6 +159,11 @@ class OrderRepository {
     }
 
     if (newStatus == OrderStatus.delivered) {
+      await _client
+          .from('order_items')
+          .update({'store_status': 'delivered', 'store_status_updated_at': now.toIso8601String()})
+          .eq('order_id', orderId);
+
       final latest = await _client
           .from(AppConstants.shippingTrackingTable)
           .select('id, events')
@@ -186,6 +191,13 @@ class OrderRepository {
             .eq('id', latest['id']);
       }
     }
+  }
+
+  Future<void> customerConfirmDelivery(String orderId, String userId) async {
+    await _client.rpc('customer_confirm_delivery', params: {
+      'p_order_id': orderId,
+      'p_user_id': userId,
+    });
   }
 
   Future<void> _increaseVariantStock(String variantId, int quantity) async {
