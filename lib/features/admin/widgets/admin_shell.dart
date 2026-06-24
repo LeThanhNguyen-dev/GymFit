@@ -176,6 +176,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 FloatingActionButton(
+                  heroTag: 'admin-sidebar-toggle-fab',
                   mini: true,
                   backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                   foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
@@ -184,6 +185,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                 ),
                 const SizedBox(height: 8),
                 FloatingActionButton(
+                  heroTag: 'admin-logout-fab',
                   mini: true,
                   backgroundColor: Theme.of(context).colorScheme.errorContainer,
                   foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
