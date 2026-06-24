@@ -12,9 +12,6 @@ class AppConstants {
     defaultValue: 'sb_publishable_jG80ZvjVqynLskXnGnq-Hg_DLUg0cha',
   );
 
-  static const String vnpayTmnCode = String.fromEnvironment('VNPAY_TMN_CODE');
-  static const String vnpayHashSecret = String.fromEnvironment('VNPAY_HASH_SECRET');
-  static const String vnpayUrl = String.fromEnvironment('VNPAY_URL', defaultValue: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html');
 
   static const productsTable = 'products';
   static const usersTable = 'users';
@@ -33,6 +30,9 @@ class AppConstants {
   static const aiRecommendationLogsTable = 'ai_recommendation_logs';
   static const shopRegistrationsTable = 'shop_registrations';
   static const servicesTable = 'services';
+  static const chatConversationsTable = 'chat_conversations';
+  static const chatParticipantsTable = 'chat_participants';
+  static const chatMessagesTable = 'chat_messages';
 
   static const productImagesBucket = 'product-images';
   static const avatarImagesBucket = 'avatars';

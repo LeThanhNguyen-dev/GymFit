@@ -55,6 +55,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                             NavigationRailDestination(icon: Icon(Icons.local_shipping), label: Text('Orders')),
                             NavigationRailDestination(icon: Icon(Icons.people), label: Text('Users')),
                             NavigationRailDestination(icon: Icon(Icons.sell), label: Text('Vouchers')),
+                            NavigationRailDestination(icon: Icon(Icons.chat_bubble_outline), label: Text('Chat')),
                             NavigationRailDestination(icon: Icon(Icons.reviews), label: Text('Reviews')),
                             NavigationRailDestination(icon: Icon(Icons.warehouse), label: Text('Inventory')),
                             NavigationRailDestination(icon: Icon(Icons.account_balance_wallet), label: Text('Finance')),
@@ -143,6 +144,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                               NavigationRailDestination(icon: Icon(Icons.local_shipping), label: Text('Orders')),
                               NavigationRailDestination(icon: Icon(Icons.people), label: Text('Users')),
                               NavigationRailDestination(icon: Icon(Icons.sell), label: Text('Vouchers')),
+                              NavigationRailDestination(icon: Icon(Icons.chat_bubble_outline), label: Text('Chat')),
                               NavigationRailDestination(icon: Icon(Icons.reviews), label: Text('Reviews')),
                               NavigationRailDestination(icon: Icon(Icons.warehouse), label: Text('Inventory')),
                               NavigationRailDestination(icon: Icon(Icons.account_balance_wallet), label: Text('Finance')),
@@ -176,6 +178,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 FloatingActionButton(
+                  heroTag: 'admin-sidebar-toggle-fab',
                   mini: true,
                   backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                   foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
@@ -184,6 +187,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                 ),
                 const SizedBox(height: 8),
                 FloatingActionButton(
+                  heroTag: 'admin-logout-fab',
                   mini: true,
                   backgroundColor: Theme.of(context).colorScheme.errorContainer,
                   foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
@@ -210,10 +214,11 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     if (location.startsWith('/admin/orders')) return 5;
     if (location.startsWith('/admin/users')) return 6;
     if (location.startsWith('/admin/vouchers')) return 7;
-    if (location.startsWith('/admin/reviews')) return 8;
-    if (location.startsWith('/admin/inventory')) return 9;
-    if (location.startsWith('/admin/finance')) return 10;
-    if (location.startsWith('/admin/settings')) return 11;
+    if (location.startsWith('/admin/chat')) return 8;
+    if (location.startsWith('/admin/reviews')) return 9;
+    if (location.startsWith('/admin/inventory')) return 10;
+    if (location.startsWith('/admin/finance')) return 11;
+    if (location.startsWith('/admin/settings')) return 12;
     return 0;
   }
 
@@ -227,10 +232,11 @@ class _AdminShellState extends ConsumerState<AdminShell> {
       case 5: context.go('/admin/orders');
       case 6: context.go('/admin/users');
       case 7: context.go('/admin/vouchers');
-      case 8: context.go('/admin/reviews');
-      case 9: context.go('/admin/inventory');
-      case 10: context.go('/admin/finance');
-      case 11: context.go('/admin/settings');
+      case 8: context.go(RouteNames.adminChatPath);
+      case 9: context.go('/admin/reviews');
+      case 10: context.go('/admin/inventory');
+      case 11: context.go('/admin/finance');
+      case 12: context.go('/admin/settings');
     }
   }
 }

@@ -102,43 +102,173 @@ class AdminOrderRepository {
   }
 
   Future<DashboardStats> getDashboardStats() async {
-    final todayStart = DateTime.now().toUtc().copyWith(
-      hour: 0,
-      minute: 0,
-      second: 0,
-      microsecond: 0,
-      millisecond: 0,
-    );
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day).toUtc();
+    final weekStart = now.subtract(const Duration(days: 7)).toUtc();
+    final monthStart = now.subtract(const Duration(days: 30)).toUtc();
 
-    final todayOrders = await _client
+    // 1. Fetch recent orders for periods & daily revenue lines
+    final recentOrders = await _client
         .from(AppConstants.ordersTable)
-        .select('id')
-        .gte('created_at', todayStart.toIso8601String());
+        .select('created_at, total_amount, status')
+        .gte('created_at', monthStart.toIso8601String());
 
-    final todayRevenue = await _client
+    // 2. Fetch all orders status for pie chart
+    final allOrdersStatus = await _client
         .from(AppConstants.ordersTable)
-        .select('total_amount')
-        .gte('created_at', todayStart.toIso8601String())
-        .eq('status', 'delivered');
+        .select('status');
 
-    final pendingOrders = await _client
-        .from(AppConstants.ordersTable)
-        .select('id')
-        .eq('status', 'pending');
-
+    // 3. Fetch active products
     final activeProducts = await _client
         .from(AppConstants.productsTable)
         .select('id')
         .eq('status', 'active');
 
+    // 4. Fetch profiles for growth chart
+    final userProfiles = await _client
+        .from('profiles')
+        .select('created_at');
+
+    // 5. Fetch approved shops and order items of delivered orders
+    final approvedShops = await _client
+        .from('shop_registrations')
+        .select('user_id, shop_name')
+        .eq('status', 'approved');
+
+    final deliveredOrders = await _client
+        .from('orders')
+        .select('id, order_items(total_price, product:products(seller_id))')
+        .eq('status', 'delivered');
+
+    // -- Calculate stats grids
+    int tOrders = 0;
+    double tRevenue = 0.0;
+    int wOrders = 0;
+    double wRevenue = 0.0;
+    int mOrders = 0;
+    double mRevenue = 0.0;
+
+    for (final order in recentOrders) {
+      final createdAtStr = order['created_at']?.toString();
+      if (createdAtStr == null) continue;
+      final createdAt = DateTime.parse(createdAtStr);
+      final totalAmt = (order['total_amount'] as num?)?.toDouble() ?? 0.0;
+      final status = order['status']?.toString();
+
+      if (createdAt.isAfter(todayStart)) {
+        tOrders++;
+        if (status == 'delivered') {
+          tRevenue += totalAmt;
+        }
+      }
+      if (createdAt.isAfter(weekStart)) {
+        wOrders++;
+        if (status == 'delivered') {
+          wRevenue += totalAmt;
+        }
+      }
+      if (createdAt.isAfter(monthStart)) {
+        mOrders++;
+        if (status == 'delivered') {
+          mRevenue += totalAmt;
+        }
+      }
+    }
+
+    int pendingCount = 0;
+    final Map<String, int> statusCounts = {};
+    for (final order in allOrdersStatus) {
+      final status = order['status']?.toString() ?? 'pending';
+      statusCounts[status] = (statusCounts[status] ?? 0) + 1;
+      if (status == 'pending') {
+        pendingCount++;
+      }
+    }
+
+    // -- Line chart (30 days daily revenue)
+    final List<double> dailyRevenue30Days = List<double>.filled(30, 0.0);
+    for (var i = 0; i < 30; i++) {
+      final dayDate = now.subtract(Duration(days: 29 - i));
+      final startOfDay = DateTime(dayDate.year, dayDate.month, dayDate.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+
+      double dailySum = 0;
+      for (final order in recentOrders) {
+        if (order['status'] == 'delivered') {
+          final orderTime = DateTime.parse(order['created_at']?.toString() ?? '').toLocal();
+          if (orderTime.isAfter(startOfDay) && orderTime.isBefore(endOfDay)) {
+            dailySum += (order['total_amount'] as num?)?.toDouble() ?? 0.0;
+          }
+        }
+      }
+      dailyRevenue30Days[i] = dailySum;
+    }
+
+    // -- Top shops
+    final Map<String, double> sellerRevenues = {};
+    for (final order in deliveredOrders) {
+      final itemsList = order['order_items'] as List?;
+      if (itemsList == null) continue;
+      for (final item in itemsList) {
+        final totalPrice = (item['total_price'] as num?)?.toDouble() ?? 0.0;
+        final product = (item['product'] ?? item['products']) as Map?;
+        final sellerId = product?['seller_id']?.toString();
+        if (sellerId != null) {
+          sellerRevenues[sellerId] = (sellerRevenues[sellerId] ?? 0.0) + totalPrice;
+        }
+      }
+    }
+
+    final List<ShopRevenue> topShops = [];
+    final approvedShopsMap = {
+      for (final shop in approvedShops)
+        shop['user_id']?.toString() ?? '': shop['shop_name']?.toString() ?? 'Shop'
+    };
+
+    approvedShopsMap.forEach((sellerId, shopName) {
+      final rev = sellerRevenues[sellerId] ?? 0.0;
+      topShops.add(ShopRevenue(shopName: shopName, revenue: rev));
+    });
+
+    topShops.sort((a, b) => b.revenue.compareTo(a.revenue));
+    final displayShops = topShops.take(10).toList();
+
+    // -- Monthly Growth (12 months)
+    final List<MonthlyGrowth> monthlyUserGrowth = [];
+    final List<DateTime> months = [];
+    for (var i = 11; i >= 0; i--) {
+      months.add(DateTime(now.year, now.month - i, 1));
+    }
+
+    for (final month in months) {
+      final endOfMonth = DateTime(month.year, month.month + 1, 1).subtract(const Duration(microseconds: 1));
+      int count = 0;
+      for (final profile in userProfiles) {
+        final createdAtStr = profile['created_at']?.toString();
+        if (createdAtStr != null) {
+          final profileTime = DateTime.parse(createdAtStr).toLocal();
+          if (profileTime.isBefore(endOfMonth)) {
+            count++;
+          }
+        }
+      }
+      final monthLabel = '${month.month.toString().padLeft(2, '0')}/${month.year.toString().substring(2)}';
+      monthlyUserGrowth.add(MonthlyGrowth(month: monthLabel, count: count));
+    }
+
     return DashboardStats(
-      todayOrders: todayOrders.length,
-      todayRevenue: todayRevenue.fold<double>(
-        0,
-        (sum, row) => sum + ((row['total_amount'] as num?)?.toDouble() ?? 0),
-      ),
-      pendingOrders: pendingOrders.length,
+      todayOrders: tOrders,
+      todayRevenue: tRevenue,
+      weekOrders: wOrders,
+      weekRevenue: wRevenue,
+      monthOrders: mOrders,
+      monthRevenue: mRevenue,
+      pendingOrders: pendingCount,
       activeProducts: activeProducts.length,
+      dailyRevenue30Days: dailyRevenue30Days,
+      ordersByStatus: statusCounts,
+      topShops: displayShops,
+      monthlyUserGrowth: monthlyUserGrowth,
     );
   }
 

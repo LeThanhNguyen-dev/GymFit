@@ -32,7 +32,7 @@ GymFit là ứng dụng e-commerce bán đồ tập gym, hỗ trợ:
 - Đăng ký / Đăng nhập / Quản lý profile
 - Duyệt sản phẩm theo danh mục, thương hiệu
 - Giỏ hàng, wishlist, voucher
-- Checkout, thanh toán COD / Mock Momo / VNPay
+- Checkout, thanh toán COD / Mock Momo / payOS
 - Quản lý đơn hàng, tracking shipping
 - Đánh giá sản phẩm, hỗ trợ khách hàng
 - Admin dashboard, quản lý tồn kho
@@ -656,7 +656,7 @@ CREATE TABLE payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES profiles(id),
-  payment_method TEXT NOT NULL CHECK (payment_method IN ('cod', 'momo', 'vnpay')),
+  payment_method TEXT NOT NULL CHECK (payment_method IN ('cod', 'momo', 'payos')),
   amount DECIMAL(12,2) NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending'
     CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'refunded')),
@@ -2070,7 +2070,7 @@ class CheckoutData {
 - `checkoutRepositoryProvider`
 - `checkoutDataProvider`: StateProvider<CheckoutData?> — nhận từ cart
 - `selectedAddressProvider`: StateProvider<AddressModel?> — địa chỉ giao hàng
-- `paymentMethodProvider`: StateProvider<String> — 'cod' | 'momo' | 'vnpay'
+- `paymentMethodProvider`: StateProvider<String> — 'cod' | 'momo' | 'payos'
 - `shippingFeeProvider`: Provider<double>
 - `orderNoteProvider`: StateProvider<String>
 - `checkoutTotalProvider`: Provider<double> — total + shippingFee - discount
@@ -2087,7 +2087,7 @@ class CheckoutData {
   * Hiện voucher đã áp (nếu có): code + discount amount
   * Nếu chưa áp → nút "Chọn mã giảm giá"
 - **Payment Method Section**:
-  * Radio buttons: COD, Momo, VNPay
+  * Radio buttons: COD, Momo, payOS
   * Icon + tên phương thức
 - **Order Note**:
   * TextField nhập ghi chú (optional)
@@ -2107,7 +2107,7 @@ class CheckoutData {
 2. Giảm stock
 3. Clear cart
 4. Tăng voucher used_count
-5. Navigate to payment screen (nếu Momo/VNPay) hoặc order success screen (nếu COD)
+5. Navigate to payment screen (nếu Momo/payOS) hoặc order success screen (nếu COD)
 6. Hiện dialog/screen "Đặt hàng thành công!"
 ```
 
@@ -2211,11 +2211,11 @@ Tiếp tục module Payment cho GymFit.
 
 **1. Model** (`models/payment_model.dart`):
 - id, orderId, userId
-- paymentMethod ('cod' | 'momo' | 'vnpay')
+- paymentMethod ('cod' | 'momo' | 'payos')
 - amount, status ('pending' | 'processing' | 'completed' | 'failed' | 'refunded')
 - transactionId, paidAt
 - createdAt, updatedAt
-- getter `methodDisplay` → "Thanh toán khi nhận hàng", "Ví Momo", "VNPay"
+- getter `methodDisplay` → "Thanh toán khi nhận hàng", "Ví Momo", "payOS"
 - getter `statusDisplay` → "Chờ thanh toán", "Thành công", ...
 
 **2. Repository** (`data/payment_repository.dart`):
@@ -2227,7 +2227,7 @@ Tiếp tục module Payment cho GymFit.
   * Simulate: delay 2 giây → random success/fail (90% success)
   * Update payment status
   * Return result
-- `mockVnPayPayment(paymentId, amount)`:
+- `createPayOsPayment(payment)`:
   * Tương tự Momo mock
 
 **3. Providers** (`providers/payment_provider.dart`):
@@ -2244,9 +2244,9 @@ Tiếp tục module Payment cho GymFit.
     - Hiện số tiền
     - Nút "Xác nhận thanh toán"
     - Loading animation khi đang xử lý
-  * **VNPay**: Hiện mock UI giống VNPay (logo, form)
-    - Chọn ngân hàng (list ngân hàng mock)
-    - Nút "Thanh toán"
+  * **payOS**: Hien thi QR VietQR trong app
+    - Tao QR qua Supabase Edge Function
+    - Nut "Toi da thanh toan" de sync trang thai
 
 - `payment_status_screen.dart`:
   * **Success**: Icon check lớn (animated), "Thanh toán thành công!"

@@ -8,34 +8,63 @@ class VoucherRepository {
 
   final SupabaseClient _client;
 
-  Future<List<VoucherModel>> getAvailableVouchers() async {
+  Future<List<VoucherModel>> getAvailableVouchers({
+    String? scope,
+    String? sellerId,
+  }) async {
     final now = DateTime.now().toIso8601String();
-    final rows = await _client
+    var query = _client
         .from(AppConstants.vouchersTable)
         .select()
         .eq('is_active', true)
         .lte('start_date', now)
-        .gte('end_date', now)
-        .order('end_date');
+        .gte('end_date', now);
+
+    if (scope != null) {
+      query = query.eq('scope', scope);
+    }
+    if (sellerId != null) {
+      query = query.eq('seller_id', sellerId);
+    }
+
+    final rows = await query.order('end_date');
 
     return rows.map((row) => VoucherModel.fromJson(row)).toList();
   }
 
-  Future<VoucherModel?> getVoucherByCode(String code) async {
-    final row = await _client
+  Future<VoucherModel?> getVoucherByCode(
+    String code, {
+    String? scope,
+    String? sellerId,
+  }) async {
+    var query = _client
         .from(AppConstants.vouchersTable)
         .select()
-        .ilike('code', code.trim())
-        .maybeSingle();
+        .ilike('code', code.trim());
+
+    if (scope != null) {
+      query = query.eq('scope', scope);
+    }
+    if (sellerId != null) {
+      query = query.eq('seller_id', sellerId);
+    }
+
+    final row = await query.maybeSingle();
 
     return row == null ? null : VoucherModel.fromJson(row);
   }
 
   Future<VoucherValidationResult> validateVoucher(
     String code,
-    double orderAmount,
-  ) async {
-    final voucher = await getVoucherByCode(code);
+    double orderAmount, {
+    String? scope,
+    String? sellerId,
+  }) async {
+    final voucher = await getVoucherByCode(
+      code,
+      scope: scope,
+      sellerId: sellerId,
+    );
     if (voucher == null) {
       throw StateError('Mã giảm giá không tồn tại.');
     }
@@ -130,5 +159,47 @@ class VoucherRepository {
               .single();
 
     return VoucherModel.fromJson(row);
+  }
+
+  Future<void> deleteVoucher(String id) async {
+    await _client.from(AppConstants.vouchersTable).update({
+      'is_active': false,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', id);
+  }
+
+  Future<void> restoreVoucher(String id) async {
+    await _client.from(AppConstants.vouchersTable).update({
+      'is_active': true,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', id);
+  }
+
+  Future<Map<String, int>> getVoucherStats() async {
+    final rows = await _client
+        .from(AppConstants.vouchersTable)
+        .select('is_active, end_date');
+
+    int total = rows.length;
+    int active = 0;
+    int inactive = 0;
+    final now = DateTime.now();
+
+    for (final row in rows) {
+      final isActive = row['is_active'] as bool? ?? false;
+      final endDateStr = row['end_date'] as String?;
+      final isExpired = endDateStr != null && DateTime.parse(endDateStr).isBefore(now);
+      if (isActive && !isExpired) {
+        active++;
+      } else {
+        inactive++;
+      }
+    }
+
+    return {
+      'total': total,
+      'active': active,
+      'inactive': inactive,
+    };
   }
 }

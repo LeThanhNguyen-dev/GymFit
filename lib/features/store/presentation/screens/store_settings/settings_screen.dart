@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/providers/supabase_providers.dart';
+import '../../../../../core/router/route_names.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../core/theme/app_text_styles.dart';
@@ -87,6 +88,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showUnsupported(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$feature chưa được hỗ trợ trong bản này.')),
+    );
   }
 
   @override
@@ -190,10 +197,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
           child: Column(
             children: [
               ListTile(
+                leading: const Icon(Icons.chat_bubble_outline),
+                title: Text('Tin nhắn realtime', style: AppTextStyles.bodyMedium),
+                subtitle: Text('Chat với admin và khách hàng', style: AppTextStyles.bodySmall),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push(RouteNames.storeChatPath),
+              ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              ListTile(
                 leading: const Icon(Icons.description_outlined),
                 title: Text('Chính sách đổi trả', style: AppTextStyles.bodyMedium),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () {},
+                onTap: () => _showUnsupported('Chính sách đổi trả'),
               ),
               const Divider(height: 1, indent: 16, endIndent: 16),
               ListTile(
@@ -201,11 +216,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
                 title: Text('Giờ hoạt động', style: AppTextStyles.bodyMedium),
                 subtitle: Text('T2-CN: 08:00 - 22:00', style: AppTextStyles.bodySmall),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () {},
+                onTap: () => _showUnsupported('Giờ hoạt động'),
               ),
             ],
           ),
         ),
+        const SizedBox(height: AppSpacing.md),
+        _buildShopVouchers(),
         const SizedBox(height: AppSpacing.md),
         Card(
           child: Column(
@@ -214,21 +231,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
                 secondary: const Icon(Icons.notifications),
                 title: Text('Đơn hàng mới', style: AppTextStyles.bodyMedium),
                 value: true,
-                onChanged: (_) {},
+                onChanged: (_) => _showUnsupported('Thông báo đơn hàng mới'),
               ),
               const Divider(height: 1, indent: 16, endIndent: 16),
               SwitchListTile(
                 secondary: const Icon(Icons.inventory),
                 title: Text('Cảnh báo hết hàng', style: AppTextStyles.bodyMedium),
                 value: true,
-                onChanged: (_) {},
+                onChanged: (_) => _showUnsupported('Cảnh báo hết hàng'),
               ),
               const Divider(height: 1, indent: 16, endIndent: 16),
               SwitchListTile(
                 secondary: const Icon(Icons.rate_review),
                 title: Text('Đánh giá mới', style: AppTextStyles.bodyMedium),
                 value: false,
-                onChanged: (_) {},
+                onChanged: (_) => _showUnsupported('Thông báo đánh giá mới'),
               ),
             ],
           ),
@@ -245,12 +262,227 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
             ),
             onPressed: () {
               ref.read(authProvider.notifier).logout().then((_) {
-                context.go('/login');
+                if (mounted) {
+                  context.go(RouteNames.loginPath);
+                }
               });
             },
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildShopVouchers() {
+    final supabase = ref.watch(supabaseClientProvider);
+    final userId = supabase.auth.currentUser?.id;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Voucher của shop', style: AppTextStyles.titleMedium),
+                ),
+                TextButton.icon(
+                  onPressed: userId == null
+                      ? null
+                      : () => _showShopVoucherDialog(userId: userId),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Thêm'),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            FutureBuilder<List<dynamic>>(
+              future: userId == null
+                  ? Future.value([])
+                  : supabase
+                        .from('vouchers')
+                        .select()
+                        .eq('scope', 'shop')
+                        .eq('seller_id', userId)
+                        .order('created_at', ascending: false),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return Text(
+                    'Không thể tải voucher shop: ${snapshot.error}',
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  );
+                }
+
+                final vouchers = snapshot.data ?? const [];
+                if (vouchers.isEmpty) {
+                  return Text(
+                    'Chưa có voucher riêng cho shop.',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: vouchers.map((raw) {
+                    final voucher = Map<String, dynamic>.from(raw as Map);
+                    final active = voucher['is_active'] as bool? ?? true;
+                    final code = voucher['code']?.toString() ?? '';
+                    final discountType = voucher['discount_type']?.toString();
+                    final value = voucher['discount_value']?.toString() ?? '0';
+                    final display = discountType == 'percentage'
+                        ? '$value%'
+                        : '${double.tryParse(value)?.toStringAsFixed(0) ?? value}đ';
+
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        Icons.local_offer_outlined,
+                        color: active ? AppColors.primary : AppColors.outline,
+                      ),
+                      title: Text(code),
+                      subtitle: Text('Giảm $display'),
+                      trailing: Switch(
+                        value: active,
+                        onChanged: (next) async {
+                          await supabase
+                              .from('vouchers')
+                              .update({
+                                'is_active': next,
+                                'updated_at': DateTime.now().toIso8601String(),
+                              })
+                              .eq('id', voucher['id']);
+                          if (mounted) setState(() {});
+                        },
+                      ),
+                      onTap: () => _showShopVoucherDialog(
+                        userId: userId!,
+                        voucher: voucher,
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showShopVoucherDialog({
+    required String userId,
+    Map<String, dynamic>? voucher,
+  }) async {
+    final codeCtrl = TextEditingController(text: voucher?['code']?.toString());
+    final valueCtrl = TextEditingController(
+      text: voucher?['discount_value']?.toString() ?? '0',
+    );
+    final minCtrl = TextEditingController(
+      text: voucher?['min_order_amount']?.toString() ?? '0',
+    );
+    final limitCtrl = TextEditingController(
+      text: voucher?['usage_limit']?.toString() ?? '',
+    );
+    var discountType = voucher?['discount_type']?.toString() ?? 'fixed';
+    var active = voucher?['is_active'] as bool? ?? true;
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setLocalState) => AlertDialog(
+          title: Text(voucher == null ? 'Thêm voucher shop' : 'Sửa voucher shop'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: codeCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(labelText: 'Mã voucher'),
+                ),
+                DropdownButtonFormField<String>(
+                  initialValue: discountType,
+                  items: const [
+                    DropdownMenuItem(value: 'fixed', child: Text('Giảm tiền')),
+                    DropdownMenuItem(value: 'percentage', child: Text('Giảm %')),
+                  ],
+                  onChanged: (value) =>
+                      setLocalState(() => discountType = value ?? discountType),
+                ),
+                TextField(
+                  controller: valueCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Giá trị giảm'),
+                ),
+                TextField(
+                  controller: minCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Đơn tối thiểu'),
+                ),
+                TextField(
+                  controller: limitCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Lượt dùng tối đa'),
+                ),
+                SwitchListTile(
+                  value: active,
+                  onChanged: (value) => setLocalState(() => active = value),
+                  title: const Text('Đang hoạt động'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Hủy'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final code = codeCtrl.text.trim().toUpperCase();
+                if (code.isEmpty) return;
+                final payload = {
+                  'code': code,
+                  'description': 'Shop voucher',
+                  'scope': 'shop',
+                  'seller_id': userId,
+                  'discount_type': discountType,
+                  'discount_value': double.tryParse(valueCtrl.text.trim()) ?? 0,
+                  'min_order_amount': double.tryParse(minCtrl.text.trim()) ?? 0,
+                  'usage_limit': int.tryParse(limitCtrl.text.trim()),
+                  'is_active': active,
+                  'start_date': DateTime.now().toIso8601String(),
+                  'end_date': DateTime.now()
+                      .add(const Duration(days: 30))
+                      .toIso8601String(),
+                  'updated_at': DateTime.now().toIso8601String(),
+                };
+                final supabase = ref.read(supabaseClientProvider);
+                if (voucher == null) {
+                  await supabase.from('vouchers').insert(payload);
+                } else {
+                  await supabase
+                      .from('vouchers')
+                      .update(payload)
+                      .eq('id', voucher['id']);
+                }
+                if (mounted) setState(() {});
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: const Text('Lưu'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

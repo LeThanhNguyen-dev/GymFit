@@ -17,6 +17,8 @@ class VoucherModel {
     this.description,
     this.maxDiscountAmount,
     this.usageLimit,
+    this.scope = 'admin',
+    this.sellerId,
   });
 
   final String id;
@@ -28,6 +30,8 @@ class VoucherModel {
   final double? maxDiscountAmount;
   final int? usageLimit;
   final int usedCount;
+  final String scope;
+  final String? sellerId;
   final DateTime startDate;
   final DateTime endDate;
   final bool isActive;
@@ -46,6 +50,8 @@ class VoucherModel {
       maxDiscountAmount: doubleFromJson(json['max_discount_amount']),
       usageLimit: intFromJson(json['usage_limit']),
       usedCount: intFromJson(json['used_count']) ?? 0,
+      scope: json['scope']?.toString() ?? 'admin',
+      sellerId: json['seller_id']?.toString(),
       startDate: dateTimeFromJson(json['start_date']) ?? now,
       endDate: dateTimeFromJson(json['end_date']) ?? now,
       isActive: json['is_active'] as bool? ?? true,
@@ -64,6 +70,8 @@ class VoucherModel {
     'max_discount_amount': maxDiscountAmount,
     'usage_limit': usageLimit,
     'used_count': usedCount,
+    'scope': scope,
+    'seller_id': sellerId,
     'start_date': dateTimeToJson(startDate),
     'end_date': dateTimeToJson(endDate),
     'is_active': isActive,
@@ -80,6 +88,8 @@ class VoucherModel {
       usageLimit != null && usedCount >= usageLimit!;
 
   bool get canUse => isValid && !isUsageLimitReached;
+  bool get isAdminVoucher => scope == 'admin';
+  bool get isShopVoucher => scope == 'shop';
 
   String get discountDisplay {
     if (discountType == 'percentage') return '${discountValue.toInt()}%';

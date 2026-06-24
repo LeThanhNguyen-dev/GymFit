@@ -4,14 +4,51 @@ class DashboardStats {
   const DashboardStats({
     required this.todayOrders,
     required this.todayRevenue,
+    required this.weekOrders,
+    required this.weekRevenue,
+    required this.monthOrders,
+    required this.monthRevenue,
     required this.pendingOrders,
     required this.activeProducts,
+    required this.dailyRevenue30Days,
+    required this.ordersByStatus,
+    required this.topShops,
+    required this.monthlyUserGrowth,
   });
 
   final int todayOrders;
   final double todayRevenue;
+  final int weekOrders;
+  final double weekRevenue;
+  final int monthOrders;
+  final double monthRevenue;
   final int pendingOrders;
   final int activeProducts;
+
+  final List<double> dailyRevenue30Days;
+  final Map<String, int> ordersByStatus;
+  final List<ShopRevenue> topShops;
+  final List<MonthlyGrowth> monthlyUserGrowth;
+}
+
+class ShopRevenue {
+  const ShopRevenue({
+    required this.shopName,
+    required this.revenue,
+  });
+
+  final String shopName;
+  final double revenue;
+}
+
+class MonthlyGrowth {
+  const MonthlyGrowth({
+    required this.month,
+    required this.count,
+  });
+
+  final String month;
+  final int count;
 }
 
 class LowStockVariantModel {

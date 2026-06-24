@@ -455,15 +455,21 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
     if (id == null) return 'Chọn danh mục';
     try {
       final cat = _categories.firstWhere((c) => c.id == id);
-      if (cat.parentId != null && cat.parentId!.isNotEmpty && cat.parentId != 'null') {
-        final parent = _categories.firstWhere((c) => c.id == cat.parentId, orElse: () => cat);
-        if (parent.id != cat.id) {
-          return '${parent.name} > ${cat.name}';
-        }
-      }
-      return cat.name;
+      return _buildCategoryPath(cat);
     } catch (_) {
       return 'Chọn danh mục';
+    }
+  }
+
+  String _buildCategoryPath(CategoryModel cat) {
+    if (cat.parentId == null || cat.parentId!.isEmpty || cat.parentId == 'null') {
+      return cat.name;
+    }
+    try {
+      final parent = _categories.firstWhere((c) => c.id == cat.parentId);
+      return '${_buildCategoryPath(parent)} > ${cat.name}';
+    } catch (_) {
+      return cat.name;
     }
   }
 
@@ -473,11 +479,10 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (context) {
-        var roots = _categories.where((c) => c.parentId == null || c.parentId!.isEmpty || c.parentId == 'null').toList();
-        // Nếu không có danh mục cha nào (tức là dùng danh sách phẳng), lấy tất cả làm danh mục gốc
-        if (roots.isEmpty && _categories.isNotEmpty) {
-          roots = List.from(_categories);
-        }
+        final roots = _categories
+            .where((c) => c.parentId == null || c.parentId!.isEmpty || c.parentId == 'null')
+            .toList();
+        final flat = roots.isEmpty && _categories.isNotEmpty ? List<CategoryModel>.from(_categories) : roots;
 
         return DraggableScrollableSheet(
           initialChildSize: 0.6,
@@ -501,36 +506,9 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
                 Expanded(
                   child: ListView.builder(
                     controller: scrollController,
-                    itemCount: roots.length,
-                    itemBuilder: (context, index) {
-                      final root = roots[index];
-                      final children = _categories.where((c) => c.parentId == root.id).toList();
-                      if (children.isEmpty) {
-                        return ListTile(
-                          title: Text(root.name, style: const TextStyle(fontWeight: FontWeight.w500)),
-                          trailing: _selectedCategoryId == root.id ? const Icon(Icons.check_circle, color: AppColors.primary) : null,
-                          onTap: () {
-                            setState(() => _selectedCategoryId = root.id);
-                            Navigator.pop(context);
-                          },
-                        );
-                      }
-                      return ExpansionTile(
-                        title: Text(root.name, style: const TextStyle(fontWeight: FontWeight.w500)),
-                        initiallyExpanded: children.any((c) => c.id == _selectedCategoryId) || _selectedCategoryId == root.id,
-                        children: children.map((child) {
-                          return ListTile(
-                            contentPadding: const EdgeInsets.only(left: 48, right: 16),
-                            title: Text(child.name),
-                            trailing: _selectedCategoryId == child.id ? const Icon(Icons.check_circle, color: AppColors.primary) : null,
-                            onTap: () {
-                              setState(() => _selectedCategoryId = child.id);
-                              Navigator.pop(context);
-                            },
-                          );
-                        }).toList(),
-                      );
-                    },
+                    itemCount: flat.length,
+                    itemBuilder: (context, index) =>
+                        _buildCategoryNode(flat[index], 0),
                   ),
                 ),
               ],
@@ -538,6 +516,32 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
           },
         );
       },
+    );
+  }
+
+  Widget _buildCategoryNode(CategoryModel cat, int depth) {
+    final children = _categories.where((c) => c.parentId == cat.id).toList();
+    final selected = _selectedCategoryId == cat.id;
+
+    if (children.isEmpty) {
+      return ListTile(
+        contentPadding: EdgeInsets.only(left: 16.0 + depth * 32, right: 16),
+        title: Text(cat.name, style: TextStyle(fontWeight: selected ? FontWeight.bold : FontWeight.w500)),
+        trailing: selected ? const Icon(Icons.check_circle, color: AppColors.primary) : null,
+        onTap: () {
+          setState(() => _selectedCategoryId = cat.id);
+          Navigator.pop(context);
+        },
+      );
+    }
+
+    return ExpansionTile(
+      title: Padding(
+        padding: EdgeInsets.only(left: depth * 32.0),
+        child: Text(cat.name, style: const TextStyle(fontWeight: FontWeight.w500)),
+      ),
+      initiallyExpanded: children.any((c) => c.id == _selectedCategoryId),
+      children: children.map((c) => _buildCategoryNode(c, depth + 1)).toList(),
     );
   }
 
@@ -742,7 +746,7 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
                     _attributes.clear();
                     _variants.clear();
                   } else if (_attributes.isEmpty) {
-                    _attributes.add({'name': 'Màu sắc', 'options': <String>[]});
+                    _attributes.add({'name': '', 'options': <String>[]});
                   }
                 });
               },
@@ -752,7 +756,11 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
         const SizedBox(height: AppSpacing.md),
         TextFormField(
           controller: _basePriceCtrl,
-          decoration: const InputDecoration(labelText: 'Giá cơ bản (₫) *', border: OutlineInputBorder(), prefixText: '₫ '),
+          decoration: const InputDecoration(
+            labelText: 'Giá cơ bản *',
+            border: OutlineInputBorder(),
+            suffixText: '₫',
+          ),
           keyboardType: TextInputType.number,
           validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập giá bán' : null,
           onChanged: (_) => setState(() => _generateVariants()),
@@ -763,7 +771,11 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
             Expanded(
               child: TextFormField(
                 controller: _compareAtPriceCtrl,
-                decoration: const InputDecoration(labelText: 'Giá so sánh', border: OutlineInputBorder(), prefixText: '₫ '),
+                decoration: const InputDecoration(
+                  labelText: 'Giá so sánh',
+                  border: OutlineInputBorder(),
+                  suffixText: '₫',
+                ),
                 keyboardType: TextInputType.number,
               ),
             ),
@@ -771,137 +783,274 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
             Expanded(
               child: TextFormField(
                 controller: _costPriceCtrl,
-                decoration: const InputDecoration(labelText: 'Giá vốn', border: OutlineInputBorder(), prefixText: '₫ '),
+                decoration: const InputDecoration(
+                  labelText: 'Giá vốn',
+                  border: OutlineInputBorder(),
+                  suffixText: '₫',
+                ),
                 keyboardType: TextInputType.number,
               ),
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.md),
-        TextFormField(
-          controller: _skuCtrl,
-          decoration: const InputDecoration(labelText: 'Mã sản phẩm (SKU)', border: OutlineInputBorder()),
-        ),
         if (!_hasVariants) ...[
           const SizedBox(height: AppSpacing.md),
           TextFormField(
+            controller: _skuCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Mã sản phẩm (SKU)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          TextFormField(
             controller: _stockCtrl,
-            decoration: const InputDecoration(labelText: 'Số lượng tồn kho', border: OutlineInputBorder()),
+            decoration: const InputDecoration(
+              labelText: 'Số lượng tồn kho',
+              border: OutlineInputBorder(),
+            ),
             keyboardType: TextInputType.number,
           ),
         ] else ...[
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: 24),
+          Divider(color: AppColors.outlineVariant),
+          const SizedBox(height: 16),
           Text('Nhóm phân loại', style: AppTextStyles.titleSmall),
-          const SizedBox(height: AppSpacing.sm),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _attributes.length,
-            itemBuilder: (context, attrIndex) {
-              final attr = _attributes[attrIndex];
-              return Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(side: BorderSide(color: AppColors.outlineVariant), borderRadius: BorderRadius.circular(8)),
-                margin: const EdgeInsets.only(bottom: AppSpacing.md),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              initialValue: attr['name'],
-                              decoration: const InputDecoration(labelText: 'Tên nhóm (VD: Màu sắc, Kích cỡ)', border: OutlineInputBorder(), isDense: true),
-                              onChanged: (val) {
-                                _attributes[attrIndex]['name'] = val;
-                                _generateVariants();
-                              },
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close, color: AppColors.error),
-                            onPressed: () => setState(() {
-                              _attributes.removeAt(attrIndex);
-                              _generateVariants();
-                            }),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          ...(attr['options'] as List<String>).asMap().entries.map((entry) {
-                            return Chip(
-                              label: Text(entry.value),
-                              onDeleted: () {
-                                setState(() {
-                                  (attr['options'] as List<String>).removeAt(entry.key);
-                                  _generateVariants();
-                                });
-                              },
-                            );
-                          }),
-                          ActionChip(
-                            label: const Text('+ Thêm tuỳ chọn', style: TextStyle(color: AppColors.primary)),
-                            backgroundColor: AppColors.primaryContainer,
-                            onPressed: () {
-                              _showAddOptionDialog(attrIndex);
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
+          const SizedBox(height: 12),
+          ...List.generate(_attributes.length, (i) => _buildAttributeGroup(i)),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () {
+              setState(() {
+                _attributes.add({'name': '', 'options': <String>[]});
+              });
             },
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Thêm nhóm phân loại'),
           ),
+          if (_variants.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            Divider(color: AppColors.outlineVariant),
+            const SizedBox(height: 16),
+            Text('Danh sách biến thể', style: AppTextStyles.titleSmall),
+            const SizedBox(height: 12),
+            _buildVariantCards(),
+          ],
         ],
       ],
     );
   }
 
-  void _showAddOptionDialog(int attrIndex) {
-    final ctrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Thêm tuỳ chọn'),
-        content: TextField(
-          controller: ctrl,
-          decoration: const InputDecoration(hintText: 'Nhập tuỳ chọn (Đỏ, Size L,...)'),
-          autofocus: true,
-          onSubmitted: (val) {
-            if (val.trim().isNotEmpty) {
-              setState(() {
-                (_attributes[attrIndex]['options'] as List<String>).add(val.trim());
-                _generateVariants();
-              });
-            }
-            Navigator.pop(context);
-          },
+  Widget _buildAttributeGroup(int attrIndex) {
+    final attr = _attributes[attrIndex];
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: AppColors.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    initialValue: attr['name'],
+                    decoration: const InputDecoration(
+                      labelText: 'Tên nhóm phân loại',
+                      hintText: 'Ví dụ: Màu sắc, Kích cỡ',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    onChanged: (val) {
+                      _attributes[attrIndex]['name'] = val;
+                      _generateVariants();
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.close, color: AppColors.error),
+                  onPressed: () => setState(() {
+                    _attributes.removeAt(attrIndex);
+                    _generateVariants();
+                  }),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ...(attr['options'] as List<String>).asMap().entries.map((entry) {
+                  return Chip(
+                    label: Text(entry.value),
+                    onDeleted: () {
+                      setState(() {
+                        (attr['options'] as List<String>).removeAt(entry.key);
+                        _generateVariants();
+                      });
+                    },
+                  );
+                }),
+                _buildInlineOptionInput(attrIndex),
+              ],
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Huỷ')),
-          ElevatedButton(
+      ),
+    );
+  }
+
+  Widget _buildInlineOptionInput(int attrIndex) {
+    final ctrl = TextEditingController();
+    return SizedBox(
+      width: 160,
+      child: TextField(
+        controller: ctrl,
+        decoration: InputDecoration(
+          hintText: 'Nhập giá trị...',
+          border: const OutlineInputBorder(),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          isDense: true,
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.add_circle_outline, size: 18),
             onPressed: () {
               if (ctrl.text.trim().isNotEmpty) {
                 setState(() {
                   (_attributes[attrIndex]['options'] as List<String>).add(ctrl.text.trim());
                   _generateVariants();
                 });
+                ctrl.clear();
               }
-              Navigator.pop(context);
             },
-            child: const Text('Thêm'),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           ),
-        ],
+        ),
+        textInputAction: TextInputAction.done,
+        onSubmitted: (val) {
+          if (val.trim().isNotEmpty) {
+            setState(() {
+              (_attributes[attrIndex]['options'] as List<String>).add(val.trim());
+              _generateVariants();
+            });
+            ctrl.clear();
+          }
+        },
       ),
     );
+  }
+
+  Widget _buildVariantCards() {
+    return Column(
+      children: List.generate(_variants.length, (index) {
+        final v = _variants[index];
+        final priceVal = (v['price'] as num?) ?? 0;
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            side: BorderSide(color: AppColors.outlineVariant),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          margin: const EdgeInsets.only(bottom: 10),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(v['name'] ?? '', style: AppTextStyles.titleSmall),
+                const SizedBox(height: 10),
+                // Price + Stock row
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: priceVal > 0 ? priceVal.toInt().toString() : '',
+                        decoration: InputDecoration(
+                          labelText: 'Giá',
+                          border: const OutlineInputBorder(),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          suffixText: '₫',
+                          hintText: '0₫',
+                        ),
+                        keyboardType: TextInputType.number,
+                        onChanged: (val) {
+                          _variants[index]['price'] = double.tryParse(val.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    SizedBox(
+                      width: 90,
+                      child: TextFormField(
+                        initialValue: (v['quantity'] as num?)?.toInt().toString() ?? '0',
+                        decoration: const InputDecoration(
+                          labelText: 'Tồn kho',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        ),
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        onChanged: (val) {
+                          _variants[index]['quantity'] = int.tryParse(val.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  initialValue: v['sku']?.toString() ?? '',
+                  decoration: InputDecoration(
+                    labelText: 'SKU',
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    hintText: _autoSku(index),
+                    helperText: 'Để trống để tự sinh',
+                  ),
+                  onChanged: (val) {
+                    _variants[index]['sku'] = val;
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  String _autoSku(int variantIndex) {
+    if (_skuCtrl.text.trim().isEmpty) return '';
+    final options = _variants[variantIndex]['optionValues'] as Map<String, dynamic>?;
+    if (options == null || options.isEmpty) return _skuCtrl.text.trim();
+    final suffix = options.values.map((v) {
+      final s = _stripDiacritics(v.toString().trim());
+      return s.length > 4 ? s.substring(0, 4).toUpperCase() : s.toUpperCase();
+    }).join('-');
+    return '${_skuCtrl.text.trim()}-$suffix';
+  }
+
+  String _stripDiacritics(String s) {
+    const withDia = 'àáảãạăằắẳẵặâầấẩẫậđèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ';
+    const without = 'aaaaaaaaaaaaaaaaadddeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyy';
+    return s.split('').map((c) {
+      final i = withDia.indexOf(c);
+      if (i < 0) {
+        final upper = withDia.toUpperCase().indexOf(c);
+        return upper >= 0 ? without[upper].toUpperCase() : c;
+      }
+      return without[i];
+    }).join('');
   }
 
   Widget _buildShipping() {

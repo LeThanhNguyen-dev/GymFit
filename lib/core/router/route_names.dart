@@ -35,7 +35,6 @@ class RouteNames {
   // Payment
   static const String payment = 'payment';
   static const String paymentStatus = 'paymentStatus';
-  static const String paymentVnPayReturn = 'paymentVnPayReturn';
 
   // Shipping
   static const String shippingTracking = 'shippingTracking';
@@ -46,6 +45,9 @@ class RouteNames {
   // Support
   static const String supportList = 'supportList';
   static const String supportDetail = 'supportDetail';
+  static const String chatInbox = 'chatInbox';
+  static const String chatNewConversation = 'chatNewConversation';
+  static const String chatDetail = 'chatDetail';
 
   // Shop Registration
   static const String registerShop = 'registerShop';
@@ -57,6 +59,9 @@ class RouteNames {
   static const String storeOrders = 'storeOrders';
   static const String storeFinance = 'storeFinance';
   static const String storeSettings = 'storeSettings';
+  static const String storeChat = 'storeChat';
+  static const String storeChatNew = 'storeChatNew';
+  static const String storeChatDetail = 'storeChatDetail';
   static const String storeAddProduct = 'storeAddProduct';
   static const String storeEditProduct = 'storeEditProduct';
   static const String storeOrderDetail = 'storeOrderDetail';
@@ -69,11 +74,15 @@ class RouteNames {
   static const String adminOrders = 'adminOrders';
   static const String adminFinance = 'adminFinance';
   static const String adminSettings = 'adminSettings';
+  static const String adminChat = 'adminChat';
+  static const String adminChatNew = 'adminChatNew';
+  static const String adminChatDetail = 'adminChatDetail';
 
   // Admin sub-screens
   static const String adminShopDetail = 'adminShopDetail';
   static const String adminShopRegistrations = 'adminShopRegistrations';
-  static const String adminShopRegistrationsDetail = 'adminShopRegistrationsDetail';
+  static const String adminShopRegistrationsDetail =
+      'adminShopRegistrationsDetail';
   static const String adminProductModeration = 'adminProductModeration';
   static const String adminUserDetail = 'adminUserDetail';
   static const String adminOrderDetail = 'adminOrderDetail';
@@ -111,11 +120,13 @@ class RouteNames {
   static const String voucherListPath = '/vouchers';
   static const String paymentPath = '/payment';
   static const String paymentStatusPath = '/payment/status';
-  static const String paymentVnPayReturnPath = '/payment-vnpay-return';
   static const String shippingTrackingPath = '/shipping/:orderId';
   static const String reviewFormPath = '/review';
   static const String supportListPath = '/support';
   static const String supportDetailPath = '/support/:id';
+  static const String chatInboxPath = '/chat';
+  static const String chatNewConversationPath = '/chat/new';
+  static const String chatDetailPath = '/chat/:id';
   static const String registerShopPath = '/register-shop';
   static const String adminPath = '/admin';
   static const String adminDashboardPath = '/admin/dashboard';
@@ -124,11 +135,15 @@ class RouteNames {
   static const String adminOrdersPath = '/admin/orders';
   static const String adminFinancePath = '/admin/finance';
   static const String adminSettingsPath = '/admin/settings';
+  static const String adminChatPath = '/admin/chat';
+  static const String adminChatNewPath = '/admin/chat/new';
+  static const String adminChatDetailPath = '/admin/chat/:id';
 
   // Admin sub paths
   static const String adminShopDetailPath = '/admin/shops/:id';
   static const String adminShopRegistrationsPath = '/admin/shop-registrations';
-  static const String adminShopRegistrationsDetailPath = '/admin/shop-registrations/:id';
+  static const String adminShopRegistrationsDetailPath =
+      '/admin/shop-registrations/:id';
   static const String adminProductModerationPath = '/admin/product-moderation';
   static const String adminUserDetailPath = '/admin/users/:id';
   static const String adminOrderDetailPath = '/admin/orders/:id';
@@ -159,6 +174,9 @@ class RouteNames {
   static const String storeOrdersPath = '/store/orders';
   static const String storeFinancePath = '/store/finance';
   static const String storeSettingsPath = '/store/settings';
+  static const String storeChatPath = '/store/chat';
+  static const String storeChatNewPath = '/store/chat/new';
+  static const String storeChatDetailPath = '/store/chat/:id';
   static const String storeAddProductPath = '/store/products/add';
   static const String storeEditProductPath = '/store/products/:id/edit';
   static const String storeOrderDetailPath = '/store/orders/:id';

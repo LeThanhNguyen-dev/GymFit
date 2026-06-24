@@ -117,7 +117,9 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> w
               title: Text('Đơn #${order.orderNumber}', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
               subtitle: Text('${order.statusText} • $price₫', style: AppTextStyles.bodySmall),
               trailing: const Icon(Icons.chevron_right, size: 18),
-              onTap: () => context.go('${RouteNames.adminOrderDetailPath}/${order.id}'),
+              onTap: () => context.go(
+                RouteNames.adminOrderDetailPath.replaceAll(':id', order.id),
+              ),
             );
           },
         );

@@ -85,7 +85,12 @@ class _AdminOrdersScreenState extends ConsumerState<AdminOrdersScreen> with Sing
                     child: Text(_mockOrders[i]['status'] as String, style: AppTextStyles.labelSmall.copyWith(fontSize: 10, color: _orderStatusColor(_mockOrders[i]['status'] as String))),
                   ),
                 ]),
-                onTap: () => context.go('${RouteNames.adminOrderDetailPath}/${_mockOrders[i]['id']}'),
+                onTap: () => context.go(
+                  RouteNames.adminOrderDetailPath.replaceAll(
+                    ':id',
+                    _mockOrders[i]['id'].toString(),
+                  ),
+                ),
               ),
             ),
           ),

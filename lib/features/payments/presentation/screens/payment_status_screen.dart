@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/route_names.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/enums/database_enums.dart';
 import '../../../orders/data/models/order_model.dart';
-import '../../../orders/presentation/screens/order_detail_screen.dart';
 
 class PaymentStatusScreen extends StatelessWidget {
   const PaymentStatusScreen({
@@ -60,18 +61,15 @@ class PaymentStatusScreen extends StatelessWidget {
             const Spacer(),
             FilledButton(
               onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (_) => OrderDetailScreen(orderId: orderId),
-                  ),
+                context.pushReplacementNamed(
+                  RouteNames.orderDetail,
+                  pathParameters: {'id': orderId},
                 );
               },
               child: const Text('Xem don hang'),
             ),
             TextButton(
-              onPressed: () =>
-                  Navigator.popUntil(context, (route) => route.isFirst),
+              onPressed: () => context.go(RouteNames.homePath),
               child: const Text('Tiep tuc mua sam'),
             ),
           ],
