@@ -30,6 +30,9 @@ class AppConstants {
   static const aiRecommendationLogsTable = 'ai_recommendation_logs';
   static const shopRegistrationsTable = 'shop_registrations';
   static const servicesTable = 'services';
+  static const chatConversationsTable = 'chat_conversations';
+  static const chatParticipantsTable = 'chat_participants';
+  static const chatMessagesTable = 'chat_messages';
 
   static const productImagesBucket = 'product-images';
   static const avatarImagesBucket = 'avatars';

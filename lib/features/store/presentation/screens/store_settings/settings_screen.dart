@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/providers/supabase_providers.dart';
+import '../../../../../core/router/route_names.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../core/theme/app_text_styles.dart';
@@ -196,6 +197,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
           child: Column(
             children: [
               ListTile(
+                leading: const Icon(Icons.chat_bubble_outline),
+                title: Text('Tin nhắn realtime', style: AppTextStyles.bodyMedium),
+                subtitle: Text('Chat với admin và khách hàng', style: AppTextStyles.bodySmall),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push(RouteNames.storeChatPath),
+              ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              ListTile(
                 leading: const Icon(Icons.description_outlined),
                 title: Text('Chính sách đổi trả', style: AppTextStyles.bodyMedium),
                 trailing: const Icon(Icons.chevron_right),
@@ -253,7 +262,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
             ),
             onPressed: () {
               ref.read(authProvider.notifier).logout().then((_) {
-                context.go('/login');
+                if (mounted) {
+                  context.go(RouteNames.loginPath);
+                }
               });
             },
           ),

@@ -48,6 +48,10 @@ import '../../features/products/presentation/screens/compare_screen.dart';
 import '../../features/register_shop/presentation/screens/register_shop_screen.dart';
 import '../../features/register_shop/data/models/shop_registration_model.dart';
 import '../../features/support/presentation/support_list_screen.dart';
+import '../../features/chat/presentation/chat_scope.dart';
+import '../../features/chat/presentation/screens/chat_conversations_screen.dart';
+import '../../features/chat/presentation/screens/chat_detail_screen.dart';
+import '../../features/chat/presentation/screens/chat_new_conversation_screen.dart';
 import '../../features/services/presentation/screens/service_detail_screen.dart';
 import '../../features/store/presentation/screens/store_shell.dart';
 import '../../features/store/presentation/screens/store_dashboard/dashboard_screen.dart';
@@ -329,6 +333,25 @@ List<RouteBase> _buildRoutes() {
       builder: (_, _) => const SupportListScreen(),
     ),
     GoRoute(
+      path: RouteNames.chatInboxPath,
+      name: RouteNames.chatInbox,
+      builder: (_, _) => const ChatConversationsScreen(scope: ChatScope.customer),
+    ),
+    GoRoute(
+      path: RouteNames.chatNewConversationPath,
+      name: RouteNames.chatNewConversation,
+      builder: (_, _) => const ChatNewConversationScreen(scope: ChatScope.customer),
+    ),
+    GoRoute(
+      path: RouteNames.chatDetailPath,
+      name: RouteNames.chatDetail,
+      builder: (_, state) => buildChatDetailScreen(
+        scope: ChatScope.customer,
+        conversationId: state.pathParameters['id'] ?? '',
+        extra: state.extra,
+      ),
+    ),
+    GoRoute(
       path: RouteNames.categoryDetailPath,
       name: RouteNames.categoryDetail,
       builder: (_, state) {
@@ -386,6 +409,25 @@ List<RouteBase> _buildRoutes() {
           path: RouteNames.adminSettingsPath,
           name: RouteNames.adminSettings,
           builder: (_, _) => const AdminSettingsScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.adminChatPath,
+          name: RouteNames.adminChat,
+          builder: (_, _) => const ChatConversationsScreen(scope: ChatScope.admin),
+        ),
+        GoRoute(
+          path: RouteNames.adminChatNewPath,
+          name: RouteNames.adminChatNew,
+          builder: (_, _) => const ChatNewConversationScreen(scope: ChatScope.admin),
+        ),
+        GoRoute(
+          path: RouteNames.adminChatDetailPath,
+          name: RouteNames.adminChatDetail,
+          builder: (_, state) => buildChatDetailScreen(
+            scope: ChatScope.admin,
+            conversationId: state.pathParameters['id'] ?? '',
+            extra: state.extra,
+          ),
         ),
         // Sub-screens (detail pages)
         GoRoute(
@@ -494,6 +536,25 @@ List<RouteBase> _buildRoutes() {
           path: RouteNames.storeSettingsPath,
           name: RouteNames.storeSettings,
           builder: (_, _) => const SettingsScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.storeChatPath,
+          name: RouteNames.storeChat,
+          builder: (_, _) => const ChatConversationsScreen(scope: ChatScope.store),
+        ),
+        GoRoute(
+          path: RouteNames.storeChatNewPath,
+          name: RouteNames.storeChatNew,
+          builder: (_, _) => const ChatNewConversationScreen(scope: ChatScope.store),
+        ),
+        GoRoute(
+          path: RouteNames.storeChatDetailPath,
+          name: RouteNames.storeChatDetail,
+          builder: (_, state) => buildChatDetailScreen(
+            scope: ChatScope.store,
+            conversationId: state.pathParameters['id'] ?? '',
+            extra: state.extra,
+          ),
         ),
         GoRoute(
           path: RouteNames.storeAddProductPath,

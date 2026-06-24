@@ -37,7 +37,7 @@ class ProfileScreen extends ConsumerWidget {
       ),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => _buildSimpleProfile(authState, context),
+        error: (error, stackTrace) => _buildSimpleProfile(authState, context),
         data: (profile) => _buildFullProfile(context, ref, profile, authState),
       ),
     );
@@ -109,6 +109,11 @@ class ProfileScreen extends ConsumerWidget {
               icon: Icons.shopping_bag_outlined,
               label: 'Đơn hàng của tôi',
               onTap: () => context.go(RouteNames.orderHistoryPath),
+            ),
+            _MenuItem(
+              icon: Icons.chat_bubble_outline,
+              label: 'Tin nhắn',
+              onTap: () => context.push(RouteNames.chatInboxPath),
             ),
           ],
         ),
@@ -208,7 +213,7 @@ class _ShopRegistrationSection extends ConsumerWidget {
 
     return registrationAsync.when(
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => profile.sellerStatus == 'none'
+      error: (error, stackTrace) => profile.sellerStatus == 'none'
           ? _buildRegisterButton(context)
           : const SizedBox.shrink(),
       data: (registration) {

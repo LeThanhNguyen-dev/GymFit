@@ -72,7 +72,12 @@ class StoreShell extends StatelessWidget {
       return 2;
     }
     if (loc == RouteNames.storeFinancePath) return 3;
-    if (loc == RouteNames.storeSettingsPath) return 4;
+    if (loc == RouteNames.storeSettingsPath ||
+        loc == RouteNames.storeChatPath ||
+        loc == RouteNames.storeChatNewPath ||
+        loc == RouteNames.storeChatDetailPath) {
+      return 4;
+    }
     return 0;
   }
 }
