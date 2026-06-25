@@ -152,6 +152,10 @@ class RouteNames {
   static const String serviceDetail = 'serviceDetail';
   static const String serviceDetailPath = '/services/:slug';
 
+  // Shop products (public)
+  static const String shopProducts = 'shopProducts';
+  static const String shopProductsPath = '/shop-products';
+
   // Store Owner paths
   static const String storePath = '/store';
   static const String storeDashboardPath = '/store/dashboard';

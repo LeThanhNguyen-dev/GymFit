@@ -6,6 +6,7 @@ import '../../core/providers/menu_providers.dart';
 import '../../features/auth/presentation/screens/auth_screen.dart';
 import '../../features/auth/providers/auth_providers.dart';
 import '../../features/cart/presentation/screens/cart_screen.dart';
+import '../../features/cart/providers/cart_providers.dart';
 import '../../features/checkout/data/models/checkout_model.dart';
 import '../../features/checkout/presentation/screens/checkout_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
@@ -17,6 +18,7 @@ import '../../features/payments/presentation/screens/payment_status_screen.dart'
 import '../../features/products/presentation/screens/category_detail_screen.dart';
 import '../../features/products/presentation/screens/product_detail_screen.dart';
 import '../../features/products/presentation/screens/product_list_screen.dart';
+import '../../features/products/presentation/screens/shop_products_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/search/presentation/screens/search_screen.dart';
 import '../../features/shipping/presentation/screens/shipping_tracking_screen.dart';
@@ -251,6 +253,17 @@ List<RouteBase> _buildRoutes() {
           name: RouteNames.productDetail,
           builder: (_, state) =>
               ProductDetailScreen(productId: state.pathParameters['id'] ?? ''),
+        ),
+        GoRoute(
+          path: RouteNames.shopProductsPath,
+          name: RouteNames.shopProducts,
+          builder: (_, state) {
+            final extra = state.extra as Map?;
+            return ShopProductsScreen(
+              sellerId: extra?['sellerId'] as String? ?? '',
+              sellerName: extra?['sellerName'] as String? ?? 'Shop',
+            );
+          },
         ),
         GoRoute(
           path: RouteNames.searchPath,
@@ -519,13 +532,14 @@ List<RouteBase> _buildRoutes() {
   ];
 }
 
-class _MainShell extends StatelessWidget {
+class _MainShell extends ConsumerWidget {
   const _MainShell({required this.child});
 
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cartCount = ref.watch(cartCountProvider);
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
@@ -542,23 +556,31 @@ class _MainShell extends StatelessWidget {
               GoRouter.of(context).go(RouteNames.homePath);
           }
         },
-        destinations: const [
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
             label: 'Trang chủ',
           ),
           NavigationDestination(
-            icon: Icon(Icons.shopping_cart_outlined),
-            selectedIcon: Icon(Icons.shopping_cart),
+            icon: Badge(
+              isLabelVisible: cartCount > 0,
+              label: Text('$cartCount'),
+              child: const Icon(Icons.shopping_cart_outlined),
+            ),
+            selectedIcon: Badge(
+              isLabelVisible: cartCount > 0,
+              label: Text('$cartCount'),
+              child: const Icon(Icons.shopping_cart),
+            ),
             label: 'Giỏ hàng',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.favorite_outline),
             selectedIcon: Icon(Icons.favorite),
             label: 'Yêu thích',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
             label: 'Cá nhân',
