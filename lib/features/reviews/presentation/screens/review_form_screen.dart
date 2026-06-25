@@ -8,13 +8,13 @@ class ReviewFormScreen extends ConsumerStatefulWidget {
   const ReviewFormScreen({
     super.key,
     required this.productId,
-    required this.orderId,
+    required this.orderItemId,
     required this.productName,
     this.productImageUrl,
   });
 
   final String productId;
-  final String orderId;
+  final String orderItemId;
   final String productName;
   final String? productImageUrl;
 
@@ -37,7 +37,7 @@ class _ReviewFormScreenState extends ConsumerState<ReviewFormScreen> {
     final createState = ref.watch(createReviewProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Write review')),
+      appBar: AppBar(title: const Text('Viết đánh giá')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -81,15 +81,9 @@ class _ReviewFormScreenState extends ConsumerState<ReviewFormScreen> {
             maxLines: 8,
             maxLength: 500,
             decoration: const InputDecoration(
-              labelText: 'Comment optional',
+              labelText: 'Nhận xét (không bắt buộc)',
               border: OutlineInputBorder(),
             ),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: null,
-            icon: const Icon(Icons.add_photo_alternate),
-            label: const Text('Add photos unavailable'),
           ),
           const SizedBox(height: 24),
           FilledButton(
@@ -99,14 +93,14 @@ class _ReviewFormScreenState extends ConsumerState<ReviewFormScreen> {
                     dimension: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Submit review'),
+                : const Text('Gửi đánh giá'),
           ),
           createState.when(
             data: (_) => const SizedBox.shrink(),
             loading: () => const SizedBox.shrink(),
             error: (error, _) => Padding(
               padding: const EdgeInsets.only(top: 12),
-              child: Text('Could not submit review: $error'),
+              child: Text('Không thể gửi đánh giá: $error'),
             ),
           ),
         ],
@@ -118,7 +112,7 @@ class _ReviewFormScreenState extends ConsumerState<ReviewFormScreen> {
     if (_rating == 0) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Please choose a rating.')));
+      ).showSnackBar(const SnackBar(content: Text('Vui lòng chọn số sao.')));
       return;
     }
     final userId = ref.read(supabaseClientProvider).auth.currentUser?.id;
@@ -129,7 +123,7 @@ class _ReviewFormScreenState extends ConsumerState<ReviewFormScreen> {
         .submit(
           userId: userId,
           productId: widget.productId,
-          orderId: widget.orderId,
+          orderItemId: widget.orderItemId,
           rating: _rating,
           comment: _commentController.text.trim().isEmpty
               ? null

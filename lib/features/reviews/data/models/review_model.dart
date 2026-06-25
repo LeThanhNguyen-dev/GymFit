@@ -5,7 +5,7 @@ class ReviewModel {
     required this.id,
     required this.userId,
     required this.productId,
-    required this.orderId,
+    required this.orderItemId,
     required this.rating,
     this.comment,
     this.status = 'pending',
@@ -19,7 +19,7 @@ class ReviewModel {
   final String id;
   final String userId;
   final String productId;
-  final String orderId;
+  final String orderItemId;
   final int rating;
   final String? comment;
   final String status;
@@ -37,7 +37,7 @@ class ReviewModel {
       id: json['id'].toString(),
       userId: json['user_id'].toString(),
       productId: json['product_id'].toString(),
-      orderId: json['order_id']?.toString() ?? '',
+      orderItemId: json['order_item_id']?.toString() ?? '',
       rating: intFromJson(json['rating']) ?? 1,
       comment: (json['comment'] ?? json['body']) as String?,
       status: json['status']?.toString() ?? 'pending',
@@ -57,7 +57,7 @@ class ReviewModel {
     'id': id,
     'user_id': userId,
     'product_id': productId,
-    'order_id': orderId,
+    'order_item_id': orderItemId,
     'rating': rating,
     'comment': comment,
     'status': status,

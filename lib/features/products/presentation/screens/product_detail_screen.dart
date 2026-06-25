@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/providers/supabase_providers.dart';
 import '../../../cart/data/models/cart_model.dart';
 import '../../../cart/providers/cart_providers.dart';
 import '../../../checkout/data/models/checkout_model.dart';
+import '../../../reviews/presentation/widgets/review_list_widget.dart';
+import '../../../reviews/providers/review_providers.dart';
 import '../../../wishlist/providers/wishlist_providers.dart';
 import '../../data/models/product_model.dart';
 import '../../providers/product_providers.dart';
@@ -375,6 +378,54 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   ),
                 ],
 
+                // ── Reviews ───────────────────────────────────────────
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 12),
+                Text(
+                  'Đánh giá sản phẩm',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ReviewListWidget(
+                  productId: product.id,
+                  userId: ref.watch(supabaseClientProvider).auth.currentUser?.id,
+                  onWriteReview: () async {
+                    final uid = ref.read(supabaseClientProvider).auth.currentUser?.id;
+                    if (uid == null) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Vui lòng đăng nhập để đánh giá.')),
+                        );
+                      }
+                      return;
+                    }
+                    final repo = ref.read(reviewRepositoryProvider);
+                    final info = await repo.getDeliveredOrderItem(uid, product.id);
+                    if (info == null) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Bạn cần mua sản phẩm trước khi đánh giá.')),
+                        );
+                      }
+                      return;
+                    }
+                    if (context.mounted) {
+                      context.pushNamed(
+                        'reviewForm',
+                        extra: {
+                          'productId': product.id,
+                          'orderItemId': info.orderItemId,
+                          'productName': product.name,
+                          'productImageUrl': product.primaryImageUrl,
+                        },
+                      );
+                    }
+                  },
+                ),
+
                   SizedBox(height: MediaQuery.of(context).padding.bottom + 60),
               ],
             ),
@@ -556,8 +607,10 @@ class _VariantSelector extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      v.optionDisplay.isNotEmpty
-                          ? v.optionDisplay
+                      v.optionValues.isNotEmpty
+                          ? v.optionValues.values.join(' / ')
+                          : v.name?.isNotEmpty == true
+                          ? v.name!
                           : v.sku.isNotEmpty
                           ? v.sku
                           : 'Loại ${variants.indexOf(v) + 1}',
