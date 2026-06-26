@@ -26,7 +26,7 @@ class ReviewRepository {
 
     final rows = await _client
         .from(AppConstants.reviewsTable)
-        .select('*, user:profiles(id, full_name, avatar_url), review_images(*)')
+        .select('*, user:profiles!reviews_user_id_fkey(id, full_name, avatar_url), review_images(*)')
         .eq('product_id', productId)
         .order(orderColumn, ascending: ascending)
         .range(from, to);
@@ -37,7 +37,7 @@ class ReviewRepository {
   Future<ReviewModel> createReview({
     required String userId,
     required String productId,
-    required String orderId,
+    required String orderItemId,
     required int rating,
     String? comment,
   }) async {
@@ -51,9 +51,9 @@ class ReviewRepository {
         .insert({
           'user_id': userId,
           'product_id': productId,
-          'order_id': orderId,
+          if (orderItemId.isNotEmpty) 'order_item_id': orderItemId,
           'rating': rating,
-          'comment': comment,
+          'body': comment,
           'is_verified_purchase': verified,
         })
         .select()
@@ -152,7 +152,7 @@ class ReviewRepository {
   }) async {
     var query = _client
         .from(AppConstants.reviewsTable)
-        .select('*, user:profiles(id, full_name, avatar_url), review_images(*)');
+        .select('*, user:profiles!reviews_user_id_fkey(id, full_name, avatar_url), review_images(*)');
 
     if (status != null) {
       query = query.eq('status', status);
@@ -161,7 +161,7 @@ class ReviewRepository {
       query = query.eq('rating', rating);
     }
     if (search != null && search.isNotEmpty) {
-      query = query.ilike('comment', '%$search%');
+      query = query.ilike('body', '%$search%');
     }
 
     final from = (page - 1) * pageSize;
@@ -178,7 +178,7 @@ class ReviewRepository {
       countQuery = countQuery.eq('rating', rating);
     }
     if (search != null && search.isNotEmpty) {
-      countQuery = countQuery.ilike('comment', '%$search%');
+      countQuery = countQuery.ilike('body', '%$search%');
     }
     final countResult = List<Map<String, dynamic>>.from(await countQuery);
     final totalCount = countResult.length;
@@ -194,6 +194,26 @@ class ReviewRepository {
           'updated_at': DateTime.now().toIso8601String(),
         })
         .eq('id', reviewId);
+  }
+
+  Future<({String orderId, String orderItemId})?> getDeliveredOrderItem(
+    String userId,
+    String productId,
+  ) async {
+    final rows = await _client
+        .from(AppConstants.ordersTable)
+        .select('id, order_items!inner(id)')
+        .eq('user_id', userId)
+        .eq('status', 'delivered')
+        .eq('order_items.product_id', productId)
+        .limit(1);
+
+    if (rows.isEmpty) return null;
+    final orderId = rows[0]['id'].toString();
+    final items = rows[0]['order_items'] as List;
+    if (items.isEmpty) return null;
+    final orderItemId = items[0]['id'].toString();
+    return (orderId: orderId, orderItemId: orderItemId);
   }
 
   Future<bool> _hasDeliveredProduct(String userId, String productId) async {

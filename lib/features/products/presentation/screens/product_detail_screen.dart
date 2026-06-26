@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/route_names.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/providers/supabase_providers.dart';
 import '../../../cart/data/models/cart_model.dart';
 import '../../../cart/providers/cart_providers.dart';
 import '../../../checkout/data/models/checkout_model.dart';
+import '../../../reviews/presentation/widgets/review_list_widget.dart';
+import '../../../reviews/providers/review_providers.dart';
 import '../../../wishlist/providers/wishlist_providers.dart';
 import '../../data/models/product_model.dart';
 import '../../providers/product_providers.dart';
@@ -25,6 +29,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   ProductVariantModel? _selectedVariant;
   int _quantity = 1;
   bool _descriptionExpanded = false;
+  String? _sellerName;
+  int _realSoldCount = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +54,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
           if (_selectedVariant == null && product.variants.isNotEmpty) {
             _selectedVariant = product.variants.first;
           }
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _fetchSellerName(product.sellerId);
+            _fetchRealSoldCount(product.id);
+          });
           return _buildContent(context, product, isInWishlist, cartCount);
         },
       ),
@@ -62,6 +72,30 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _fetchSellerName(String? sellerId) async {
+    if (sellerId == null || _sellerName != null) return;
+    try {
+      final client = ref.read(supabaseClientProvider);
+      final name = await client.rpc('get_seller_name', params: {'p_seller_id': sellerId});
+      if (mounted) setState(() => _sellerName = (name as String?) ?? 'Shop');
+    } catch (_) {
+      if (mounted) setState(() => _sellerName = 'Shop');
+    }
+  }
+
+  Future<void> _fetchRealSoldCount(String productId) async {
+    try {
+      final client = ref.read(supabaseClientProvider);
+      final rows = await client
+          .from('order_items')
+          .select('quantity')
+          .eq('product_id', productId)
+          .eq('store_status', 'delivered');
+      final total = rows.fold<int>(0, (sum, r) => sum + ((r as Map)['quantity'] as int? ?? 0));
+      if (mounted && total > 0) setState(() => _realSoldCount = total);
+    } catch (_) {}
   }
 
   Widget _buildContent(
@@ -207,13 +241,17 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       ),
                       const SizedBox(width: 8),
                     ],
-                    if (product.totalSold > 0)
+                    if ((_realSoldCount > 0 ? _realSoldCount : product.totalSold) > 0) ...[
+                      const SizedBox(width: 8),
+                      Icon(Icons.shopping_bag_outlined, size: 16, color: colorScheme.outline),
+                      const SizedBox(width: 3),
                       Text(
-                        '• Đã bán ${product.totalSold}',
+                        'Đã bán ${_realSoldCount > 0 ? _realSoldCount : product.totalSold}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: colorScheme.outline,
                         ),
                       ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -227,7 +265,64 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
+
+                // ── Shop Info ──────────────────────────────────────────
+                if (_sellerName != null)
+                  GestureDetector(
+                    onTap: () {
+                      context.pushNamed(
+                        RouteNames.shopProducts,
+                        extra: {
+                          'sellerId': product.sellerId,
+                          'sellerName': _sellerName,
+                        },
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: colorScheme.outlineVariant.withAlpha(80)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(Icons.store_rounded, size: 22, color: colorScheme.onPrimaryContainer),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _sellerName!,
+                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  'Shop chính thức',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.outline,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.chevron_right_rounded, size: 20, color: colorScheme.outline),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 16),
                 const Divider(),
 
                 // ── Variant Selector ──────────────────────────────────
@@ -374,6 +469,54 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                     categoryId: product.category!.id,
                   ),
                 ],
+
+                // ── Reviews ───────────────────────────────────────────
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 12),
+                Text(
+                  'Đánh giá sản phẩm',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ReviewListWidget(
+                  productId: product.id,
+                  userId: ref.watch(supabaseClientProvider).auth.currentUser?.id,
+                  onWriteReview: () async {
+                    final uid = ref.read(supabaseClientProvider).auth.currentUser?.id;
+                    if (uid == null) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Vui lòng đăng nhập để đánh giá.')),
+                        );
+                      }
+                      return;
+                    }
+                    final repo = ref.read(reviewRepositoryProvider);
+                    final info = await repo.getDeliveredOrderItem(uid, product.id);
+                    if (info == null) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Bạn cần mua sản phẩm trước khi đánh giá.')),
+                        );
+                      }
+                      return;
+                    }
+                    if (context.mounted) {
+                      context.pushNamed(
+                        'reviewForm',
+                        extra: {
+                          'productId': product.id,
+                          'orderItemId': info.orderItemId,
+                          'productName': product.name,
+                          'productImageUrl': product.primaryImageUrl,
+                        },
+                      );
+                    }
+                  },
+                ),
 
                   SizedBox(height: MediaQuery.of(context).padding.bottom + 60),
               ],
@@ -556,8 +699,10 @@ class _VariantSelector extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      v.optionDisplay.isNotEmpty
-                          ? v.optionDisplay
+                      v.optionValues.isNotEmpty
+                          ? v.optionValues.values.join(' / ')
+                          : v.name?.isNotEmpty == true
+                          ? v.name!
                           : v.sku.isNotEmpty
                           ? v.sku
                           : 'Loại ${variants.indexOf(v) + 1}',

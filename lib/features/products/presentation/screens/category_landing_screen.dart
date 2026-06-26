@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,15 +11,13 @@ import '../../providers/product_providers.dart';
 import '../../data/models/product_model.dart';
 import '../widgets/product_card.dart';
 // ─────────────────────────────────────────────
-// Dark glassmorphism color palette
+// Theme-based colors (matching home page)
 // ─────────────────────────────────────────────
 
-const _bgColor = Color(0xFF0E0E10);
-const _surfaceColor = Color(0xFF1A1A1E);
-const _cardColor = Color(0x14FFFFFF);
-const _borderColor = Color(0x1AFFFFFF);
-const _textPrimary = Color(0xFFF5F5F7);
-const _textSecondary = Color(0xFF98989D);
+Color _bgColor(BuildContext c) => Theme.of(c).scaffoldBackgroundColor;
+Color _surfaceColor(BuildContext c) => Theme.of(c).colorScheme.surface;
+Color _textPrimary(BuildContext c) => Theme.of(c).colorScheme.onSurface;
+Color _textSecondary(BuildContext c) => Theme.of(c).colorScheme.onSurfaceVariant;
 
 // ─────────────────────────────────────────────
 // Main Screen
@@ -193,7 +190,7 @@ class _CategoryLandingScreenState
     final cartCount = ref.watch(cartCountProvider);
 
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: _bgColor(context),
       body: CustomScrollView(
         controller: _scrollController,
         slivers: [
@@ -257,7 +254,7 @@ class _CategoryLandingScreenState
                   Text(
                     'Tất cả sản phẩm',
                     style: theme.textTheme.titleSmall?.copyWith(
-                      color: _textPrimary,
+                      color: theme.colorScheme.onSurface,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -338,8 +335,8 @@ class _CategoryLandingScreenState
       // ── 9. Filter & Sort FAB ──
       floatingActionButton: FloatingActionButton.small(
         onPressed: () => _showFilterSheet(context),
-        backgroundColor: _surfaceColor,
-        child: const Icon(Icons.tune_rounded, color: _textPrimary),
+        backgroundColor: _surfaceColor(context),
+        child: Icon(Icons.tune_rounded, color: _textPrimary(context)),
       ),
     );
   }
@@ -347,7 +344,7 @@ class _CategoryLandingScreenState
   void _showFilterSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: _surfaceColor,
+      backgroundColor: _surfaceColor(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -385,33 +382,33 @@ class _StickyHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return SliverAppBar(
       pinned: true,
-      backgroundColor: _bgColor,
+      backgroundColor: _bgColor(context),
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0.5,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_rounded, color: _textPrimary),
+        icon: Icon(Icons.arrow_back_rounded, color: _textPrimary(context)),
         onPressed: onBack,
       ),
       title: Text(
         title,
-        style: const TextStyle(
-          color: _textPrimary,
+        style: TextStyle(
+          color: _textPrimary(context),
           fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.search_rounded, color: _textPrimary),
+          icon: Icon(Icons.search_rounded, color: _textPrimary(context)),
           onPressed: onSearch,
         ),
         Stack(
           clipBehavior: Clip.none,
           children: [
             IconButton(
-              icon: const Icon(Icons.shopping_bag_outlined,
-                  color: _textPrimary),
+              icon: Icon(Icons.shopping_bag_outlined,
+                  color: _textPrimary(context)),
               onPressed: onCart,
             ),
             if (cartCount > 0)
@@ -627,6 +624,7 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -637,19 +635,19 @@ class _Chip extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: selected
-              ? Colors.white.withValues(alpha: 0.12)
+              ? cs.primary.withValues(alpha: 0.12)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(100),
           border: Border.all(
             color: selected
-                ? Colors.white.withValues(alpha: 0.25)
-                : Colors.white.withValues(alpha: 0.1),
+                ? cs.primary.withValues(alpha: 0.3)
+                : cs.outlineVariant,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? _textPrimary : _textSecondary,
+            color: selected ? _textPrimary(context) : _textSecondary(context),
             fontSize: small ? 11 : 13,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
           ),
@@ -688,16 +686,14 @@ class _SectionWrapper extends StatelessWidget {
                   height: 16,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(2),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
-                    ),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: _textPrimary,
+                  style: TextStyle(
+                    color: _textPrimary(context),
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -732,15 +728,15 @@ class _FeaturedRow extends ConsumerWidget {
       data: (products) {
         if (products.isEmpty) return const SizedBox.shrink();
         return SizedBox(
-          height: 200,
+          height: 230,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: products.length,
             separatorBuilder: (_, _) => const SizedBox(width: 12),
             itemBuilder: (context, i) => SizedBox(
-              width: 150,
-              child: _GlassProductCard(
+              width: 160,
+              child: ProductCard(
                 product: products[i],
                 onTap: () =>
                     context.push('/products/${products[i].id}'),
@@ -772,15 +768,15 @@ class _BestSellersRow extends ConsumerWidget {
       data: (products) {
         if (products.isEmpty) return const SizedBox.shrink();
         return SizedBox(
-          height: 200,
+          height: 230,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: products.length,
             separatorBuilder: (_, _) => const SizedBox(width: 12),
             itemBuilder: (context, i) => SizedBox(
-              width: 150,
-              child: _GlassProductCard(
+              width: 160,
+              child: ProductCard(
                 product: products[i],
                 onTap: () =>
                     context.push('/products/${products[i].id}'),
@@ -812,15 +808,15 @@ class _NewArrivalsRow extends ConsumerWidget {
       data: (products) {
         if (products.isEmpty) return const SizedBox.shrink();
         return SizedBox(
-          height: 200,
+          height: 230,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: products.length,
             separatorBuilder: (_, _) => const SizedBox(width: 12),
             itemBuilder: (context, i) => SizedBox(
-              width: 150,
-              child: _GlassProductCard(
+              width: 160,
+              child: ProductCard(
                 product: products[i],
                 onTap: () =>
                     context.push('/products/${products[i].id}'),
@@ -836,134 +832,6 @@ class _NewArrivalsRow extends ConsumerWidget {
 // ═════════════════════════════════════════════
 // Glassmorphism Product Card
 // ═════════════════════════════════════════════
-
-class _GlassProductCard extends StatelessWidget {
-  const _GlassProductCard({
-    required this.product,
-    required this.onTap,
-  });
-
-  final ProductModel product;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final price = product.basePrice;
-    final originalPrice = product.compareAtPrice;
-    final hasDiscount = originalPrice != null && originalPrice > price;
-    final discountPercent = hasDiscount
-        ? ((originalPrice - price) / originalPrice * 100).round()
-        : 0;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            decoration: BoxDecoration(
-              color: _cardColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _borderColor),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Image
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.03),
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(16)),
-                      image: product.primaryImageUrl != null
-                          ? DecorationImage(
-                              image: NetworkImage(product.primaryImageUrl!),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                    ),
-                    child: product.primaryImageUrl == null
-                        ? const Center(
-                            child: Icon(Icons.image_outlined,
-                                color: _textSecondary, size: 32),
-                          )
-                        : null,
-                  ),
-                ),
-                // Info
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.name,
-                        style: const TextStyle(
-                          color: _textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            '${price.toStringAsFixed(0)}đ',
-                            style: const TextStyle(
-                              color: Color(0xFF38EF7D),
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          if (hasDiscount) ...[
-                            const SizedBox(width: 4),
-                            Text(
-                              '${originalPrice.toStringAsFixed(0)}đ',
-                              style: TextStyle(
-                                color: _textSecondary.withValues(alpha: 0.5),
-                                fontSize: 10,
-                                decoration: TextDecoration.lineThrough,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      if (hasDiscount)
-                        Container(
-                          margin: const EdgeInsets.only(top: 4),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFF4757),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '-$discountPercent%',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ═════════════════════════════════════════════
 // Sort Dropdown
 // ═════════════════════════════════════════════
 
@@ -978,35 +846,36 @@ class _SortDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: _cardColor,
+        color: cs.surfaceContainerHighest.withAlpha(80),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: cs.outlineVariant),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
           isDense: true,
-          dropdownColor: _surfaceColor,
-          icon: const Icon(Icons.expand_more, color: _textSecondary, size: 18),
-          style: const TextStyle(color: _textSecondary, fontSize: 12),
-          items: const [
+          dropdownColor: cs.surface,
+          icon: Icon(Icons.expand_more, color: _textSecondary(context), size: 18),
+          style: TextStyle(color: _textSecondary(context), fontSize: 12),
+          items: [
             DropdownMenuItem(
                 value: 'created_at',
-                child: Text('Mới nhất', style: TextStyle(color: _textPrimary))),
+                child: Text('Mới nhất', style: TextStyle(color: _textPrimary(context)))),
             DropdownMenuItem(
                 value: 'total_sold',
                 child:
-                    Text('Bán chạy', style: TextStyle(color: _textPrimary))),
+                    Text('Bán chạy', style: TextStyle(color: _textPrimary(context)))),
             DropdownMenuItem(
                 value: 'base_price',
-                child: Text('Giá thấp', style: TextStyle(color: _textPrimary))),
+                child: Text('Giá thấp', style: TextStyle(color: _textPrimary(context)))),
             DropdownMenuItem(
                 value: 'average_rating',
                 child:
-                    Text('Đánh giá', style: TextStyle(color: _textPrimary))),
+                    Text('Đánh giá', style: TextStyle(color: _textPrimary(context)))),
           ],
           onChanged: (v) {
             if (v != null) onChanged(v);
@@ -1046,6 +915,7 @@ class _FilterSheetState extends State<_FilterSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
       child: Column(
@@ -1057,16 +927,16 @@ class _FilterSheetState extends State<_FilterSheet> {
               width: 32,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: cs.onSurfaceVariant.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'Sắp xếp theo',
             style: TextStyle(
-              color: _textPrimary,
+              color: _textPrimary(context),
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
@@ -1113,19 +983,17 @@ class _FilterSheetState extends State<_FilterSheet> {
             }),
           ),
           const SizedBox(height: 24),
-          SizedBox(
+            SizedBox(
             width: double.infinity,
             height: 48,
             child: ElevatedButton(
               onPressed: () =>
                   widget.onSortChanged(_sortBy, _ascending),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white.withValues(alpha: 0.12),
-                foregroundColor: _textPrimary,
+                backgroundColor: cs.primary,
+                foregroundColor: cs.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.2)),
                 ),
               ),
               child: const Text('Áp dụng'),
@@ -1150,6 +1018,7 @@ class _SortOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1161,24 +1030,20 @@ class _SortOption extends StatelessWidget {
               height: 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: selected
-                    ? const Color(0xFF38EF7D)
-                    : Colors.transparent,
+                color: selected ? cs.primary : Colors.transparent,
                 border: Border.all(
-                  color: selected
-                      ? const Color(0xFF38EF7D)
-                      : Colors.white.withValues(alpha: 0.2),
+                  color: selected ? cs.primary : cs.outlineVariant,
                 ),
               ),
               child: selected
-                  ? const Icon(Icons.check, size: 12, color: Color(0xFF0E0E10))
+                  ? Icon(Icons.check, size: 12, color: cs.onPrimary)
                   : null,
             ),
             const SizedBox(width: 12),
             Text(
               label,
               style: TextStyle(
-                color: selected ? _textPrimary : _textSecondary,
+                color: selected ? _textPrimary(context) : _textSecondary(context),
                 fontSize: 14,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
               ),
@@ -1200,18 +1065,17 @@ class _HorizontalShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 200,
+      height: 230,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: 4,
         separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (_, _) => Container(
-          width: 150,
+          width: 160,
           decoration: BoxDecoration(
-            color: _cardColor,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: _borderColor),
           ),
         ),
       ),
@@ -1224,6 +1088,7 @@ class _ProductGridShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.surfaceContainerHighest;
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -1237,9 +1102,8 @@ class _ProductGridShimmer extends StatelessWidget {
       itemCount: 6,
       itemBuilder: (_, _) => Container(
         decoration: BoxDecoration(
-          color: _cardColor,
+          color: color,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _borderColor),
         ),
       ),
     );
@@ -1253,24 +1117,25 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 48),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.inventory_2_outlined,
-              size: 56, color: _textSecondary.withValues(alpha: 0.5)),
+              size: 56, color: _textSecondary(context).withValues(alpha: 0.5)),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'Chưa có sản phẩm trong danh mục này',
-            style: TextStyle(color: _textSecondary, fontSize: 14),
+            style: TextStyle(color: _textSecondary(context), fontSize: 14),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: onReset,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white.withValues(alpha: 0.1),
-              foregroundColor: _textPrimary,
+              backgroundColor: cs.primaryContainer,
+              foregroundColor: cs.onPrimaryContainer,
             ),
             child: const Text('Xem tất cả'),
           ),
