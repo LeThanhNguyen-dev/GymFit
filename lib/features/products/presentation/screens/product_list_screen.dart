@@ -33,13 +33,15 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
     super.initState();
     // Apply initial filters if provided from navigation
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final notifier = ref.read(productListProvider.notifier);
-      if (widget.categoryId != null) {
-        notifier.updateCategory(widget.categoryId);
-      }
-      if (widget.brandId != null) {
-        notifier.updateBrand(widget.brandId);
-      }
+      Future.microtask(() {
+        final notifier = ref.read(productListProvider.notifier);
+        if (widget.categoryId != null) {
+          notifier.updateCategory(widget.categoryId);
+        }
+        if (widget.brandId != null) {
+          notifier.updateBrand(widget.brandId);
+        }
+      });
     });
     _scrollController.addListener(_onScroll);
   }

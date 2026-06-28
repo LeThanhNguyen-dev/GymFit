@@ -25,8 +25,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _initCheckoutData();
+      Future.microtask(() {
+        if (!mounted) return;
+        _initCheckoutData();
+      });
     });
   }
 
@@ -68,8 +70,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     if (data == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _initCheckoutData();
+        Future.microtask(() {
+          if (!mounted) return;
+          _initCheckoutData();
+        });
       });
     }
 
@@ -81,9 +85,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         orElse: () => addressesAsync.value!.first,
       );
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ref.read(selectedAddressProvider.notifier).setAddress(address);
-        }
+        Future.microtask(() {
+          if (mounted) {
+            ref.read(selectedAddressProvider.notifier).setAddress(address);
+          }
+        });
       });
     }
 
