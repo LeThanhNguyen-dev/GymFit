@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/supabase_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -46,19 +47,59 @@ class _AdminFinanceScreenState extends ConsumerState<AdminFinanceScreen> with Si
       child: Column(children: [
         TabBar(tabs: 'Chờ duyệt|Đã duyệt|Từ chối'.split('|').map((t) => Tab(text: t)).toList()),
         Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
-            itemCount: _mockWithdrawals.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-            itemBuilder: (_, i) => Card(
-              child: ListTile(
-                leading: CircleAvatar(backgroundColor: AppColors.surfaceContainerHighest, child: const Icon(Icons.payments, color: Colors.grey)),
-                title: Text('${_mockWithdrawals[i]['shop']} - ${_mockWithdrawals[i]['amount']}', style: AppTextStyles.bodyMedium),
-                subtitle: Text('${_mockWithdrawals[i]['bank']} - ${_mockWithdrawals[i]['date']}', style: AppTextStyles.labelSmall),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showWithdrawalDetail(_mockWithdrawals[i]),
-              ),
-            ),
+          child: Consumer(
+            builder: (context, ref, child) {
+              final supabase = ref.watch(supabaseClientProvider);
+              return FutureBuilder<List<dynamic>>(
+                future: supabase.rpc('get_admin_payout_requests').then((res) => List<dynamic>.from(res ?? [])),
+                builder: (ctx, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Lỗi: ${snapshot.error}'));
+                  }
+                  
+                  final allItems = snapshot.data ?? [];
+                  final pending = allItems.where((i) => i['status'] == 'pending').toList();
+                  final approved = allItems.where((i) => i['status'] == 'approved' || i['status'] == 'completed').toList();
+                  final rejected = allItems.where((i) => i['status'] == 'rejected').toList();
+
+                  Widget buildList(List<dynamic> items) {
+                    if (items.isEmpty) return const Center(child: Text('Không có yêu cầu nào.'));
+                    return ListView.separated(
+                      padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+                      itemBuilder: (_, i) {
+                        final item = items[i];
+                        final amount = double.tryParse(item['amount']?.toString() ?? '0') ?? 0.0;
+                        final fmtAmount = amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+                        final date = DateTime.parse(item['created_at']).toLocal().toString().substring(0, 16);
+                        
+                        return Card(
+                          child: ListTile(
+                            leading: CircleAvatar(backgroundColor: AppColors.surfaceContainerHighest, child: const Icon(Icons.payments, color: Colors.grey)),
+                            title: Text('${item['seller_name']} - $fmtAmount₫', style: AppTextStyles.bodyMedium),
+                            subtitle: Text('${item['bank_name']} - $date', style: AppTextStyles.labelSmall),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => _showWithdrawalDetail(item, supabase),
+                          ),
+                        );
+                      },
+                    );
+                  }
+
+                  return TabBarView(
+                    children: [
+                      buildList(pending),
+                      buildList(approved),
+                      buildList(rejected),
+                    ],
+                  );
+                },
+              );
+            },
           ),
         ),
       ]),
@@ -171,32 +212,63 @@ class _AdminFinanceScreenState extends ConsumerState<AdminFinanceScreen> with Si
     );
   }
 
-  void _showWithdrawalDetail(Map<String, dynamic> wd) {
-    showDialog(context: context, builder: (_) => AlertDialog(
-      title: Text('Rút tiền - ${wd['shop']}'),
+  void _showWithdrawalDetail(Map<String, dynamic> wd, dynamic supabase) {
+    final amount = double.tryParse(wd['amount']?.toString() ?? '0') ?? 0.0;
+    final fmtAmount = amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+    final isPending = wd['status'] == 'pending';
+
+    showDialog(context: context, builder: (dialogContext) => AlertDialog(
+      title: Text('Rút tiền - ${wd['seller_name']}'),
       content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Số tiền: ${wd['amount']}', style: AppTextStyles.bodyMedium),
-        Text('Ngân hàng: ${wd['bank']}', style: AppTextStyles.bodySmall),
-        Text('Số TK: 1234 5678 9012', style: AppTextStyles.bodySmall),
+        Text('Số tiền: $fmtAmount₫', style: AppTextStyles.bodyMedium),
+        Text('Ngân hàng: ${wd['bank_name']}', style: AppTextStyles.bodySmall),
+        Text('Số TK: ${wd['account_number']}', style: AppTextStyles.bodySmall),
+        Text('Chủ TK: ${wd['account_holder']}', style: AppTextStyles.bodySmall),
         const SizedBox(height: 8),
-        Text('Số dư hiện tại: 28.5M₫', style: AppTextStyles.bodySmall),
-        const Divider(),
-        Text('Lịch sử rút gần nhất:', style: AppTextStyles.labelSmall),
-        Text('10/06: -5.000.000₫ (Thành công)', style: AppTextStyles.labelSmall),
-        Text('01/06: -3.000.000₫ (Thành công)', style: AppTextStyles.labelSmall),
+        Text('Trạng thái: ${wd['status']}', style: AppTextStyles.bodySmall),
+        if (wd['rejection_reason'] != null) ...[
+          const Divider(),
+          Text('Lý do từ chối: ${wd['rejection_reason']}', style: AppTextStyles.bodySmall.copyWith(color: AppColors.error)),
+        ]
       ]),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Từ chối')),
-        FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Duyệt & Chuyển khoản')),
+        TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Đóng')),
+        if (isPending) ...[
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                await supabase.rpc('admin_update_payout_status', params: {
+                  'p_payout_id': wd['id'],
+                  'p_status': 'rejected',
+                  'p_reason': 'Thông tin không hợp lệ',
+                });
+                if (mounted) setState(() {});
+              } catch (e) {
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+              }
+            }, 
+            child: const Text('Từ chối', style: TextStyle(color: Colors.red)),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                await supabase.rpc('admin_update_payout_status', params: {
+                  'p_payout_id': wd['id'],
+                  'p_status': 'completed',
+                });
+                if (mounted) setState(() {});
+              } catch (e) {
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+              }
+            }, 
+            child: const Text('Đã chuyển khoản'),
+          ),
+        ]
       ],
     ));
   }
-
-  static const _mockWithdrawals = [
-    {'shop': 'SportLife', 'amount': '10.000.000₫', 'bank': 'VCB - 1234 5678', 'date': '15/06'},
-    {'shop': 'Iron Gym', 'amount': '5.000.000₫', 'bank': 'TCB - 9876 5432', 'date': '14/06'},
-    {'shop': 'Yoga Center', 'amount': '3.200.000₫', 'bank': 'MB - 4567 8901', 'date': '13/06'},
-  ];
 
   static const _mockTransactions = [
     {'id': '#TXN001', 'desc': 'Phí giao dịch - SportLife', 'amount': '+2.500.000₫', 'type': 'fee'},

@@ -12,6 +12,8 @@ class ReviewModel {
     this.isVerifiedPurchase = false,
     this.user,
     this.images = const [],
+    this.sellerReply,
+    this.repliedAt,
     this.createdAt,
     this.updatedAt,
   });
@@ -26,6 +28,8 @@ class ReviewModel {
   final bool isVerifiedPurchase;
   final ReviewUserModel? user;
   final List<ReviewImageModel> images;
+  final String? sellerReply;
+  final DateTime? repliedAt;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -48,6 +52,8 @@ class ReviewModel {
       images: mapListFromJson(
         relationImages,
       ).map(ReviewImageModel.fromJson).toList(),
+      sellerReply: json['seller_reply']?.toString(),
+      repliedAt: dateTimeFromJson(json['replied_at']),
       createdAt: dateTimeFromJson(json['created_at']),
       updatedAt: dateTimeFromJson(json['updated_at']),
     );
@@ -62,6 +68,8 @@ class ReviewModel {
     'comment': comment,
     'status': status,
     'is_verified_purchase': isVerifiedPurchase,
+    'seller_reply': sellerReply,
+    'replied_at': dateTimeToJson(repliedAt),
     'created_at': dateTimeToJson(createdAt),
     'updated_at': dateTimeToJson(updatedAt),
   };

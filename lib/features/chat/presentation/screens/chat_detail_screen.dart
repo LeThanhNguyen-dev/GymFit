@@ -106,6 +106,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                 }
 
                 return ListView.builder(
+                  reverse: true,
                   controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                   itemCount: messages.length,
@@ -210,7 +211,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   void _scrollToBottom() {
     if (!_scrollController.hasClients) return;
     _scrollController.animateTo(
-      _scrollController.position.maxScrollExtent,
+      0.0,
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
     );
