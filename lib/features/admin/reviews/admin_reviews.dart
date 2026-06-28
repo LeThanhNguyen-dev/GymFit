@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/widgets/pagination_bar.dart';
 import '../../../shared/widgets/sort_dropdown.dart';
-import '../../reviews/data/models/review_model.dart';
 import '../../reviews/providers/review_providers.dart';
 
 class AdminReviewsScreen extends ConsumerStatefulWidget {
@@ -167,7 +166,7 @@ class _AdminReviewsScreenState extends ConsumerState<AdminReviewsScreen> {
       onSelected: (_) {
         setState(() {
           if (value is String?) {
-            _status = selected ? null : (value as String?);
+            _status = selected ? null : value;
           } else if (value is int?) {
             _rating = selected ? null : (value as int?);
           } else {

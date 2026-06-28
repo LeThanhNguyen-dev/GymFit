@@ -1,10 +1,9 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -47,11 +46,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       maxHeight: 512,
     );
     if (file != null) {
-      final tempDir = await getTemporaryDirectory();
-      final ext = file.name.split('.').last;
-      final savedPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.$ext';
-      await file.saveTo(savedPath);
-      setState(() => _selectedImage = XFile(savedPath));
+      setState(() => _selectedImage = file);
     }
   }
 
@@ -138,12 +133,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     backgroundColor: AppColors.surfaceContainerHighest,
                     child: ClipOval(
                       child: _selectedImage != null
-                          ? Image.file(
-                              File(_selectedImage!.path),
-                              width: 112,
-                              height: 112,
-                              fit: BoxFit.cover,
-                            )
+                          ? _XFileCirclePreview(file: _selectedImage!)
                           : profile.avatarUrl != null
                               ? AppImage(
                                   imageUrl: profile.avatarUrl,
@@ -231,6 +221,37 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _XFileCirclePreview extends StatelessWidget {
+  const _XFileCirclePreview({required this.file});
+
+  final XFile file;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List>(
+      future: file.readAsBytes(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return Image.memory(
+            snapshot.data!,
+            width: 112,
+            height: 112,
+            fit: BoxFit.cover,
+          );
+        }
+        if (snapshot.hasError) {
+          return const Icon(Icons.broken_image, size: 32);
+        }
+        return const SizedBox(
+          width: 112,
+          height: 112,
+          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        );
+      },
     );
   }
 }

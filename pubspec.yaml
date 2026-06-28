@@ -41,6 +41,11 @@ dependencies:
   crypto: ^3.0.7
   qr_flutter: ^4.1.0
 
+  # Local Database
+  sqflite: ^2.3.0
+  sqflite_common_ffi: ^2.3.0
+  path: ^1.9.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -163,8 +163,8 @@ class AuthNotifier extends Notifier<AuthStateData> {
             id: supabaseUser.id,
             email: supabaseUser.email ?? '',
             fullName: supabaseUser.userMetadata?['full_name'] as String?,
-            role: (supabaseUser.appMetadata?['role'] ?? supabaseUser.userMetadata?['role']) as String? ?? 'customer',
-            sellerStatus: (supabaseUser.appMetadata?['seller_status'] ?? supabaseUser.userMetadata?['seller_status']) as String? ?? 'none',
+            role: (supabaseUser.appMetadata['role'] ?? supabaseUser.userMetadata?['role']) as String? ?? 'customer',
+            sellerStatus: (supabaseUser.appMetadata['seller_status'] ?? supabaseUser.userMetadata?['seller_status']) as String? ?? 'none',
           ),
         );
       }

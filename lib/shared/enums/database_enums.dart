@@ -33,15 +33,14 @@ enum PaymentStatus {
 }
 
 enum PaymentMethod {
+  cod,
+  payos,
+  bankTransfer,
   creditCard,
   debitCard,
   paypal,
   stripe,
-  bankTransfer,
-  cod,
-  momo,
   zalopay,
-  payos,
   applePay,
   googlePay,
 }

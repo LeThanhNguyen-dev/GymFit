@@ -90,10 +90,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
     }
   }
 
-  void _showUnsupported(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature chưa được hỗ trợ trong bản này.')),
-    );
+  dynamic _currentReg;
+
+  Future<void> _saveMetadata(Map<String, dynamic> updates) async {
+    if (_currentReg == null) return;
+    try {
+      final supabase = ref.read(supabaseClientProvider);
+      final existing = Map<String, dynamic>.from(_currentReg.metadata);
+      existing.addAll(updates);
+      await supabase.from('shop_registrations').update({'metadata': existing}).eq('id', _currentReg.id);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã lưu!')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+    }
+  }
+
+  void _showPolicyEditor() {
+    final ctrl = TextEditingController(text: _currentReg?.metadata?['return_policy'] ?? '');
+    showDialog(context: context, builder: (_) => AlertDialog(
+      title: const Text('Chính sách đổi trả'),
+      content: SizedBox(width: 400, child: TextField(
+        controller: ctrl, maxLines: 8,
+        decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Nhập chính sách đổi trả...'),
+      )),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+        FilledButton(onPressed: () {
+          Navigator.pop(context);
+          _saveMetadata({'return_policy': ctrl.text});
+        }, child: const Text('Lưu')),
+      ],
+    ));
+  }
+
+  void _showHoursEditor() {
+    final openCtrl = TextEditingController(text: _currentReg?.metadata?['open_time'] ?? '08:00');
+    final closeCtrl = TextEditingController(text: _currentReg?.metadata?['close_time'] ?? '22:00');
+    showDialog(context: context, builder: (_) => AlertDialog(
+      title: const Text('Giờ hoạt động'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(controller: openCtrl, decoration: const InputDecoration(labelText: 'Giờ mở cửa (HH:MM)', border: OutlineInputBorder())),
+        const SizedBox(height: 8),
+        TextField(controller: closeCtrl, decoration: const InputDecoration(labelText: 'Giờ đóng cửa (HH:MM)', border: OutlineInputBorder())),
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+        FilledButton(onPressed: () {
+          Navigator.pop(context);
+          _saveMetadata({'open_time': openCtrl.text, 'close_time': closeCtrl.text});
+        }, child: const Text('Lưu')),
+      ],
+    ));
   }
 
   @override
@@ -114,6 +161,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
               data: (reg) {
                 if (reg != null) {
                   _initFields(reg);
+                  _currentReg = reg;
                 }
                 return TabBarView(
                   controller: _tabCtrl,
@@ -208,7 +256,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
                 leading: const Icon(Icons.description_outlined),
                 title: Text('Chính sách đổi trả', style: AppTextStyles.bodyMedium),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showUnsupported('Chính sách đổi trả'),
+                onTap: () => _showPolicyEditor(),
               ),
               const Divider(height: 1, indent: 16, endIndent: 16),
               ListTile(
@@ -216,7 +264,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
                 title: Text('Giờ hoạt động', style: AppTextStyles.bodyMedium),
                 subtitle: Text('T2-CN: 08:00 - 22:00', style: AppTextStyles.bodySmall),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showUnsupported('Giờ hoạt động'),
+                onTap: () => _showHoursEditor(),
               ),
             ],
           ),
@@ -230,22 +278,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
               SwitchListTile(
                 secondary: const Icon(Icons.notifications),
                 title: Text('Đơn hàng mới', style: AppTextStyles.bodyMedium),
-                value: true,
-                onChanged: (_) => _showUnsupported('Thông báo đơn hàng mới'),
+                value: _currentReg?.metadata?['notify_new_order'] ?? true,
+                onChanged: (v) => _saveMetadata({'notify_new_order': v}),
               ),
               const Divider(height: 1, indent: 16, endIndent: 16),
               SwitchListTile(
                 secondary: const Icon(Icons.inventory),
                 title: Text('Cảnh báo hết hàng', style: AppTextStyles.bodyMedium),
-                value: true,
-                onChanged: (_) => _showUnsupported('Cảnh báo hết hàng'),
+                value: _currentReg?.metadata?['notify_low_stock'] ?? true,
+                onChanged: (v) => _saveMetadata({'notify_low_stock': v}),
               ),
               const Divider(height: 1, indent: 16, endIndent: 16),
               SwitchListTile(
                 secondary: const Icon(Icons.rate_review),
                 title: Text('Đánh giá mới', style: AppTextStyles.bodyMedium),
-                value: false,
-                onChanged: (_) => _showUnsupported('Thông báo đánh giá mới'),
+                value: _currentReg?.metadata?['notify_new_review'] ?? false,
+                onChanged: (v) => _saveMetadata({'notify_new_review': v}),
               ),
             ],
           ),

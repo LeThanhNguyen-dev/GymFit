@@ -219,7 +219,7 @@ class AuthRepository implements IAuthRepository {
         );
       }
     } catch (_) {}
-    final metadata = {...?authUser.appMetadata, ...?authUser.userMetadata};
+    final metadata = {...authUser.appMetadata, ...?authUser.userMetadata};
     return AppUser(
       id: authUser.id,
       email: authUser.email ?? '',

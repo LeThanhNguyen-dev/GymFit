@@ -69,7 +69,7 @@ class ChatConversationsScreen extends ConsumerWidget {
   }
 }
 
-class _ConversationTile extends StatelessWidget {
+class _ConversationTile extends ConsumerWidget {
   const _ConversationTile({
     required this.item,
     required this.onTap,
@@ -79,11 +79,21 @@ class _ConversationTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final preview = item.lastMessagePreview?.trim().isNotEmpty == true
-        ? item.lastMessagePreview!
-        : 'Chưa có tin nhắn';
+    final localPreviewAsync = ref.watch(lastMessagePreviewProvider(item.conversationId));
+    
+    final preview = localPreviewAsync.maybeWhen(
+      data: (localPreview) {
+        if (localPreview != null && localPreview.isNotEmpty) return localPreview;
+        return item.lastMessagePreview?.trim().isNotEmpty == true
+            ? item.lastMessagePreview!
+            : 'Chưa có tin nhắn';
+      },
+      orElse: () => item.lastMessagePreview?.trim().isNotEmpty == true
+          ? item.lastMessagePreview!
+          : 'Chưa có tin nhắn',
+    );
 
     return Card(
       child: ListTile(

@@ -30,13 +30,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     final payOsSession = ref.watch(payOsPaymentProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Thanh toan')),
+      appBar: AppBar(title: const Text('Thanh toán')),
       body: payment.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text(error.toString())),
         data: (payment) {
           if (payment == null) {
-            return const Center(child: Text('Khong tim thay thanh toan.'));
+            return const Center(child: Text('Không tìm thấy thanh toán.'));
           }
           if (payment.method == PaymentMethod.payos &&
               payment.status == PaymentStatus.pending) {
@@ -48,15 +48,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Icon(
-                  payment.method == PaymentMethod.momo
-                      ? Icons.account_balance_wallet
-                      : payment.method == PaymentMethod.payos
+                  payment.method == PaymentMethod.payos
                       ? Icons.qr_code_2
                       : Icons.payments,
                   size: 72,
-                  color: payment.method == PaymentMethod.momo
-                      ? Colors.pink
-                      : payment.method == PaymentMethod.payos
+                  color: payment.method == PaymentMethod.payos
                       ? Colors.green
                       : Colors.blue,
                 ),
@@ -86,10 +82,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       ),
                       data: (session) => session == null
                           ? Center(
-                              child: FilledButton.icon(
+                              child                              : FilledButton.icon(
                                 onPressed: () => _createPayOsSession(payment),
                                 icon: const Icon(Icons.qr_code_2),
-                                label: const Text('Tao ma QR payOS'),
+                                label: const Text('Tạo mã QR payOS'),
                               ),
                             )
                           : _PayOsPaymentPanel(
@@ -124,18 +120,16 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                           dimension: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(
+                       : Text(
                           payment.method == PaymentMethod.payos
-                              ? 'Toi da thanh toan'
-                              : payment.method == PaymentMethod.cod
-                              ? 'Xac nhan'
-                              : 'Xac nhan thanh toan',
+                              ? 'Tôi đã thanh toán'
+                              : 'Xác nhận',
                         ),
                 ),
                 if (payment.method == PaymentMethod.payos)
                   TextButton(
                     onPressed: () => _createPayOsSession(payment),
-                    child: const Text('Tao lai ma QR'),
+                    child: const Text('Tạo lại mã QR'),
                   ),
               ],
             ),
@@ -180,7 +174,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         );
       } else {
         messenger.showSnackBar(
-          const SnackBar(content: Text('Chua nhan duoc thanh toan payOS.')),
+          const SnackBar(content: Text('Chưa nhận được thanh toán payOS.')),
         );
       }
     } catch (error) {
@@ -191,15 +185,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   Future<void> _copyPayOsInfo(PayOsPaymentSession session) async {
     final lines = [
-      if (session.accountName != null) 'Ten TK: ${session.accountName}',
-      if (session.accountNumber != null) 'So TK: ${session.accountNumber}',
-      'So tien: ${formatCurrency(session.amount)}',
-      'Noi dung: ${session.description}',
+      if (session.accountName != null) 'Tên TK: ${session.accountName}',
+      if (session.accountNumber != null) 'Số TK: ${session.accountNumber}',
+      'Số tiền: ${formatCurrency(session.amount)}',
+      'Nội dung: ${session.description}',
     ];
     await Clipboard.setData(ClipboardData(text: lines.join('\n')));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Da sao chep thong tin thanh toan.')),
+      const SnackBar(content: Text('Đã sao chép thông tin thanh toán.')),
     );
   }
 }
@@ -236,12 +230,12 @@ class _PayOsPaymentPanel extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _PayOsInfoRow('So tien', formatCurrency(session.amount)),
-                  _PayOsInfoRow('Noi dung', session.description),
+                  _PayOsInfoRow('Số tiền', formatCurrency(session.amount)),
+                  _PayOsInfoRow('Nội dung', session.description),
                   if (session.accountName != null)
-                    _PayOsInfoRow('Chu tai khoan', session.accountName!),
+                    _PayOsInfoRow('Chủ tài khoản', session.accountName!),
                   if (session.accountNumber != null)
-                    _PayOsInfoRow('So tai khoan', session.accountNumber!),
+                    _PayOsInfoRow('Số tài khoản', session.accountNumber!),
                 ],
               ),
             ),
@@ -249,11 +243,11 @@ class _PayOsPaymentPanel extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: () => onCopy(session),
             icon: const Icon(Icons.copy),
-            label: const Text('Sao chep thong tin chuyen khoan'),
+            label: const Text('Sao chép thông tin chuyển khoản'),
           ),
           const SizedBox(height: 8),
           Text(
-            'Mo ung dung ngan hang va quet QR de thanh toan. Sau khi chuyen khoan, bam "Toi da thanh toan" de cap nhat trang thai.',
+            'Mở ứng dụng ngân hàng và quét QR để thanh toán. Sau khi chuyển khoản, bấm "Tôi đã thanh toán" để cập nhật trạng thái.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,
           ),
@@ -315,7 +309,7 @@ class _PayOsErrorPanel extends StatelessWidget {
           const SizedBox(height: 12),
           Text(error, textAlign: TextAlign.center),
           const SizedBox(height: 12),
-          FilledButton(onPressed: onRetry, child: const Text('Thu lai')),
+          FilledButton(onPressed: onRetry, child: const Text('Thử lại')),
         ],
       ),
     );

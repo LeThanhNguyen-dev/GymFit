@@ -718,10 +718,10 @@ class _VariantSelector extends StatelessWidget {
                             : null,
                       ),
                     ),
-                    if (v.price != null && v.price != basePrice) ...[
+                    if (v.price != basePrice) ...[
                       const SizedBox(width: 4),
                       Text(
-                        '(${v.price! > basePrice ? '+' : '-'}${formatCurrency(v.price! > basePrice ? v.price! - basePrice : basePrice - v.price!)})',
+                        '(${v.price > basePrice ? '+' : '-'}${formatCurrency(v.price > basePrice ? v.price - basePrice : basePrice - v.price)})',
                         style: TextStyle(
                           color: isSelected
                               ? Colors.white.withValues(alpha: 0.8)

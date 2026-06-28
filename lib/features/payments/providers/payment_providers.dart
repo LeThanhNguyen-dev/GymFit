@@ -39,11 +39,6 @@ class PaymentProcessingNotifier extends AsyncNotifier<PaymentModel?> {
   Future<PaymentModel> process(PaymentModel payment) async {
     state = const AsyncValue.loading();
     final result = await AsyncValue.guard(() async {
-      if (payment.method == PaymentMethod.momo) {
-        return ref
-            .read(paymentRepositoryProvider)
-            .mockMomoPayment(payment.id, payment.amount);
-      }
       return ref
           .read(paymentRepositoryProvider)
           .updatePaymentStatus(payment.id, PaymentStatus.pending);

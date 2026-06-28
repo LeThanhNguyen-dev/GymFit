@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers/menu_providers.dart';
 import '../../../../core/widgets/navbar.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_text_styles.dart';
 import '../../../cart/providers/cart_providers.dart';
 import '../../../products/providers/product_providers.dart';
 import '../../../products/providers/category_providers.dart';
@@ -12,9 +15,10 @@ import '../../providers/banner_providers.dart';
 import '../widgets/banner_carousel.dart';
 import '../widgets/categories_section.dart';
 import '../widgets/brands_section.dart';
-import '../widgets/section_title.dart';
-import '../widgets/product_list_horizontal.dart';
-import '../widgets/best_sellers_grid.dart';
+import '../widgets/shortcut_grid.dart';
+import '../widgets/voucher_strip.dart';
+import '../widgets/flash_sale_section.dart';
+import '../widgets/recommended_grid.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -22,17 +26,15 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cartCount = ref.watch(cartCountProvider);
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
     return Scaffold(
-      backgroundColor: colorScheme.surface,
       body: RefreshIndicator(
         onRefresh: () => _onRefresh(ref),
         child: CustomScrollView(
           slivers: [
             _AppBar(cartCount: cartCount),
             SliverToBoxAdapter(child: _HomeBody()),
+            RecommendedGrid(),
+            const SliverToBoxAdapter(child: SizedBox(height: 80)),
           ],
         ),
       ),
@@ -44,6 +46,7 @@ class HomeScreen extends ConsumerWidget {
     ref.invalidate(bestSellersProvider);
     ref.invalidate(newArrivalsProvider);
     ref.invalidate(recommendedProductsProvider);
+    ref.invalidate(flashSaleProductsProvider);
     ref.invalidate(categoryListProvider);
     ref.invalidate(completeMenuProvider);
     ref.invalidate(brandListProvider);
@@ -53,101 +56,75 @@ class HomeScreen extends ConsumerWidget {
 
 class _AppBar extends StatelessWidget {
   const _AppBar({required this.cartCount});
-
   final int cartCount;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-
     return SliverAppBar(
-      floating: true,
-      pinned: false,
+      pinned: true,
+      floating: false,
       backgroundColor: colorScheme.surface,
       elevation: 0,
       scrolledUnderElevation: 0.5,
-      toolbarHeight: 72,
+      toolbarHeight: 60,
       title: Padding(
-        padding: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.only(top: 2),
         child: Row(
           children: [
-            // Logo
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [colorScheme.primary, colorScheme.primary.withValues(alpha: 0.8)],
                 ),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 'GymFit',
-                style: theme.textTheme.titleMedium?.copyWith(
+                style: theme.textTheme.titleSmall?.copyWith(
                   color: colorScheme.onPrimary,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1,
                 ),
               ),
             ),
-            const SizedBox(width: 12),
-            // Search bar
+            const SizedBox(width: 10),
             Expanded(
               child: GestureDetector(
                 onTap: () => context.push('/search'),
                 child: Container(
-                  height: 44,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  height: 38,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
+                    color: AppColors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.search_rounded,
-                        size: 20,
-                        color: colorScheme.outline,
-                      ),
+                      Icon(Icons.search, size: 18, color: AppColors.onSurfaceVariant),
                       const SizedBox(width: 8),
-                      Text(
-                        'Tìm kiếm sản phẩm...',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.outline,
-                        ),
-                      ),
+                      Text('Tìm kiếm...', style: AppTextStyles.bodySmall.copyWith(color: AppColors.onSurfaceVariant)),
                     ],
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 4),
-            // Cart button with badge
+            const SizedBox(width: 8),
             Stack(
-              clipBehavior: Clip.none,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.shopping_bag_outlined),
+                  icon: const Icon(Icons.shopping_cart_outlined, size: 22),
                   onPressed: () => context.push('/cart'),
                 ),
                 if (cartCount > 0)
                   Positioned(
-                    right: 4,
-                    top: 4,
+                    right: 4, top: 2,
                     child: Container(
                       padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: colorScheme.error,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        cartCount > 99 ? '99+' : '$cartCount',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
+                      child: Text(cartCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 10)),
                     ),
                   ),
               ],
@@ -165,49 +142,31 @@ class _HomeBody extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Category Nav Bar
         NavBar(
-          onCategorySelected: (slug) {
-            context.push('/products?category=$slug');
+          onCategorySelected: (id) {
+            context.push('/products', extra: {'categoryId': id});
           },
         ),
-
-        // Hero Banner Carousel (includes banners + services)
         const BannerCarousel(),
-
-        const SizedBox(height: 4),
-
-        // Categories Grid
+        const ShortcutGrid(),
+        const VoucherStrip(),
+        const FlashSaleSection(),
         const CategoriesSection(),
-
-        // Featured Brands
         const BrandsSection(),
-
-        // Recommended Products
-        SectionTitle(
-          title: 'Dành riêng cho bạn',
-          onSeeAll: () => context.push('/products'),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageHorizontal),
+          child: Row(
+            children: [
+              Text('Gợi ý hôm nay', style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.bold)),
+              const Spacer(),
+              TextButton(
+                onPressed: () => context.push('/products'),
+                child: const Text('Xem thêm'),
+              ),
+            ],
+          ),
         ),
-        const ProductListHorizontal(type: ProductListType.recommended),
-
-        // Featured Products
-        SectionTitle(
-          title: 'Sản phẩm nổi bật',
-          onSeeAll: () => context.push('/products'),
-        ),
-        const ProductListHorizontal(type: ProductListType.featured),
-
-        // Best Sellers
-        const BestSellersGrid(),
-
-        // New Arrivals
-        SectionTitle(
-          title: 'Hàng mới về',
-          onSeeAll: () => context.push('/products'),
-        ),
-        const ProductListHorizontal(type: ProductListType.newArrivals),
-
-        const SizedBox(height: 32),
+        const SizedBox(height: 8),
       ],
     );
   }

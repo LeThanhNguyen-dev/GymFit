@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/core_providers.dart';
 import '../../../core/providers/supabase_providers.dart';
+import '../../../shared/enums/database_enums.dart';
 import '../data/models/product_model.dart';
 import '../data/repositories/product_repository.dart';
 import '../services/product_cache_service.dart';
@@ -74,6 +75,26 @@ final recommendedProductsProvider =
   final products = await repo.getRecommendedProducts(limit: 10);
   await cacheService.saveRecommended(products);
   return products;
+});
+
+final flashSaleProductsProvider =
+    FutureProvider.autoDispose<List<ProductModel>>((ref) async {
+  final repo = ref.watch(productRepositoryProvider);
+  final products = await repo.getFeaturedProducts(limit: 20);
+  final onSale = products.where((p) =>
+    p.compareAtPrice != null &&
+    p.compareAtPrice! > p.basePrice &&
+    p.status == ProductStatus.active
+  ).toList();
+  onSale.sort((a, b) => ((b.compareAtPrice! - b.basePrice) / b.compareAtPrice! * 100)
+      .compareTo(((a.compareAtPrice! - a.basePrice) / a.compareAtPrice! * 100)));
+  return onSale.take(8).toList();
+});
+
+final recommendedMoreProvider =
+    FutureProvider.autoDispose<List<ProductModel>>((ref) async {
+  final repo = ref.watch(productRepositoryProvider);
+  return repo.getRecommendedProducts(limit: 20);
 });
 
 final productDetailProvider = FutureProvider.family
