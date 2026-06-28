@@ -202,7 +202,7 @@ class ProductListNotifier extends Notifier<ProductListState> {
 
   @override
   ProductListState build() {
-    Future.microtask(loadProducts);
+    Future.delayed(Duration.zero, loadProducts);
     return const ProductListState();
   }
 
