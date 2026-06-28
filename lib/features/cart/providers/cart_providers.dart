@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/supabase_providers.dart';
@@ -13,9 +14,9 @@ final cartRepositoryProvider = Provider<CartRepository>((ref) {
 });
 
 final cartItemsProvider =
-    NotifierProvider<CartNotifier, AsyncValue<List<CartItemModel>>>(
-      CartNotifier.new,
-    );
+    AsyncNotifierProvider<CartNotifier, List<CartItemModel>>(
+  CartNotifier.new,
+);
 
 final cartCountProvider = Provider<int>((ref) {
   final items = ref.watch(cartItemsProvider).value ?? const <CartItemModel>[];
@@ -34,11 +35,10 @@ final cartSummaryProvider = Provider<CartSummary>((ref) {
   );
 });
 
-class CartNotifier extends Notifier<AsyncValue<List<CartItemModel>>> {
+class CartNotifier extends AsyncNotifier<List<CartItemModel>> {
   @override
-  AsyncValue<List<CartItemModel>> build() {
-    Future.delayed(Duration.zero, loadCart);
-    return const AsyncValue.loading();
+  FutureOr<List<CartItemModel>> build() {
+    return _repository.getCartItems(_userId);
   }
 
   CartRepository get _repository => ref.read(cartRepositoryProvider);
@@ -52,7 +52,7 @@ class CartNotifier extends Notifier<AsyncValue<List<CartItemModel>>> {
   }
 
   Future<void> loadCart() async {
-    state = const AsyncValue.loading();
+    state = const AsyncLoading();
     state = await AsyncValue.guard(() => _repository.getCartItems(_userId));
   }
 
@@ -61,23 +61,35 @@ class CartNotifier extends Notifier<AsyncValue<List<CartItemModel>>> {
     String variantId,
     int quantity,
   ) async {
-    await _repository.addToCart(_userId, productId, variantId, quantity);
-    await loadCart();
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await _repository.addToCart(_userId, productId, variantId, quantity);
+      return _repository.getCartItems(_userId);
+    });
   }
 
   Future<void> updateQuantity(String cartItemId, int quantity) async {
-    await _repository.updateQuantity(cartItemId, quantity);
-    await loadCart();
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await _repository.updateQuantity(cartItemId, quantity);
+      return _repository.getCartItems(_userId);
+    });
   }
 
   Future<void> removeItem(String cartItemId) async {
-    await _repository.removeItem(cartItemId);
-    await loadCart();
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await _repository.removeItem(cartItemId);
+      return _repository.getCartItems(_userId);
+    });
   }
 
   Future<void> clearCart() async {
-    await _repository.clearCart(_userId);
-    state = const AsyncValue.data(<CartItemModel>[]);
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await _repository.clearCart(_userId);
+      return <CartItemModel>[];
+    });
   }
 
   Future<List<CartItemModel>> checkStock() {

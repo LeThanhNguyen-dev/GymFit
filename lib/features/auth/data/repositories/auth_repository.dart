@@ -202,6 +202,11 @@ class AuthRepository implements IAuthRepository {
   Future<AppUser?> fetchProfile() async {
     final authUser = _authService.currentUser;
     if (authUser == null) return null;
+
+    var role = 'customer';
+    var sellerStatus = 'none';
+    String? fullName;
+
     try {
       final rows = await _databaseService
           .table(_profileTable)
@@ -210,22 +215,44 @@ class AuthRepository implements IAuthRepository {
           .limit(1);
       if (rows.isNotEmpty) {
         final row = rows.first;
-        return AppUser(
-          id: authUser.id,
-          email: row['email']?.toString() ?? authUser.email ?? '',
-          fullName: row['full_name']?.toString(),
-          role: row['role']?.toString() ?? 'customer',
-          sellerStatus: row['seller_status']?.toString() ?? 'none',
-        );
+        role = row['role']?.toString() ?? 'customer';
+        sellerStatus = row['seller_status']?.toString() ?? 'none';
+        fullName = row['full_name']?.toString();
+      } else {
+        final metadata = {...authUser.appMetadata, ...?authUser.userMetadata};
+        role = metadata['role'] as String? ?? 'customer';
+        sellerStatus = metadata['seller_status'] as String? ?? 'none';
+        fullName = authUser.userMetadata?['full_name'] as String?;
       }
-    } catch (_) {}
-    final metadata = {...authUser.appMetadata, ...?authUser.userMetadata};
+    } catch (_) {
+      final metadata = {...authUser.appMetadata, ...?authUser.userMetadata};
+      role = metadata['role'] as String? ?? 'customer';
+      sellerStatus = metadata['seller_status'] as String? ?? 'none';
+      fullName = authUser.userMetadata?['full_name'] as String?;
+    }
+
+    // Auto-heal: If registration is approved, treat as storeowner
+    if (role == 'customer' || sellerStatus != 'approved') {
+      try {
+        final regRows = await _databaseService
+            .table('shop_registrations')
+            .select('status')
+            .eq('user_id', authUser.id)
+            .eq('status', 'approved')
+            .limit(1);
+        if (regRows.isNotEmpty) {
+          role = 'storeowner';
+          sellerStatus = 'approved';
+        }
+      } catch (_) {}
+    }
+
     return AppUser(
       id: authUser.id,
       email: authUser.email ?? '',
-      fullName: authUser.userMetadata?['full_name'] as String?,
-      role: metadata['role'] as String? ?? 'customer',
-      sellerStatus: metadata['seller_status'] as String? ?? 'none',
+      fullName: fullName,
+      role: role,
+      sellerStatus: sellerStatus,
     );
   }
 

@@ -31,7 +31,27 @@ class ProfileRepository {
         .limit(1);
 
     if (rows.isEmpty) throw Exception('Không tìm thấy hồ sơ');
-    return ProfileModel.fromJson(Map<String, dynamic>.from(rows.first));
+    
+    final map = Map<String, dynamic>.from(rows.first);
+    var role = map['role']?.toString() ?? 'customer';
+    var sellerStatus = map['seller_status']?.toString() ?? 'none';
+
+    if (role == 'customer' || sellerStatus != 'approved') {
+      try {
+        final regRows = await _databaseService
+            .table('shop_registrations')
+            .select('status')
+            .eq('user_id', authUser.id)
+            .eq('status', 'approved')
+            .limit(1);
+        if (regRows.isNotEmpty) {
+          map['role'] = 'storeowner';
+          map['seller_status'] = 'approved';
+        }
+      } catch (_) {}
+    }
+
+    return ProfileModel.fromJson(map);
   }
 
   Future<ProfileModel> updateProfile(ProfileModel profile) async {
