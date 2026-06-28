@@ -28,7 +28,7 @@ final wishlistCountProvider = Provider<int>((ref) {
 class WishlistNotifier extends Notifier<AsyncValue<List<WishlistItemModel>>> {
   @override
   AsyncValue<List<WishlistItemModel>> build() {
-    Future.microtask(loadWishlist);
+    Future.delayed(Duration.zero, loadWishlist);
     return const AsyncValue.loading();
   }
 

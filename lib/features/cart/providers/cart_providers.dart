@@ -37,7 +37,7 @@ final cartSummaryProvider = Provider<CartSummary>((ref) {
 class CartNotifier extends Notifier<AsyncValue<List<CartItemModel>>> {
   @override
   AsyncValue<List<CartItemModel>> build() {
-    Future.microtask(loadCart);
+    Future.delayed(Duration.zero, loadCart);
     return const AsyncValue.loading();
   }
 

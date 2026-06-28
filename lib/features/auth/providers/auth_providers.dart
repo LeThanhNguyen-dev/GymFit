@@ -91,7 +91,7 @@ class AuthNotifier extends Notifier<AuthStateData> {
       _setupDeepLinkListener();
       _setupAuthListener();
     }
-    Future.microtask(() => _checkCurrentUser());
+    Future.delayed(Duration.zero, () => _checkCurrentUser());
     ref.onDispose(() {
       _authSub?.cancel();
       _deepLinkSub?.cancel();

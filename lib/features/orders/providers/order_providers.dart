@@ -45,7 +45,7 @@ class OrderListNotifier extends Notifier<AsyncValue<List<OrderModel>>> {
 
   @override
   AsyncValue<List<OrderModel>> build() {
-    Future.microtask(load);
+    Future.delayed(Duration.zero, load);
     return const AsyncValue.loading();
   }
 
@@ -104,7 +104,7 @@ class AdminOrderListNotifier extends Notifier<AsyncValue<List<OrderModel>>> {
 
   @override
   AsyncValue<List<OrderModel>> build() {
-    Future.microtask(load);
+    Future.delayed(Duration.zero, load);
     return const AsyncValue.loading();
   }
 
