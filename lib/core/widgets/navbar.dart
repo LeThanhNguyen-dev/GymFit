@@ -225,7 +225,7 @@ class _NavBarState extends ConsumerState<NavBar> {
                 ),
               ),
             );
-          }).toList(),
+          }),
         ];
       },
       child: Padding(

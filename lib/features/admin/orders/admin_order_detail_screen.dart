@@ -37,7 +37,7 @@ class AdminOrderDetailScreen extends ConsumerWidget {
                     onSelected: (status) => _updateStatus(context, ref, status),
                   ),
             loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
           ),
         ],
       ),

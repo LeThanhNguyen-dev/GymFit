@@ -461,7 +461,7 @@ class _SummaryRow extends StatelessWidget {
         children: [
           Expanded(child: Text(label, style: style)),
           Text(value, style: style),
-          if (trailing != null) trailing!,
+          ?trailing,
         ],
       ),
     );

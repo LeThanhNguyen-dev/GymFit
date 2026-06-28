@@ -103,7 +103,7 @@ class _CarouselContent extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 2),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
@@ -174,7 +174,7 @@ class _CarouselCard extends StatelessWidget {
             Positioned(
               left: 20,
               right: 80,
-              bottom: 20,
+              bottom: 12,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

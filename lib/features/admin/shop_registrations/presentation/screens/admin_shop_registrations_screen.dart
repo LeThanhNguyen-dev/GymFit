@@ -81,7 +81,7 @@ class _AdminShopRegistrationsScreenState extends ConsumerState<AdminShopRegistra
         return ListView.separated(
           padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
           itemCount: items.length,
-          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
           itemBuilder: (_, i) => _RegistrationCard(
             registration: items[i],
             onTap: () => context.push(

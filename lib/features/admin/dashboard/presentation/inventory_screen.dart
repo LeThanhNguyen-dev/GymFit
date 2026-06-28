@@ -74,7 +74,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 height: 12,
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
-              error: (_, __) => const Text('Error'),
+              error: (_, _) => const Text('Error'),
             ),
           ],
         ),

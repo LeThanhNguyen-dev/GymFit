@@ -137,7 +137,7 @@ class _AdminShopDetailScreenState extends ConsumerState<AdminShopDetailScreen> w
         return ListView.separated(
           padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
           itemCount: products.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
+          separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (_, i) => ListTile(
             leading: Container(width: 48, height: 48, decoration: BoxDecoration(color: AppColors.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.image)),
             title: Text(products[i]['name'] as String, style: AppTextStyles.bodyMedium),
@@ -158,7 +158,7 @@ class _AdminShopDetailScreenState extends ConsumerState<AdminShopDetailScreen> w
         return ListView.separated(
           padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
           itemCount: txns.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
+          separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (_, i) {
             final amount = (txns[i]['amount'] as num?)?.toDouble() ?? 0;
             return ListTile(
@@ -180,8 +180,9 @@ class _AdminShopDetailScreenState extends ConsumerState<AdminShopDetailScreen> w
   }
 
   void _handleAction(String action) {
-    if (action == 'suspend') _showSuspendDialog();
-    else if (action == 'warn') _showWarnDialog();
+    if (action == 'suspend') {
+      _showSuspendDialog();
+    } else if (action == 'warn') _showWarnDialog();
   }
 
   void _showSuspendDialog() {

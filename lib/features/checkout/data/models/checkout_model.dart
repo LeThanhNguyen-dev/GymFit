@@ -32,8 +32,8 @@ class CheckoutData {
   bool get isCartCheckout => source == CheckoutSource.cart;
 
   List<VoucherModel> get appliedVouchers => [
-    if (voucher != null) voucher!,
-    if (shopVoucher != null) shopVoucher!,
+    ?voucher,
+    ?shopVoucher,
   ];
 
   CheckoutData copyWith({

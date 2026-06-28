@@ -48,7 +48,7 @@ class _AdminProductModerationScreenState extends ConsumerState<AdminProductModer
         if (items.isEmpty) return const Center(child: Text('Không có kết quả'));
         return ListView.separated(
           padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
-          itemCount: items.length, separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+          itemCount: items.length, separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
           itemBuilder: (_, i) => Card(
             child: ListTile(
               leading: Container(width: 48, height: 48, decoration: BoxDecoration(color: AppColors.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.image)),
@@ -90,7 +90,7 @@ class _AdminProductModerationScreenState extends ConsumerState<AdminProductModer
           await supabase.from('products').update({'status': 'rejected', 'short_description': ctrl.text}).eq('id', item['id']);
           ref.invalidate(_productsByStatusProvider);
           if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã từ chối sản phẩm')));
-        }, child: const Text('Từ chối'), style: FilledButton.styleFrom(backgroundColor: AppColors.error)),
+        }, style: FilledButton.styleFrom(backgroundColor: AppColors.error), child: const Text('Từ chối')),
       ],
     ));
   }
@@ -116,7 +116,7 @@ class _AdminProductModerationScreenState extends ConsumerState<AdminProductModer
             Expanded(child: FilledButton(onPressed: () {
               Navigator.pop(context);
               _approveProduct(item);
-            }, child: const Text('Duyệt'), style: FilledButton.styleFrom(backgroundColor: AppColors.success))),
+            }, style: FilledButton.styleFrom(backgroundColor: AppColors.success), child: const Text('Duyệt'))),
             const SizedBox(width: AppSpacing.sm),
             Expanded(child: OutlinedButton(onPressed: () { Navigator.pop(context); _showRejectDialog(item); }, child: const Text('Từ chối'))),
           ]),

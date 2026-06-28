@@ -67,7 +67,7 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
                       height: 200,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (_, _, _) => Container(
                         height: 200,
                         color: AppColors.surfaceContainerLow,
                         child: Icon(Icons.fitness_center,

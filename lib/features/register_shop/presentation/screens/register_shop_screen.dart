@@ -138,15 +138,15 @@ class _RegisterShopScreenState extends ConsumerState<RegisterShopScreen> {
 
       final existing = widget.existingRegistration;
 
-      Future<({Uint8List bytes, String ext})?> _readXFile(XFile? xf) async {
+      Future<({Uint8List bytes, String ext})?> readXFile(XFile? xf) async {
         if (xf == null) return null;
         final bytes = await xf.readAsBytes();
         return (bytes: bytes, ext: xf.name.split('.').last);
       }
 
-      final cccdFront = await _readXFile(_cccdFrontFile);
-      final cccdBack = await _readXFile(_cccdBackFile);
-      final bizLicense = await _readXFile(_bizLicenseFile);
+      final cccdFront = await readXFile(_cccdFrontFile);
+      final cccdBack = await readXFile(_cccdBackFile);
+      final bizLicense = await readXFile(_bizLicenseFile);
 
       if (existing != null) {
         await repo.updateRegistration(

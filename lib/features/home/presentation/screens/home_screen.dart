@@ -7,6 +7,7 @@ import '../../../../core/widgets/navbar.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/widgets/gym_fit_logo.dart';
 import '../../../cart/providers/cart_providers.dart';
 import '../../../products/providers/product_providers.dart';
 import '../../../products/providers/category_providers.dart';
@@ -74,20 +75,26 @@ class _AppBar extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [colorScheme.primary, colorScheme.primary.withValues(alpha: 0.8)],
-                ),
-                borderRadius: BorderRadius.circular(8),
+                color: colorScheme.primary,
+                borderRadius: BorderRadius.circular(18),
               ),
-              child: Text(
-                'GymFit',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: colorScheme.onPrimary,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GymFitLogo(size: 18, color: colorScheme.onPrimary),
+                  const SizedBox(width: 6),
+                  Text(
+                    'GymFit',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: colorScheme.onPrimary,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: 10),
@@ -147,6 +154,7 @@ class _HomeBody extends ConsumerWidget {
             context.push('/products', extra: {'categoryId': id});
           },
         ),
+        const SizedBox(height: 12),
         const BannerCarousel(),
         const ShortcutGrid(),
         const VoucherStrip(),

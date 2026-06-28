@@ -575,7 +575,7 @@ class _ImageCarouselState extends State<_ImageCarousel> {
                 PageRouteBuilder(
                   opaque: false,
                   barrierColor: Colors.black.withValues(alpha: 0.9),
-                  pageBuilder: (context, _, __) {
+                  pageBuilder: (context, _, _) {
                     return Scaffold(
                       backgroundColor: Colors.transparent,
                       appBar: AppBar(

@@ -125,13 +125,13 @@ class ChatRepository {
         'sender_id': _currentUserId,
         'content': content,
         if (messageType != null && messageType != 'text') 'message_type': messageType,
-        if (mediaUrl != null) 'media_url': mediaUrl,
-        if (mediaThumb != null) 'media_thumb': mediaThumb,
-        if (mediaWidth != null) 'media_width': mediaWidth,
-        if (mediaHeight != null) 'media_height': mediaHeight,
-        if (fileName != null) 'file_name': fileName,
-        if (fileSize != null) 'file_size': fileSize,
-        if (replyToId != null) 'reply_to_id': replyToId,
+        'media_url': ?mediaUrl,
+        'media_thumb': ?mediaThumb,
+        'media_width': ?mediaWidth,
+        'media_height': ?mediaHeight,
+        'file_name': ?fileName,
+        'file_size': ?fileSize,
+        'reply_to_id': ?replyToId,
       }).select('id').single();
 
       final remoteId = response['id'].toString();

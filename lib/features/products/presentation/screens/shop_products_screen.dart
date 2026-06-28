@@ -353,7 +353,7 @@ class _ShopProductsScreenState extends ConsumerState<ShopProductsScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: _bestSellers.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            separatorBuilder: (_, _) => const SizedBox(width: 10),
               itemBuilder: (_, i) {
               final p = _bestSellers[i];
               return SizedBox(
