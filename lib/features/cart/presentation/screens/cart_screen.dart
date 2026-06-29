@@ -324,7 +324,7 @@ class _CartItemTile extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     _QuantitySelector(
                       quantity: item.quantity,
                       maxQuantity: stock,
@@ -352,27 +352,39 @@ class _QuantitySelector extends StatelessWidget {
   final int maxQuantity;
   final ValueChanged<int> onChanged;
 
+  Widget _buildButton(BuildContext context, IconData icon, VoidCallback? onPressed) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final bg = onPressed == null
+        ? colorScheme.surfaceContainerHighest
+        : colorScheme.secondaryContainer;
+    final fg = onPressed == null
+        ? colorScheme.onSurfaceVariant
+        : colorScheme.onSecondaryContainer;
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, size: 14, color: fg),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton.filledTonal(
-          visualDensity: VisualDensity.compact,
-          onPressed: quantity <= 1 ? null : () => onChanged(quantity - 1),
-          icon: const Icon(Icons.remove),
-        ),
+        _buildButton(context, Icons.remove, quantity <= 1 ? null : () => onChanged(quantity - 1)),
         SizedBox(
-          width: 44,
-          child: Text('$quantity', textAlign: TextAlign.center),
+          width: 36,
+          child: Text('$quantity', textAlign: TextAlign.center, style: const TextStyle(fontSize: 14)),
         ),
-        IconButton.filledTonal(
-          visualDensity: VisualDensity.compact,
-          onPressed: quantity >= maxQuantity
-              ? null
-              : () => onChanged(quantity + 1),
-          icon: const Icon(Icons.add),
-        ),
+        _buildButton(context, Icons.add, quantity >= maxQuantity ? null : () => onChanged(quantity + 1)),
       ],
     );
   }

@@ -27,9 +27,9 @@ class ShortcutGrid extends StatelessWidget {
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 4,
-          mainAxisSpacing: 8,
+          mainAxisSpacing: 4,
           crossAxisSpacing: 0,
-          childAspectRatio: 0.85,
+          childAspectRatio: 1.15,
         ),
         itemCount: _items.length,
         itemBuilder: (_, i) {
@@ -37,18 +37,20 @@ class ShortcutGrid extends StatelessWidget {
           return GestureDetector(
             onTap: () => context.push(item.route),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
+                const Spacer(flex: 1),
                 Container(
-                  width: 44, height: 44,
+                  width: 38, height: 38,
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.08),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(item.icon, color: AppColors.primary, size: 22),
+                  child: Icon(item.icon, color: AppColors.primary, size: 18),
                 ),
-                const SizedBox(height: 6),
-                Text(item.label, style: AppTextStyles.labelSmall.copyWith(fontSize: 11), textAlign: TextAlign.center, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 3),
+                Text(item.label, style: AppTextStyles.labelSmall.copyWith(fontSize: 10), textAlign: TextAlign.center, overflow: TextOverflow.ellipsis),
+                const Spacer(flex: 2),
               ],
             ),
           );
