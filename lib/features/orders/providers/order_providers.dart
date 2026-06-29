@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/providers/supabase_providers.dart';
 import '../../../shared/enums/database_enums.dart';
@@ -15,18 +16,15 @@ final orderListProvider =
   OrderListNotifier.new,
 );
 
-final orderDetailProvider = StreamProvider.family<OrderModel?, String>((
+final orderDetailProvider = FutureProvider.family<OrderModel?, String>((
   ref,
   orderId,
-) async* {
+) async {
   final repo = ref.watch(orderRepositoryProvider);
   final client = ref.watch(supabaseClientProvider);
 
-  // Initial fetch
-  yield await repo.getOrderById(orderId);
-
   // Listen to realtime updates on this specific order
-  final stream = client
+  final channel = client
       .channel('public:orders:id=eq.$orderId')
       .onPostgresChanges(
         event: PostgresChangeEvent.all,
@@ -37,17 +35,18 @@ final orderDetailProvider = StreamProvider.family<OrderModel?, String>((
           column: 'id',
           value: orderId,
         ),
-        callback: (payload) async {
-          // Refetch the order to get joined relations when base order changes
-          final updatedOrder = await repo.getOrderById(orderId);
-          ref.state = AsyncValue.data(updatedOrder);
+        callback: (payload) {
+          // Invalidate to trigger refetch
+          ref.invalidateSelf();
         },
       )
       .subscribe();
 
   ref.onDispose(() {
-    client.removeChannel(stream);
+    client.removeChannel(channel);
   });
+
+  return repo.getOrderById(orderId);
 });
 
 final orderStatusHistoryProvider =
