@@ -168,7 +168,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           source: CheckoutSource.cart,
                           cartItemIds:
                               selectedItems.map((item) => item.id).toList(),
-                          voucher: voucher,
+                          voucher: voucher?.scope == 'admin' ? voucher : null,
+                          shopVoucher: voucher?.scope == 'shop' ? voucher : null,
                           subtotal: selectedSubtotal,
                           discountAmount: discount,
                           total: total.toDouble(),
