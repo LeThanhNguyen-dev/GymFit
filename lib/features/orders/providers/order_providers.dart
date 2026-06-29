@@ -15,11 +15,39 @@ final orderListProvider =
   OrderListNotifier.new,
 );
 
-final orderDetailProvider = FutureProvider.family<OrderModel?, String>((
+final orderDetailProvider = StreamProvider.family<OrderModel?, String>((
   ref,
   orderId,
-) {
-  return ref.watch(orderRepositoryProvider).getOrderById(orderId);
+) async* {
+  final repo = ref.watch(orderRepositoryProvider);
+  final client = ref.watch(supabaseClientProvider);
+
+  // Initial fetch
+  yield await repo.getOrderById(orderId);
+
+  // Listen to realtime updates on this specific order
+  final stream = client
+      .channel('public:orders:id=eq.$orderId')
+      .onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'orders',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'id',
+          value: orderId,
+        ),
+        callback: (payload) async {
+          // Refetch the order to get joined relations when base order changes
+          final updatedOrder = await repo.getOrderById(orderId);
+          ref.state = AsyncValue.data(updatedOrder);
+        },
+      )
+      .subscribe();
+
+  ref.onDispose(() {
+    client.removeChannel(stream);
+  });
 });
 
 final orderStatusHistoryProvider =
