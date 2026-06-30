@@ -1,12 +1,9 @@
-import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -89,12 +86,7 @@ class _RegisterShopScreenState extends ConsumerState<RegisterShopScreen> {
     final picker = ImagePicker();
     final result = await picker.pickImage(source: ImageSource.gallery);
     if (result != null) {
-      final tempDir = await getTemporaryDirectory();
-      final ext = result.name.split('.').last;
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
-      final savedPath = '${tempDir.path}/$fileName';
-      await result.saveTo(savedPath);
-      setter(XFile(savedPath));
+      setter(result);
     }
   }
 
@@ -146,15 +138,15 @@ class _RegisterShopScreenState extends ConsumerState<RegisterShopScreen> {
 
       final existing = widget.existingRegistration;
 
-      Future<({Uint8List bytes, String ext})?> _readXFile(XFile? xf) async {
+      Future<({Uint8List bytes, String ext})?> readXFile(XFile? xf) async {
         if (xf == null) return null;
         final bytes = await xf.readAsBytes();
         return (bytes: bytes, ext: xf.name.split('.').last);
       }
 
-      final cccdFront = await _readXFile(_cccdFrontFile);
-      final cccdBack = await _readXFile(_cccdBackFile);
-      final bizLicense = await _readXFile(_bizLicenseFile);
+      final cccdFront = await readXFile(_cccdFrontFile);
+      final cccdBack = await readXFile(_cccdBackFile);
+      final bizLicense = await readXFile(_bizLicenseFile);
 
       if (existing != null) {
         await repo.updateRegistration(
@@ -584,17 +576,12 @@ class _RegisterShopScreenState extends ConsumerState<RegisterShopScreen> {
               borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               border: Border.all(color: AppColors.outlineVariant),
             ),
-            child: file != null && !kIsWeb
+            child: file != null
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                    child: Image.file(File(file.path), fit: BoxFit.cover),
+                    child: _XFilePreview(file: file),
                   )
-                : (kIsWeb && file != null)
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                        child: Image.network(file.path, fit: BoxFit.cover),
-                      )
-                    : url != null
+                : url != null
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                         child: Image.network(url, fit: BoxFit.cover),
@@ -673,6 +660,28 @@ class _RegisterShopScreenState extends ConsumerState<RegisterShopScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _XFilePreview extends StatelessWidget {
+  const _XFilePreview({required this.file});
+
+  final XFile file;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List>(
+      future: file.readAsBytes(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return Image.memory(snapshot.data!, fit: BoxFit.cover);
+        }
+        if (snapshot.hasError) {
+          return const Center(child: Icon(Icons.broken_image));
+        }
+        return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+      },
     );
   }
 }

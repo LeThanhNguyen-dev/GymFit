@@ -226,12 +226,12 @@ class _AddressCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            address.fullName ?? '',
+            address.fullName,
             style: AppTextStyles.titleSmall,
           ),
-          if (address.phone != null && address.phone!.isNotEmpty) ...[
+          if (address.phone.isNotEmpty) ...[
             const SizedBox(height: 2),
-            Text(address.phone!, style: AppTextStyles.bodyMedium),
+            Text(address.phone, style: AppTextStyles.bodyMedium),
           ],
           const SizedBox(height: 4),
           Text(
@@ -285,8 +285,8 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
     super.initState();
     final a = widget.existingAddress;
     if (a != null) {
-      _nameCtl.text = a.fullName ?? '';
-      _phoneCtl.text = a.phone ?? '';
+      _nameCtl.text = a.fullName;
+      _phoneCtl.text = a.phone;
       _address1Ctl.text = a.addressLine1;
       _address2Ctl.text = a.addressLine2 ?? '';
       _wardCtl.text = a.ward ?? '';

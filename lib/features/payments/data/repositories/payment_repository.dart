@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_constants.dart';
@@ -86,26 +84,6 @@ class PaymentRepository {
       body: {'payment_id': payment.id, 'order_id': payment.orderId},
     );
     return PaymentModel.fromJson(_functionData(response.data));
-  }
-
-  Future<PaymentModel> mockMomoPayment(String paymentId, double amount) {
-    return _mockGatewayPayment(paymentId, 'MOMO');
-  }
-
-  Future<PaymentModel> _mockGatewayPayment(
-    String paymentId,
-    String prefix,
-  ) async {
-    await updatePaymentStatus(paymentId, PaymentStatus.pending);
-    await Future<void>.delayed(const Duration(seconds: 2));
-    final success = Random().nextDouble() < 0.9;
-    return updatePaymentStatus(
-      paymentId,
-      success ? PaymentStatus.paid : PaymentStatus.failed,
-      transactionId: success
-          ? '$prefix-${DateTime.now().millisecondsSinceEpoch}'
-          : null,
-    );
   }
 
   Map<String, dynamic> _functionData(Object? body) {

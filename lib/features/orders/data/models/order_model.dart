@@ -477,11 +477,10 @@ class PaymentModel {
   };
 
   String get methodDisplay => switch (method) {
-    PaymentMethod.cod => 'Thanh toan khi nhan hang',
-    PaymentMethod.momo => 'Vi Momo',
+    PaymentMethod.cod => 'Thanh toán khi nhận hàng',
     PaymentMethod.payos => 'payOS / VietQR',
-    PaymentMethod.bankTransfer => 'Chuyen khoan',
-    PaymentMethod.creditCard || PaymentMethod.debitCard => 'The ngan hang',
+    PaymentMethod.bankTransfer => 'Chuyển khoản',
+    PaymentMethod.creditCard || PaymentMethod.debitCard => 'Thẻ ngân hàng',
     _ => method.name,
   };
 

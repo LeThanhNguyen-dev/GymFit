@@ -86,8 +86,8 @@ class _StoreProductListScreenState extends ConsumerState<StoreProductListScreen>
                     _buildProductList(filtered), // Tất cả
                     _buildProductList(filtered.where((p) => p.status == ProductStatus.active).toList()), // Đang bán
                     _buildProductList(filtered.where((p) {
-                      // Check if out of stock
-                      if (p.variants.isEmpty) return true; // mock or no variants
+                      if (p.status != ProductStatus.active) return false;
+                      if (p.variants.isEmpty) return false;
                       return p.variants.every((v) => v.quantity <= 0);
                     }).toList()), // Hết hàng
                     _buildProductList(filtered.where((p) => p.status == ProductStatus.inactive).toList()), // Ẩn

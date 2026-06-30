@@ -6,6 +6,7 @@ import 'app/app.dart';
 import 'app/bootstrap.dart';
 import 'core/providers/core_providers.dart';
 import 'core/services/deep_link_service.dart';
+import 'core/services/fcm_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
@@ -37,4 +38,5 @@ Future<void> main() async {
   );
 
   DeepLinkService().init();
+  FcmService().init();
 }

@@ -74,7 +74,7 @@ class AddressListScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
             itemCount: addresses.length,
-            separatorBuilder: (_, __) =>
+            separatorBuilder: (_, _) =>
                 const SizedBox(height: AppSpacing.md),
             itemBuilder: (context, index) => InkWell(
               onTap: () {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/supabase_providers.dart';
@@ -9,9 +10,9 @@ final wishlistRepositoryProvider = Provider<WishlistRepository>((ref) {
 });
 
 final wishlistItemsProvider =
-    NotifierProvider<WishlistNotifier, AsyncValue<List<WishlistItemModel>>>(
-      WishlistNotifier.new,
-    );
+    AsyncNotifierProvider<WishlistNotifier, List<WishlistItemModel>>(
+  WishlistNotifier.new,
+);
 
 final isInWishlistProvider = Provider.family<bool, String>((ref, productId) {
   final items =
@@ -25,11 +26,10 @@ final wishlistCountProvider = Provider<int>((ref) {
   return items.length;
 });
 
-class WishlistNotifier extends Notifier<AsyncValue<List<WishlistItemModel>>> {
+class WishlistNotifier extends AsyncNotifier<List<WishlistItemModel>> {
   @override
-  AsyncValue<List<WishlistItemModel>> build() {
-    Future.microtask(loadWishlist);
-    return const AsyncValue.loading();
+  FutureOr<List<WishlistItemModel>> build() {
+    return _repository.getWishlistItems(_userId);
   }
 
   WishlistRepository get _repository => ref.read(wishlistRepositoryProvider);
@@ -43,22 +43,28 @@ class WishlistNotifier extends Notifier<AsyncValue<List<WishlistItemModel>>> {
   }
 
   Future<void> loadWishlist() async {
-    state = const AsyncValue.loading();
+    state = const AsyncLoading();
     state = await AsyncValue.guard(() => _repository.getWishlistItems(_userId));
   }
 
   Future<void> toggleWishlist(String productId) async {
-    final exists = await _repository.isInWishlist(_userId, productId);
-    if (exists) {
-      await _repository.removeFromWishlist(_userId, productId);
-    } else {
-      await _repository.addToWishlist(_userId, productId);
-    }
-    await loadWishlist();
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      final exists = await _repository.isInWishlist(_userId, productId);
+      if (exists) {
+        await _repository.removeFromWishlist(_userId, productId);
+      } else {
+        await _repository.addToWishlist(_userId, productId);
+      }
+      return _repository.getWishlistItems(_userId);
+    });
   }
 
   Future<void> removeFromWishlist(String productId) async {
-    await _repository.removeFromWishlist(_userId, productId);
-    await loadWishlist();
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await _repository.removeFromWishlist(_userId, productId);
+      return _repository.getWishlistItems(_userId);
+    });
   }
 }

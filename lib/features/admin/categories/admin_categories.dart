@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../shared/widgets/pagination_bar.dart';
 import '../../products/data/models/product_model.dart';
 import '../../products/providers/product_providers.dart';
 

@@ -46,7 +46,7 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> w
             onSelected: (v) => _handleAction(v, user),
           ),
           loading: () => const SizedBox.shrink(),
-          error: (_, __) => const SizedBox.shrink(),
+          error: (_, _) => const SizedBox.shrink(),
         ),
       ]),
       body: userAsync.when(
@@ -109,7 +109,7 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> w
         return ListView.separated(
           padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
           itemCount: orders.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
+          separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (_, i) {
             final order = orders[i];
             final price = order.totalAmount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
@@ -136,8 +136,9 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> w
   }
 
   void _handleAction(String action, AdminUserModel user) {
-    if (action == 'ban') _showBanDialog(user);
-    else if (action == 'unban') _showUnbanDialog(user);
+    if (action == 'ban') {
+      _showBanDialog(user);
+    } else if (action == 'unban') _showUnbanDialog(user);
     else if (action == 'reset_pw') _showResetPwDialog(user);
   }
 

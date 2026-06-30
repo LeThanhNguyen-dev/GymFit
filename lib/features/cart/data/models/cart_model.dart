@@ -40,7 +40,7 @@ class CartItemModel {
       product: productData is Map
           ? ProductModel.fromJson(mapFromJson(productData))
           : null,
-      variant: variantData != null && variantData is Map
+      variant: variantData != null
           ? ProductVariantModel.fromJson(variantData)
           : null,
       createdAt: dateTimeFromJson(json['created_at'] ?? json['added_at']),

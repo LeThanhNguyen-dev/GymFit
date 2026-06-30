@@ -1,9 +1,7 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../../../../core/providers/supabase_providers.dart';
 import '../../../../../core/theme/app_colors.dart';
@@ -225,19 +223,45 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
     }
     final image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
-      final tempDir = await getTemporaryDirectory();
-      final ext = image.name.split('.').last;
-      final savedPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.$ext';
-      await image.saveTo(savedPath);
       setState(() {
-        _selectedImages.add(XFile(savedPath));
+        _selectedImages.add(image);
       });
+    }
+  }
+
+  bool _validateStep() {
+    switch (_step) {
+      case 0:
+        final valid = _formKey.currentState!.validate();
+        return valid;
+      case 1:
+        if (_selectedImages.isEmpty && _existingImageUrls.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng thêm ít nhất 1 ảnh sản phẩm!')));
+          return false;
+        }
+        return true;
+      case 2:
+        if (_hasVariants && _attributes.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng thêm ít nhất 1 phân loại!')));
+          return false;
+        }
+        if (_hasVariants && _variants.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng tạo biến thể từ phân loại!')));
+          return false;
+        }
+        return true;
+      default:
+        return true;
     }
   }
 
   Future<void> _saveProduct() async {
     if (_nameCtrl.text.trim().isEmpty || _selectedCategoryId == null || _basePriceCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng điền đầy đủ Tên, Giá, Danh mục!')));
+      return;
+    }
+    if (_selectedImages.isEmpty && _existingImageUrls.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng thêm ít nhất 1 ảnh sản phẩm!')));
       return;
     }
 
@@ -681,14 +705,15 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
             // List of picked images
             ..._selectedImages.map((file) => Stack(
                   children: [
-                    Container(
+                    SizedBox(
                       width: 80, height: 80,
-                      decoration: BoxDecoration(
+                      child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.outlineVariant),
-                        image: DecorationImage(
-                          image: kIsWeb ? NetworkImage(file.path) : FileImage(File(file.path)) as ImageProvider,
-                          fit: BoxFit.cover,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: AppColors.outlineVariant),
+                          ),
+                          child: _XFileBoxPreview(file: file),
                         ),
                       ),
                     ),
@@ -1109,15 +1134,12 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (_selectedImages.isNotEmpty)
-                  Container(
+                  SizedBox(
                     height: 150,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerHighest,
+                    width: double.infinity,
+                    child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      image: DecorationImage(
-                        image: kIsWeb ? NetworkImage(_selectedImages.first.path) : FileImage(File(_selectedImages.first.path)) as ImageProvider,
-                        fit: BoxFit.cover,
-                      ),
+                      child: _XFileBoxPreview(file: _selectedImages.first),
                     ),
                   )
                 else if (_existingImageUrls.isNotEmpty)
@@ -1173,7 +1195,7 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
                   ? null
                   : _step < 4
                       ? () {
-                          if (_step == 0 && !_formKey.currentState!.validate()) return;
+                          if (!_validateStep()) return;
                           setState(() => _step++);
                         }
                       : _saveProduct,
@@ -1184,6 +1206,31 @@ class _StoreProductFormScreenState extends ConsumerState<StoreProductFormScreen>
           ),
         ],
       ),
+    );
+  }
+}
+
+class _XFileBoxPreview extends StatelessWidget {
+  const _XFileBoxPreview({required this.file});
+
+  final XFile file;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List>(
+      future: file.readAsBytes(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return Image.memory(snapshot.data!, fit: BoxFit.cover);
+        }
+        if (snapshot.hasError) {
+          return const Center(child: Icon(Icons.broken_image));
+        }
+        return const ColoredBox(
+          color: AppColors.surfaceContainerHighest,
+          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        );
+      },
     );
   }
 }

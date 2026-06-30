@@ -23,7 +23,11 @@ class _VoucherListScreenState extends ConsumerState<VoucherListScreen> {
   @override
   void initState() {
     super.initState();
-    ref.read(voucherOrderAmountProvider.notifier).setAmount(widget.orderAmount);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(voucherOrderAmountProvider.notifier).setAmount(widget.orderAmount);
+      }
+    });
   }
 
   @override
@@ -56,7 +60,10 @@ class _VoucherListScreenState extends ConsumerState<VoucherListScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                FilledButton(
+                 FilledButton(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(80, 48),
+                  ),
                   onPressed: _isApplying ? null : () => _applyCode(context),
                   child: const Text('Áp dụng'),
                 ),

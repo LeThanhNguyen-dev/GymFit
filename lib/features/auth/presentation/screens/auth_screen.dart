@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/gym_fit_logo.dart';
 import '../../providers/auth_providers.dart';
 import '../widgets/auth_form.dart';
 import 'reset_password_screen.dart';
@@ -69,13 +70,7 @@ class AuthScreen extends ConsumerWidget {
             borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           ),
           child: Center(
-            child: Text(
-              'GYM',
-              style: AppTextStyles.headlineLarge.copyWith(
-                color: AppColors.onPrimaryContainer,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+            child: const GymFitLogo(size: 44, color: AppColors.onPrimaryContainer),
           ),
         ),
         SizedBox(height: AppSpacing.md),

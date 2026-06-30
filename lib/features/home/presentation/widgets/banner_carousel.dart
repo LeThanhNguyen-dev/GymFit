@@ -86,10 +86,10 @@ class _CarouselContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
           height: 180,
@@ -103,16 +103,15 @@ class _CarouselContent extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
             items.length,
             (i) => AnimatedContainer(
               duration: const Duration(milliseconds: 300),
-              margin: const EdgeInsets.symmetric(horizontal: 3),
+              margin: const EdgeInsets.symmetric(horizontal: 2),
               width: currentPage == i ? 24 : 8,
-              height: 8,
+              height: 4,
               decoration: BoxDecoration(
                 color: currentPage == i
                     ? colorScheme.primary
@@ -174,7 +173,7 @@ class _CarouselCard extends StatelessWidget {
             Positioned(
               left: 20,
               right: 80,
-              bottom: 20,
+              bottom: 12,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

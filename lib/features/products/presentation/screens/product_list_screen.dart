@@ -31,18 +31,10 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
   @override
   void initState() {
     super.initState();
-    // Apply initial filters if provided from navigation
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final notifier = ref.read(productListProvider.notifier);
-      if (widget.categoryId != null) {
-        notifier.updateCategory(widget.categoryId);
-      }
-      if (widget.brandId != null) {
-        notifier.updateBrand(widget.brandId);
-      }
-    });
     _scrollController.addListener(_onScroll);
   }
+
+  bool _filtersApplied = false;
 
   void _onScroll() {
     if (_scrollController.position.pixels >=
@@ -59,6 +51,21 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_filtersApplied && (widget.categoryId != null || widget.brandId != null)) {
+      _filtersApplied = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future.delayed(Duration.zero, () {
+          if (!mounted) return;
+          final notifier = ref.read(productListProvider.notifier);
+          if (widget.categoryId != null) {
+            notifier.updateCategory(widget.categoryId);
+          }
+          if (widget.brandId != null) {
+            notifier.updateBrand(widget.brandId);
+          }
+        });
+      });
+    }
     final state = ref.watch(productListProvider);
     final selectedCategory = ref.watch(selectedCategoryProvider);
     final selectedBrand = ref.watch(selectedBrandProvider);

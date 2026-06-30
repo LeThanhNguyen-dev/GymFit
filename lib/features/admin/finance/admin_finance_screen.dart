@@ -1,71 +1,68 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/supabase_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/currency_formatter.dart';
 
-class AdminFinanceScreen extends ConsumerStatefulWidget {
-  const AdminFinanceScreen({super.key});
-  @override
-  ConsumerState<AdminFinanceScreen> createState() => _AdminFinanceScreenState();
-}
-
-class _AdminFinanceScreenState extends ConsumerState<AdminFinanceScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabCtrl;
-  @override
-  void initState() { super.initState(); _tabCtrl = TabController(length: 4, vsync: this); }
-  @override
-  void dispose() { _tabCtrl.dispose(); super.dispose(); }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Tài chính & Duyệt'), bottom: TabBar(
-        controller: _tabCtrl,
-        isScrollable: true,
-        tabs: const [
-          Tab(text: 'Yêu cầu rút tiền'),
-          Tab(text: 'Doanh thu sàn'),
-          Tab(text: 'Lịch sử GD'),
-          Tab(text: 'Cấu hình phí'),
-        ],
-      )),
-      body: TabBarView(controller: _tabCtrl, children: [
-        _buildWithdrawals(),
-        _buildRevenue(),
-        _buildTransactions(),
-        _buildFeeConfig(),
-      ]),
-    );
+final _adminRevenueProvider = FutureProvider.autoDispose<double>((ref) async {
+  final supabase = ref.watch(supabaseClientProvider);
+  final rows = await supabase
+      .from('payments')
+      .select('amount')
+      .eq('status', 'paid');
+  double total = 0;
+  for (final r in rows) {
+    total += (r['amount'] as num?)?.toDouble() ?? 0;
   }
+  return total;
+});
 
-  Widget _buildWithdrawals() {
+final _adminRecentPaymentsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final supabase = ref.watch(supabaseClientProvider);
+  final rows = await supabase
+      .from('payments')
+      .select('id, amount, method, status, created_at, order_id')
+      .order('created_at', ascending: false)
+      .limit(50);
+  return rows.map((r) => Map<String, dynamic>.from(r)).toList();
+});
+
+class AdminFinanceScreen extends ConsumerWidget {
+  const AdminFinanceScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
       length: 3,
-      child: Column(children: [
-        TabBar(tabs: 'Chờ duyệt|Đã duyệt|Từ chối'.split('|').map((t) => Tab(text: t)).toList()),
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
-            itemCount: _mockWithdrawals.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-            itemBuilder: (_, i) => Card(
-              child: ListTile(
-                leading: CircleAvatar(backgroundColor: AppColors.surfaceContainerHighest, child: const Icon(Icons.payments, color: Colors.grey)),
-                title: Text('${_mockWithdrawals[i]['shop']} - ${_mockWithdrawals[i]['amount']}', style: AppTextStyles.bodyMedium),
-                subtitle: Text('${_mockWithdrawals[i]['bank']} - ${_mockWithdrawals[i]['date']}', style: AppTextStyles.labelSmall),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showWithdrawalDetail(_mockWithdrawals[i]),
-              ),
-            ),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Tài chính'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Doanh thu'),
+              Tab(text: 'Rút tiền'),
+              Tab(text: 'Cấu hình phí'),
+            ],
           ),
         ),
-      ]),
+        body: TabBarView(
+          children: [
+            _buildRevenueTab(context, ref),
+            _buildWithdrawalsTab(ref),
+            _buildFeeConfigTab(),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildRevenue() {
+  Widget _buildRevenueTab(BuildContext context, WidgetRef ref) {
+    final revenueAsync = ref.watch(_adminRevenueProvider);
+    final paymentsAsync = ref.watch(_adminRecentPaymentsProvider);
+
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
       children: [
@@ -73,66 +70,171 @@ class _AdminFinanceScreenState extends ConsumerState<AdminFinanceScreen> with Si
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(children: [
-              Text('Tổng phí sàn (Tháng 6/2026)', style: AppTextStyles.bodySmall),
+              Text('Tổng doanh thu sàn', style: AppTextStyles.bodySmall),
               const SizedBox(height: 4),
-              Text('156.2M₫', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold, color: AppColors.success)),
-              const SizedBox(height: AppSpacing.md),
-              _revenueRow('Phí giao dịch', '98.5M₫', 0.63),
-              _revenueRow('Phí quảng cáo', '42.3M₫', 0.27),
-              _revenueRow('Phí khác', '15.4M₫', 0.10),
+              revenueAsync.when(
+                data: (revenue) => Text(
+                  formatCurrency(revenue),
+                  style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold, color: AppColors.success),
+                ),
+                loading: () => const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                error: (_, _) => Text('0₫', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold, color: AppColors.success)),
+              ),
             ]),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Doanh thu 12 tháng', style: AppTextStyles.titleSmall),
-              const SizedBox(height: AppSpacing.sm),
-              SizedBox(height: 180, child: _buildRevenueChart()),
-            ]),
-          ),
+        Text('Giao dịch gần đây', style: AppTextStyles.titleSmall),
+        const SizedBox(height: AppSpacing.sm),
+        paymentsAsync.when(
+          data: (payments) {
+            if (payments.isEmpty) {
+              return const Card(child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: Text('Chưa có giao dịch nào.')),
+              ));
+            }
+            return Card(
+              child: Column(
+                children: payments.map((p) => ListTile(
+                  dense: true,
+                  title: Text('${p['method']} - ${p['status']}', style: AppTextStyles.bodySmall),
+                  subtitle: Text(p['created_at']?.toString().substring(0, 16) ?? '', style: AppTextStyles.labelSmall),
+                  trailing: Text(formatCurrency((p['amount'] as num?)?.toDouble() ?? 0), style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                )).toList(),
+              ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Card(child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: Text('Lỗi tải dữ liệu: $e')),
+          )),
         ),
-        const SizedBox(height: AppSpacing.md),
-        SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.download), label: const Text('Xuất báo cáo CSV'))),
       ],
     );
   }
 
-  Widget _buildRevenueChart() {
-    return CustomPaint(painter: _MockRevenuePainter(), size: const Size(double.infinity, 180));
-  }
+  Widget _buildWithdrawalsTab(WidgetRef ref) {
+    final supabase = ref.watch(supabaseClientProvider);
+    return FutureBuilder<List<dynamic>>(
+      future: supabase.rpc('get_admin_payout_requests').then((res) => List<dynamic>.from(res ?? [])),
+      builder: (ctx, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Lỗi: ${snapshot.error}'));
+        }
 
-  Widget _revenueRow(String label, String amount, double pct) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(label, style: AppTextStyles.bodySmall),
-          Text(amount, style: AppTextStyles.bodyMedium),
-        ]),
-        const SizedBox(height: 4),
-        LinearProgressIndicator(value: pct, backgroundColor: AppColors.surfaceContainerHighest),
-      ]),
+        final allItems = snapshot.data ?? [];
+        final pending = allItems.where((i) => i['status'] == 'pending').toList();
+        final approved = allItems.where((i) => i['status'] == 'approved' || i['status'] == 'completed').toList();
+        final rejected = allItems.where((i) => i['status'] == 'rejected').toList();
+
+        return DefaultTabController(
+          length: 3,
+          child: Column(children: [
+            TabBar(tabs: 'Chờ duyệt|Đã duyệt|Từ chối'.split('|').map((t) => Tab(text: t)).toList()),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _buildPayoutList(ctx, pending, supabase, ref),
+                  _buildPayoutList(ctx, approved, supabase, ref),
+                  _buildPayoutList(ctx, rejected, supabase, ref),
+                ],
+              ),
+            ),
+          ]),
+        );
+      },
     );
   }
 
-  Widget _buildTransactions() {
+  Widget _buildPayoutList(BuildContext context, List<dynamic> items, dynamic supabase, WidgetRef ref) {
+    if (items.isEmpty) return const Center(child: Text('Không có yêu cầu nào.'));
     return ListView.separated(
       padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
-      itemCount: _mockTransactions.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
-      itemBuilder: (_, i) => ListTile(
-        leading: Icon(_mockTransactions[i]['type'] == 'fee' ? Icons.payments : Icons.swap_horiz, color: _mockTransactions[i]['type'] == 'fee' ? AppColors.success : AppColors.primary, size: 20),
-        title: Text(_mockTransactions[i]['desc'] as String, style: AppTextStyles.bodySmall),
-        subtitle: Text(_mockTransactions[i]['id'] as String, style: AppTextStyles.labelSmall),
-        trailing: Text(_mockTransactions[i]['amount'] as String, style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
-      ),
+      itemCount: items.length,
+      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+      itemBuilder: (_, i) {
+        final item = items[i];
+        final amount = double.tryParse(item['amount']?.toString() ?? '0') ?? 0.0;
+        final fmtAmount = amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+        final date = DateTime.parse(item['created_at']).toLocal().toString().substring(0, 16);
+
+        return Card(
+          child: ListTile(
+            leading: CircleAvatar(backgroundColor: AppColors.surfaceContainerHighest, child: const Icon(Icons.payments, color: Colors.grey)),
+            title: Text('${item['seller_name']} - $fmtAmount₫', style: AppTextStyles.bodyMedium),
+            subtitle: Text('${item['bank_name']} - $date', style: AppTextStyles.labelSmall),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showWithdrawalDetail(context, item, supabase, ref),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildFeeConfig() {
+  void _showWithdrawalDetail(BuildContext context, Map<String, dynamic> wd, dynamic supabase, WidgetRef ref) {
+    final amount = double.tryParse(wd['amount']?.toString() ?? '0') ?? 0.0;
+    final fmtAmount = amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+    final isPending = wd['status'] == 'pending';
+
+    showDialog(context: context, builder: (dialogContext) => AlertDialog(
+      title: Text('Rút tiền - ${wd['seller_name']}'),
+      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Số tiền: $fmtAmount₫', style: AppTextStyles.bodyMedium),
+        Text('Ngân hàng: ${wd['bank_name']}', style: AppTextStyles.bodySmall),
+        Text('Số TK: ${wd['account_number']}', style: AppTextStyles.bodySmall),
+        Text('Chủ TK: ${wd['account_holder']}', style: AppTextStyles.bodySmall),
+        const SizedBox(height: 8),
+        Text('Trạng thái: ${wd['status']}', style: AppTextStyles.bodySmall),
+        if (wd['rejection_reason'] != null) ...[
+          const Divider(),
+          Text('Lý do từ chối: ${wd['rejection_reason']}', style: AppTextStyles.bodySmall.copyWith(color: AppColors.error)),
+        ]
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Đóng')),
+        if (isPending) ...[
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                await supabase.rpc('admin_update_payout_status', params: {
+                  'p_payout_id': wd['id'],
+                  'p_status': 'rejected',
+                  'p_reason': 'Thông tin không hợp lệ',
+                });
+                ref.invalidate(_adminRecentPaymentsProvider);
+              } catch (e) {
+                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+              }
+            },
+            child: const Text('Từ chối', style: TextStyle(color: Colors.red)),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                await supabase.rpc('admin_update_payout_status', params: {
+                  'p_payout_id': wd['id'],
+                  'p_status': 'completed',
+                });
+                ref.invalidate(_adminRecentPaymentsProvider);
+              } catch (e) {
+                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+              }
+            },
+            child: const Text('Đã chuyển khoản'),
+          ),
+        ]
+      ],
+    ));
+  }
+
+  Widget _buildFeeConfigTab() {
     final feeCtrl = TextEditingController(text: '2.5');
     final catFees = ['Thể thao: 2%', 'Dinh dưỡng: 3%', 'Phụ kiện: 2.5%'];
     return ListView(
@@ -170,59 +272,4 @@ class _AdminFinanceScreenState extends ConsumerState<AdminFinanceScreen> with Si
       ],
     );
   }
-
-  void _showWithdrawalDetail(Map<String, dynamic> wd) {
-    showDialog(context: context, builder: (_) => AlertDialog(
-      title: Text('Rút tiền - ${wd['shop']}'),
-      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Số tiền: ${wd['amount']}', style: AppTextStyles.bodyMedium),
-        Text('Ngân hàng: ${wd['bank']}', style: AppTextStyles.bodySmall),
-        Text('Số TK: 1234 5678 9012', style: AppTextStyles.bodySmall),
-        const SizedBox(height: 8),
-        Text('Số dư hiện tại: 28.5M₫', style: AppTextStyles.bodySmall),
-        const Divider(),
-        Text('Lịch sử rút gần nhất:', style: AppTextStyles.labelSmall),
-        Text('10/06: -5.000.000₫ (Thành công)', style: AppTextStyles.labelSmall),
-        Text('01/06: -3.000.000₫ (Thành công)', style: AppTextStyles.labelSmall),
-      ]),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Từ chối')),
-        FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Duyệt & Chuyển khoản')),
-      ],
-    ));
-  }
-
-  static const _mockWithdrawals = [
-    {'shop': 'SportLife', 'amount': '10.000.000₫', 'bank': 'VCB - 1234 5678', 'date': '15/06'},
-    {'shop': 'Iron Gym', 'amount': '5.000.000₫', 'bank': 'TCB - 9876 5432', 'date': '14/06'},
-    {'shop': 'Yoga Center', 'amount': '3.200.000₫', 'bank': 'MB - 4567 8901', 'date': '13/06'},
-  ];
-
-  static const _mockTransactions = [
-    {'id': '#TXN001', 'desc': 'Phí giao dịch - SportLife', 'amount': '+2.500.000₫', 'type': 'fee'},
-    {'id': '#TXN002', 'desc': 'Phí giao dịch - Iron Gym', 'amount': '+1.200.000₫', 'type': 'fee'},
-    {'id': '#TXN003', 'desc': 'Rút tiền - SportLife', 'amount': '-10.000.000₫', 'type': 'withdraw'},
-    {'id': '#TXN004', 'desc': 'Rút tiền - Iron Gym', 'amount': '-5.000.000₫', 'type': 'withdraw'},
-    {'id': '#TXN005', 'desc': 'Phí quảng cáo - Yoga Center', 'amount': '+800.000₫', 'type': 'fee'},
-  ];
-}
-
-class _MockRevenuePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = AppColors.success.withValues(alpha: 0.15)..style = PaintingStyle.fill;
-    final linePaint = Paint()..color = AppColors.success..strokeWidth = 2;
-    final values = [0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.85, 1.0];
-    final dx = size.width / (values.length - 1);
-    final path = Path();
-    path.moveTo(0, size.height * (1 - values[0]));
-    for (var i = 1; i < values.length; i++) path.lineTo(i * dx, size.height * (1 - values[i]));
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-    canvas.drawPath(path, paint);
-    canvas.drawPath(path, linePaint..style = PaintingStyle.stroke);
-  }
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

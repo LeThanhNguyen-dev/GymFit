@@ -45,7 +45,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               return const SizedBox.shrink();
             },
             loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
           ),
         ],
       ),
@@ -96,7 +96,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     );
                   },
                   loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
                 ),
               ],
             ),

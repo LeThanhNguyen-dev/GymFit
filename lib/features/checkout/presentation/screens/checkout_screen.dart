@@ -25,8 +25,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _initCheckoutData();
+      Future.microtask(() {
+        if (!mounted) return;
+        _initCheckoutData();
+      });
     });
   }
 
@@ -68,8 +70,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     if (data == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _initCheckoutData();
+        Future.microtask(() {
+          if (!mounted) return;
+          _initCheckoutData();
+        });
       });
     }
 
@@ -81,9 +85,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         orElse: () => addressesAsync.value!.first,
       );
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ref.read(selectedAddressProvider.notifier).setAddress(address);
-        }
+        Future.microtask(() {
+          if (mounted) {
+            ref.read(selectedAddressProvider.notifier).setAddress(address);
+          }
+        });
       });
     }
 
@@ -194,11 +200,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     icon: Icons.payments,
                   ),
                   _PaymentRadio(
-                    value: 'momo',
-                    title: 'Momo',
-                    icon: Icons.account_balance_wallet,
-                  ),
-                  _PaymentRadio(
                     value: 'payos',
                     title: 'payOS / VietQR',
                     icon: Icons.qr_code_2,
@@ -277,21 +278,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                           }
                           ref.read(checkoutDataProvider.notifier).setData(null);
                           if (result.paymentMethod == 'cod') {
-                            await showDialog<void>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Đặt hàng thành công'),
-                                content: Text('Mã đơn: ${result.orderNumber}'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('Đóng'),
-                                  ),
-                                ],
-                              ),
-                            );
                             if (context.mounted) {
-                              context.go('/');
+                              context.go('/orders/${result.orderId}');
                             }
                           } else {
                             context.pushReplacementNamed(

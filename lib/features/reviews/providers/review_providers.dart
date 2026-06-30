@@ -55,7 +55,7 @@ class CreateReviewNotifier extends Notifier<AsyncValue<ReviewModel?>> {
   Future<void> submit({
     required String userId,
     required String productId,
-    required String orderId,
+    required String orderItemId,
     required int rating,
     String? comment,
   }) async {
@@ -64,7 +64,7 @@ class CreateReviewNotifier extends Notifier<AsyncValue<ReviewModel?>> {
       () => _repository.createReview(
         userId: userId,
         productId: productId,
-        orderId: orderId,
+        orderItemId: orderItemId,
         rating: rating,
         comment: comment,
       ),

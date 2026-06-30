@@ -7,12 +7,12 @@ import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 
 class NavBar extends ConsumerStatefulWidget {
-  final Function(String slug)? onCategorySelected;
+  final Function(String categoryId)? onCategorySelected;
 
   const NavBar({
-    Key? key,
+    super.key,
     this.onCategorySelected,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<NavBar> createState() => _NavBarState();
@@ -127,10 +127,11 @@ class _NavBarState extends ConsumerState<NavBar> {
           });
         } else if (value.startsWith('L3_')) {
           // Level 3 selected
-          widget.onCategorySelected?.call(value.replaceFirst('L3_', ''));
+          // Legacy: popup menu items with L3 prefix are no longer used
+          widget.onCategorySelected?.call('');
         } else {
           // Level 1 selected
-          widget.onCategorySelected?.call(level1.slug);
+          widget.onCategorySelected?.call(level1.id);
         }
       },
       itemBuilder: (BuildContext context) {
@@ -199,7 +200,7 @@ class _NavBarState extends ConsumerState<NavBar> {
                                         child: InkWell(
                                           onTap: () {
                                             widget.onCategorySelected
-                                                ?.call(level3.slug);
+                                                ?.call(level3.id);
                                             Navigator.pop(context);
                                           },
                                           child: Text(
@@ -224,7 +225,7 @@ class _NavBarState extends ConsumerState<NavBar> {
                 ),
               ),
             );
-          }).toList(),
+          }),
         ];
       },
       child: Padding(
@@ -259,12 +260,12 @@ class _NavBarState extends ConsumerState<NavBar> {
 
 // Simplified hover-based navbar for desktop
 class DesktopNavBar extends ConsumerStatefulWidget {
-  final Function(String slug)? onCategorySelected;
+  final Function(String categoryId)? onCategorySelected;
 
   const DesktopNavBar({
-    Key? key,
+    super.key,
     this.onCategorySelected,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<DesktopNavBar> createState() => _DesktopNavBarState();
@@ -346,7 +347,7 @@ class _DesktopNavBarState extends ConsumerState<DesktopNavBar> {
           ),
           child: InkWell(
             onTap: () {
-              widget.onCategorySelected?.call(level1.slug);
+              widget.onCategorySelected?.call(level1.id);
             },
             child: Row(
               children: [
@@ -405,7 +406,7 @@ class _DesktopNavBarState extends ConsumerState<DesktopNavBar> {
                                   InkWell(
                                     onTap: () {
                                       widget.onCategorySelected
-                                          ?.call(level2.slug);
+                                          ?.call(level2.id);
                                     },
                                     child: Padding(
                                       padding: const EdgeInsets.all(
@@ -428,11 +429,11 @@ class _DesktopNavBarState extends ConsumerState<DesktopNavBar> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: level2.children
-                                            .map((level3) => InkWell(
-                                                  onTap: () {
-                                                    widget.onCategorySelected
-                                                        ?.call(level3.slug);
-                                                  },
+                                                .map((level3) => InkWell(
+                                                      onTap: () {
+                                                        widget.onCategorySelected
+                                                            ?.call(level3.id);
+                                                      },
                                                   child: Padding(
                                                     padding:
                                                         const EdgeInsets.all(

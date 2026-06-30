@@ -245,7 +245,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
               ),
             ),
             Text(
-              '${formattedRev}đ',
+              '$formattedRevđ',
               style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey),
             ),
           ],

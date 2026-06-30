@@ -11,7 +11,7 @@ final carouselItemsProvider = FutureProvider<List<CarouselItem>>((ref) async {
   try {
     final banners = await client
         .from('banners')
-        .select()
+        .select('id, title, subtitle, image_url, button_text, redirect_url')
         .eq('is_active', true)
         .order('sort_order');
 
@@ -30,7 +30,7 @@ final carouselItemsProvider = FutureProvider<List<CarouselItem>>((ref) async {
   try {
     final services = await client
         .from(AppConstants.servicesTable)
-        .select()
+        .select('id, name, description, image_url, slug')
         .eq('is_active', true)
         .order('sort_order');
 

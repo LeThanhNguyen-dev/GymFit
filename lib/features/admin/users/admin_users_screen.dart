@@ -112,7 +112,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                 child: ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageHorizontal),
                   itemCount: users.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+                  separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
                   itemBuilder: (_, i) => _buildUserCard(users[i]),
                 ),
               );
@@ -132,7 +132,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           Text('User: ${user.email}'),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: role,
+            initialValue: role,
             decoration: const InputDecoration(labelText: 'Vai trò'),
             items: const [
               DropdownMenuItem(value: 'customer', child: Text('Customer')),

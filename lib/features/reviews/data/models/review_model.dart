@@ -5,13 +5,15 @@ class ReviewModel {
     required this.id,
     required this.userId,
     required this.productId,
-    required this.orderId,
+    required this.orderItemId,
     required this.rating,
     this.comment,
     this.status = 'pending',
     this.isVerifiedPurchase = false,
     this.user,
     this.images = const [],
+    this.sellerReply,
+    this.repliedAt,
     this.createdAt,
     this.updatedAt,
   });
@@ -19,13 +21,15 @@ class ReviewModel {
   final String id;
   final String userId;
   final String productId;
-  final String orderId;
+  final String orderItemId;
   final int rating;
   final String? comment;
   final String status;
   final bool isVerifiedPurchase;
   final ReviewUserModel? user;
   final List<ReviewImageModel> images;
+  final String? sellerReply;
+  final DateTime? repliedAt;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -37,7 +41,7 @@ class ReviewModel {
       id: json['id'].toString(),
       userId: json['user_id'].toString(),
       productId: json['product_id'].toString(),
-      orderId: json['order_id']?.toString() ?? '',
+      orderItemId: json['order_item_id']?.toString() ?? '',
       rating: intFromJson(json['rating']) ?? 1,
       comment: (json['comment'] ?? json['body']) as String?,
       status: json['status']?.toString() ?? 'pending',
@@ -48,6 +52,8 @@ class ReviewModel {
       images: mapListFromJson(
         relationImages,
       ).map(ReviewImageModel.fromJson).toList(),
+      sellerReply: json['seller_reply']?.toString(),
+      repliedAt: dateTimeFromJson(json['replied_at']),
       createdAt: dateTimeFromJson(json['created_at']),
       updatedAt: dateTimeFromJson(json['updated_at']),
     );
@@ -57,11 +63,13 @@ class ReviewModel {
     'id': id,
     'user_id': userId,
     'product_id': productId,
-    'order_id': orderId,
+    'order_item_id': orderItemId,
     'rating': rating,
     'comment': comment,
     'status': status,
     'is_verified_purchase': isVerifiedPurchase,
+    'seller_reply': sellerReply,
+    'replied_at': dateTimeToJson(repliedAt),
     'created_at': dateTimeToJson(createdAt),
     'updated_at': dateTimeToJson(updatedAt),
   };

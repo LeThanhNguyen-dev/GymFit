@@ -49,6 +49,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                           destinations: const [
                             NavigationRailDestination(icon: Icon(Icons.dashboard), label: Text('Dashboard')),
                             NavigationRailDestination(icon: Icon(Icons.store), label: Text('Shops')),
+                            NavigationRailDestination(icon: Icon(Icons.how_to_reg), label: Text('Duyệt Shop')),
                             NavigationRailDestination(icon: Icon(Icons.shopping_bag), label: Text('Products')),
                             NavigationRailDestination(icon: Icon(Icons.category), label: Text('Categories')),
                             NavigationRailDestination(icon: Icon(Icons.verified), label: Text('Brands')),
@@ -138,6 +139,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                             destinations: const [
                               NavigationRailDestination(icon: Icon(Icons.dashboard), label: Text('Dashboard')),
                               NavigationRailDestination(icon: Icon(Icons.store), label: Text('Shops')),
+                              NavigationRailDestination(icon: Icon(Icons.how_to_reg), label: Text('Duyệt Shop')),
                               NavigationRailDestination(icon: Icon(Icons.shopping_bag), label: Text('Products')),
                               NavigationRailDestination(icon: Icon(Icons.category), label: Text('Categories')),
                               NavigationRailDestination(icon: Icon(Icons.verified), label: Text('Brands')),
@@ -208,17 +210,18 @@ class _AdminShellState extends ConsumerState<AdminShell> {
   int _currentIndex(String location) {
     if (location.startsWith('/admin/dashboard')) return 0;
     if (location.startsWith('/admin/shops')) return 1;
-    if (location.startsWith('/admin/products')) return 2;
-    if (location.startsWith('/admin/categories')) return 3;
-    if (location.startsWith('/admin/brands')) return 4;
-    if (location.startsWith('/admin/orders')) return 5;
-    if (location.startsWith('/admin/users')) return 6;
-    if (location.startsWith('/admin/vouchers')) return 7;
-    if (location.startsWith('/admin/chat')) return 8;
-    if (location.startsWith('/admin/reviews')) return 9;
-    if (location.startsWith('/admin/inventory')) return 10;
-    if (location.startsWith('/admin/finance')) return 11;
-    if (location.startsWith('/admin/settings')) return 12;
+    if (location.startsWith('/admin/shop-registrations')) return 2;
+    if (location.startsWith('/admin/products')) return 3;
+    if (location.startsWith('/admin/categories')) return 4;
+    if (location.startsWith('/admin/brands')) return 5;
+    if (location.startsWith('/admin/orders')) return 6;
+    if (location.startsWith('/admin/users')) return 7;
+    if (location.startsWith('/admin/vouchers')) return 8;
+    if (location.startsWith('/admin/chat')) return 9;
+    if (location.startsWith('/admin/reviews')) return 10;
+    if (location.startsWith('/admin/inventory')) return 11;
+    if (location.startsWith('/admin/finance')) return 12;
+    if (location.startsWith('/admin/settings')) return 13;
     return 0;
   }
 
@@ -226,17 +229,18 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     switch (index) {
       case 0: context.go('/admin/dashboard');
       case 1: context.go('/admin/shops');
-      case 2: context.go('/admin/products');
-      case 3: context.go('/admin/categories');
-      case 4: context.go('/admin/brands');
-      case 5: context.go('/admin/orders');
-      case 6: context.go('/admin/users');
-      case 7: context.go('/admin/vouchers');
-      case 8: context.go(RouteNames.adminChatPath);
-      case 9: context.go('/admin/reviews');
-      case 10: context.go('/admin/inventory');
-      case 11: context.go('/admin/finance');
-      case 12: context.go('/admin/settings');
+      case 2: context.go('/admin/shop-registrations');
+      case 3: context.go('/admin/products');
+      case 4: context.go('/admin/categories');
+      case 5: context.go('/admin/brands');
+      case 6: context.go('/admin/orders');
+      case 7: context.go('/admin/users');
+      case 8: context.go('/admin/vouchers');
+      case 9: context.go(RouteNames.adminChatPath);
+      case 10: context.go('/admin/reviews');
+      case 11: context.go('/admin/inventory');
+      case 12: context.go('/admin/finance');
+      case 13: context.go('/admin/settings');
     }
   }
 }

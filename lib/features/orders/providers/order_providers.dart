@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/providers/supabase_providers.dart';
 import '../../../shared/enums/database_enums.dart';
@@ -10,24 +12,50 @@ final orderRepositoryProvider = Provider<OrderRepository>((ref) {
 });
 
 final orderListProvider =
-    NotifierProvider<OrderListNotifier, AsyncValue<List<OrderModel>>>(
-      OrderListNotifier.new,
-    );
+    AsyncNotifierProvider<OrderListNotifier, List<OrderModel>>(
+  OrderListNotifier.new,
+);
 
 final orderDetailProvider = FutureProvider.family<OrderModel?, String>((
   ref,
   orderId,
-) {
-  return ref.watch(orderRepositoryProvider).getOrderById(orderId);
+) async {
+  final repo = ref.watch(orderRepositoryProvider);
+  final client = ref.watch(supabaseClientProvider);
+
+  // Listen to realtime updates on this specific order
+  final channel = client
+      .channel('public:orders:id=eq.$orderId')
+      .onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'orders',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'id',
+          value: orderId,
+        ),
+        callback: (payload) {
+          // Invalidate to trigger refetch
+          ref.invalidateSelf();
+        },
+      )
+      .subscribe();
+
+  ref.onDispose(() {
+    client.removeChannel(channel);
+  });
+
+  return repo.getOrderById(orderId);
 });
 
 final orderStatusHistoryProvider =
     FutureProvider.family<List<OrderStatusHistoryModel>, String>((
-      ref,
-      orderId,
-    ) {
-      return ref.watch(orderRepositoryProvider).getOrderStatusHistory(orderId);
-    });
+  ref,
+  orderId,
+) {
+  return ref.watch(orderRepositoryProvider).getOrderStatusHistory(orderId);
+});
 
 final orderSummaryProvider = FutureProvider<Map<String, dynamic>?>((ref) {
   final user = ref.watch(supabaseClientProvider).auth.currentUser;
@@ -35,7 +63,7 @@ final orderSummaryProvider = FutureProvider<Map<String, dynamic>?>((ref) {
   return ref.watch(orderRepositoryProvider).getOrderSummary(user.id);
 });
 
-class OrderListNotifier extends Notifier<AsyncValue<List<OrderModel>>> {
+class OrderListNotifier extends AsyncNotifier<List<OrderModel>> {
   String? _status;
   int _page = 0;
   bool _hasMore = true;
@@ -44,9 +72,8 @@ class OrderListNotifier extends Notifier<AsyncValue<List<OrderModel>>> {
   bool get hasMore => _hasMore;
 
   @override
-  AsyncValue<List<OrderModel>> build() {
-    Future.microtask(load);
-    return const AsyncValue.loading();
+  FutureOr<List<OrderModel>> build() {
+    return _fetchPage(0);
   }
 
   Future<void> setStatus(String? status) async {
@@ -57,7 +84,7 @@ class OrderListNotifier extends Notifier<AsyncValue<List<OrderModel>>> {
   }
 
   Future<void> load() async {
-    state = const AsyncValue.loading();
+    state = const AsyncLoading();
     state = await AsyncValue.guard(() => _fetchPage(0));
   }
 
@@ -74,15 +101,21 @@ class OrderListNotifier extends Notifier<AsyncValue<List<OrderModel>>> {
   Future<void> cancelOrder(String orderId) async {
     final user = ref.read(supabaseClientProvider).auth.currentUser;
     if (user == null) throw StateError('Ban can dang nhap.');
-    await ref.read(orderRepositoryProvider).cancelOrder(orderId, user.id);
-    await load();
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(orderRepositoryProvider).cancelOrder(orderId, user.id);
+      return _fetchPage(0);
+    });
   }
 
   Future<void> confirmDelivery(String orderId) async {
     final user = ref.read(supabaseClientProvider).auth.currentUser;
     if (user == null) throw StateError('Ban can dang nhap.');
-    await ref.read(orderRepositoryProvider).customerConfirmDelivery(orderId, user.id);
-    await load();
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(orderRepositoryProvider).customerConfirmDelivery(orderId, user.id);
+      return _fetchPage(0);
+    });
   }
 
   Future<List<OrderModel>> _fetchPage(int page) {
@@ -95,17 +128,16 @@ class OrderListNotifier extends Notifier<AsyncValue<List<OrderModel>>> {
 }
 
 final adminOrderListProvider =
-    NotifierProvider<AdminOrderListNotifier, AsyncValue<List<OrderModel>>>(
-      AdminOrderListNotifier.new,
-    );
+    AsyncNotifierProvider<AdminOrderListNotifier, List<OrderModel>>(
+  AdminOrderListNotifier.new,
+);
 
-class AdminOrderListNotifier extends Notifier<AsyncValue<List<OrderModel>>> {
+class AdminOrderListNotifier extends AsyncNotifier<List<OrderModel>> {
   String? _status;
 
   @override
-  AsyncValue<List<OrderModel>> build() {
-    Future.microtask(load);
-    return const AsyncValue.loading();
+  FutureOr<List<OrderModel>> build() {
+    return ref.read(orderRepositoryProvider).getAllOrders(status: _status);
   }
 
   Future<void> setStatus(String? status) async {
@@ -114,7 +146,7 @@ class AdminOrderListNotifier extends Notifier<AsyncValue<List<OrderModel>>> {
   }
 
   Future<void> load() async {
-    state = const AsyncValue.loading();
+    state = const AsyncLoading();
     state = await AsyncValue.guard(
       () => ref.read(orderRepositoryProvider).getAllOrders(status: _status),
     );
@@ -127,9 +159,12 @@ class AdminOrderListNotifier extends Notifier<AsyncValue<List<OrderModel>>> {
   }) async {
     final user = ref.read(supabaseClientProvider).auth.currentUser;
     if (user == null) throw StateError('Ban can dang nhap.');
-    await ref
-        .read(orderRepositoryProvider)
-        .updateOrderStatus(orderId, status, user.id, note: note);
-    await load();
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(orderRepositoryProvider)
+          .updateOrderStatus(orderId, status, user.id, note: note);
+      return ref.read(orderRepositoryProvider).getAllOrders(status: _status);
+    });
   }
 }

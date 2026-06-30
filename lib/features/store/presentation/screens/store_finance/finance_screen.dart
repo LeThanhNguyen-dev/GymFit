@@ -15,33 +15,41 @@ class FinanceScreen extends ConsumerStatefulWidget {
 
 class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
+  final _bankNameCtrl = TextEditingController();
+  final _accCtrl = TextEditingController();
+  final _holderCtrl = TextEditingController();
   final _amountCtrl = TextEditingController();
   bool _isSubmitting = false;
-
-  // Mock withdraw requests but store bank details in Shop Registration Metadata
-  Map<String, dynamic> _bankDetails = {'bank_name': '', 'account_number': '', 'account_holder': ''};
+  Map<String, dynamic> _bankDetails = {};
 
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 4, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
   }
 
   @override
   void dispose() {
     _tabCtrl.dispose();
+    _bankNameCtrl.dispose();
+    _accCtrl.dispose();
+    _holderCtrl.dispose();
     _amountCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _saveBankAccount(dynamic reg) async {
     try {
-      // Create new metadata or merge
-      final metadata = {...reg.metadata, 'bank': _bankDetails};
-
+      final metadata = {
+        ...reg.metadata,
+        'bank': {
+          'bank_name': _bankNameCtrl.text.trim(),
+          'account_number': _accCtrl.text.trim(),
+          'account_holder': _holderCtrl.text.trim(),
+        }
+      };
       final supabase = ref.read(supabaseClientProvider);
       await supabase.from('shop_registrations').update({'metadata': metadata}).eq('id', reg.id);
-      
       ref.invalidate(myShopRegistrationProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lưu thông tin ngân hàng thành công!')));
@@ -67,35 +75,37 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
             return const Center(child: Text('Đang tải thông tin Shop...'));
           }
 
-          // Load bank details from metadata
           final meta = reg.metadata;
-          if (meta['bank'] != null) {
-            _bankDetails = Map<String, dynamic>.from(meta['bank']);
-          }
+          _bankDetails = meta['bank'] != null ? Map<String, dynamic>.from(meta['bank']) : <String, dynamic>{};
 
           return FutureBuilder<Map<String, dynamic>>(
             future: userId == null
-                ? Future.value({'revenue': 0.0, 'completed_orders_count': 0})
+                ? Future.value({'revenue': 0.0, 'withdrawn': 0.0, 'balance': 0.0, 'completed_orders_count': 0})
                 : supabase.rpc('get_store_stats', params: {'p_seller_id': userId}).then((res) => Map<String, dynamic>.from(res ?? {})),
             builder: (ctx, snapshot) {
-              final stats = snapshot.data ?? {'revenue': 0.0, 'completed_orders_count': 0};
+              final stats = snapshot.data ?? {'revenue': 0.0, 'withdrawn': 0.0, 'balance': 0.0, 'order_count': 0};
               final revenue = double.tryParse(stats['revenue']?.toString() ?? '0') ?? 0.0;
-              final formattedRevenue = revenue.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+              final withdrawn = double.tryParse(stats['withdrawn']?.toString() ?? '0') ?? 0.0;
+              final balance = double.tryParse(stats['balance']?.toString() ?? '0') ?? 0.0;
+
+              final fmtRevenue = revenue.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+              final fmtWithdrawn = withdrawn.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+              final fmtBalance = balance.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
 
               return Column(
                 children: [
-                  _buildBalanceOverview(formattedRevenue),
+                  _buildBalanceOverview(fmtRevenue, fmtWithdrawn, fmtBalance),
                   TabBar(
                     controller: _tabCtrl,
                     isScrollable: true,
-                    tabs: 'Tổng quan|Rút tiền|Lịch sử|Ngân hàng'.split('|').map((t) => Tab(text: t)).toList(),
+                    tabs: 'Tổng quan|Lịch sử|Ngân hàng'.split('|').map((t) => Tab(text: t)).toList(),
                   ),
                   Expanded(
                     child: TabBarView(controller: _tabCtrl, children: [
-                      _buildOverview(formattedRevenue, stats['order_count']?.toString() ?? '0'),
-                      _buildWithdraw(reg, revenue),
+                      _buildOverview(fmtRevenue, fmtWithdrawn, fmtBalance, stats['order_count']?.toString() ?? '0'),
+                      _buildWithdraw(reg, balance, supabase),
                       _buildHistory(userId, supabase),
-                      _buildBankAccounts(reg),
+                      _buildBankAccounts(reg, _bankDetails),
                     ]),
                   ),
                 ],
@@ -109,20 +119,20 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
     );
   }
 
-  Widget _buildBalanceOverview(String formattedRevenue) {
+  Widget _buildBalanceOverview(String fmtRevenue, String fmtWithdrawn, String fmtBalance) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
       color: AppColors.primary,
       child: Column(
         children: [
-          Text('Tổng doanh thu đã nhận', style: AppTextStyles.bodySmall.copyWith(color: Colors.white70)),
+          Text('Tổng doanh thu', style: AppTextStyles.bodySmall.copyWith(color: Colors.white70)),
           const SizedBox(height: 4),
-          Text('$formattedRevenue₫', style: AppTextStyles.headlineMedium.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+          Text('$fmtRevenue₫', style: AppTextStyles.headlineMedium.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
           const SizedBox(height: AppSpacing.sm),
           Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-            _balanceItem('Đã quyết toán', '$formattedRevenue₫'),
-            _balanceItem('Khả dụng', '$formattedRevenue₫'),
+            _balanceItem('Khả dụng', '$fmtBalance₫'),
+            _balanceItem('Đã rút', '$fmtWithdrawn₫'),
           ]),
         ],
       ),
@@ -136,7 +146,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
     ]);
   }
 
-  Widget _buildOverview(String formattedRevenue, String totalOrders) {
+  Widget _buildOverview(String fmtRevenue, String fmtWithdrawn, String fmtBalance, String totalOrders) {
     return ListView(padding: const EdgeInsets.all(AppSpacing.pageHorizontal), children: [
       Card(
         child: Padding(
@@ -144,7 +154,10 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Tổng quan thu nhập', style: AppTextStyles.titleMedium),
             const SizedBox(height: AppSpacing.sm),
-            _statRow('Doanh thu tích luỹ', '$formattedRevenue₫'),
+            _statRow('Doanh thu tích luỹ', '$fmtRevenue₫'),
+            _statRow('Đã rút / Đang xử lý', '$fmtWithdrawn₫'),
+            _statRow('Số dư khả dụng', '$fmtBalance₫'),
+            const Divider(height: 24),
             _statRow('Tổng đơn hàng thành công', totalOrders),
           ]),
         ),
@@ -162,7 +175,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
     );
   }
 
-  Widget _buildWithdraw(dynamic reg, double maxAmount) {
+  Widget _buildWithdraw(dynamic reg, double maxAmount, dynamic supabase) {
     return ListView(padding: const EdgeInsets.all(AppSpacing.pageHorizontal), children: [
       Text('Số dư khả dụng để rút: ${maxAmount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}₫', style: AppTextStyles.bodyMedium),
       const SizedBox(height: AppSpacing.md),
@@ -172,18 +185,40 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
         keyboardType: TextInputType.number,
       ),
       const SizedBox(height: AppSpacing.md),
-      DropdownButtonFormField<String>(
-        decoration: const InputDecoration(labelText: 'Tài khoản nhận', border: OutlineInputBorder()),
-        initialValue: _bankDetails['account_number']?.isNotEmpty == true ? '1' : null,
-        items: [
-          if (_bankDetails['account_number']?.isNotEmpty == true)
-            DropdownMenuItem(
-              value: '1',
-              child: Text('${_bankDetails['bank_name']} • ${_bankDetails['account_number']}'),
-            )
-        ],
-        onChanged: (_) {},
-      ),
+      if (_bankDetails['account_number']?.isNotEmpty == true)
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: Theme.of(context).colorScheme.outline),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Tài khoản nhận', style: AppTextStyles.labelSmall.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              const SizedBox(height: 4),
+              Text('${_bankDetails['bank_name']} • ${_bankDetails['account_number']}', style: AppTextStyles.bodyLarge),
+              Text(_bankDetails['account_holder'] ?? '', style: AppTextStyles.bodyMedium),
+            ],
+          ),
+        )
+      else
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.errorContainer,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Theme.of(context).colorScheme.error),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Vui lòng qua tab "Ngân hàng" để thiết lập thông tin tài khoản trước khi rút tiền.', style: AppTextStyles.bodyMedium.copyWith(color: Theme.of(context).colorScheme.onErrorContainer)),
+              ),
+            ],
+          ),
+        ),
       const SizedBox(height: AppSpacing.lg),
       FilledButton.icon(
         onPressed: _isSubmitting || _bankDetails['account_number']?.isEmpty == true
@@ -195,12 +230,24 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
                   return;
                 }
                 setState(() => _isSubmitting = true);
-                // Mocking request submittal
-                await Future.delayed(const Duration(seconds: 1));
-                if (mounted) {
-                  setState(() => _isSubmitting = false);
-                  _amountCtrl.clear();
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Yêu cầu rút tiền đang được xử lý!')));
+                try {
+                  await supabase.rpc('request_payout', params: {
+                    'p_amount': amount,
+                    'p_bank_name': _bankDetails['bank_name'],
+                    'p_account_number': _bankDetails['account_number'],
+                    'p_account_holder': _bankDetails['account_holder'],
+                  });
+                  if (mounted) {
+                    _amountCtrl.clear();
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gửi yêu cầu rút tiền thành công!')));
+                    setState(() {});
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+                  }
+                } finally {
+                  if (mounted) setState(() => _isSubmitting = false);
                 }
               },
         icon: const Icon(Icons.send),
@@ -213,18 +260,18 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
     return FutureBuilder<List<dynamic>>(
       future: userId == null
           ? Future.value([])
-          : supabase
-              .from('order_items')
-              .select('*, orders!inner(status, created_at), products!inner(seller_id)')
-              .eq('products.seller_id', userId)
-              .eq('orders.status', 'delivered'),
+               : supabase
+               .from('payout_requests')
+               .select('*')
+               .eq('seller_id', userId)
+              .order('created_at', ascending: false),
       builder: (ctx, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
         final items = snapshot.data ?? [];
         if (items.isEmpty) {
-          return const Center(child: Text('Chưa có lịch sử giao dịch.'));
+          return const Center(child: Text('Chưa có lịch sử rút tiền.'));
         }
 
         return ListView.separated(
@@ -233,14 +280,39 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
           separatorBuilder: (context, index) => const Divider(height: 1),
           itemBuilder: (context, i) {
             final item = items[i];
-            final price = double.tryParse(item['total_price']?.toString() ?? '0') ?? 0.0;
-            final formattedPrice = price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
-            final date = item['orders'] != null ? DateTime.parse(item['orders']['created_at']).toLocal().toString().substring(0, 16) : '';
+            final amount = double.tryParse(item['amount']?.toString() ?? '0') ?? 0.0;
+            final formattedAmount = amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+            final date = DateTime.parse(item['created_at']).toLocal().toString().substring(0, 16);
+            final status = item['status']?.toString() ?? 'pending';
+
+            Color statusColor;
+            String statusText;
+            switch (status) {
+              case 'approved':
+              case 'completed':
+                statusColor = AppColors.success;
+                statusText = 'Thành công';
+                break;
+              case 'rejected':
+                statusColor = AppColors.error;
+                statusText = 'Bị từ chối';
+                break;
+              default:
+                statusColor = AppColors.warning;
+                statusText = 'Đang xử lý';
+            }
 
             return ListTile(
-              title: Text(item['product_name']?.toString() ?? 'Doanh thu sản phẩm', style: AppTextStyles.bodyMedium),
+              title: Text('Rút tiền về ${item['bank_name']}', style: AppTextStyles.bodyMedium),
               subtitle: Text(date, style: AppTextStyles.labelSmall),
-              trailing: Text('+$formattedPrice₫', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.success)),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('-$formattedAmount₫', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(statusText, style: AppTextStyles.labelSmall.copyWith(color: statusColor)),
+                ],
+              ),
             );
           },
         );
@@ -248,10 +320,10 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
     );
   }
 
-  Widget _buildBankAccounts(dynamic reg) {
-    final bankCtrl = TextEditingController(text: _bankDetails['bank_name']);
-    final accCtrl = TextEditingController(text: _bankDetails['account_number']);
-    final holderCtrl = TextEditingController(text: _bankDetails['account_holder']);
+  Widget _buildBankAccounts(dynamic reg, Map<String, dynamic> bankDetails) {
+    _bankNameCtrl.text = bankDetails['bank_name'] ?? '';
+    _accCtrl.text = bankDetails['account_number'] ?? '';
+    _holderCtrl.text = bankDetails['account_holder'] ?? '';
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
@@ -259,22 +331,19 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
         Text('Thông tin tài khoản ngân hàng nhận tiền', style: AppTextStyles.titleSmall),
         const SizedBox(height: AppSpacing.md),
         TextField(
-          controller: bankCtrl,
+          controller: _bankNameCtrl,
           decoration: const InputDecoration(labelText: 'Tên ngân hàng (VD: Vietcombank)', border: OutlineInputBorder()),
-          onChanged: (val) => _bankDetails['bank_name'] = val.trim(),
         ),
         const SizedBox(height: AppSpacing.md),
         TextField(
-          controller: accCtrl,
+          controller: _accCtrl,
           decoration: const InputDecoration(labelText: 'Số tài khoản', border: OutlineInputBorder()),
-          onChanged: (val) => _bankDetails['account_number'] = val.trim(),
           keyboardType: TextInputType.number,
         ),
         const SizedBox(height: AppSpacing.md),
         TextField(
-          controller: holderCtrl,
+          controller: _holderCtrl,
           decoration: const InputDecoration(labelText: 'Tên chủ tài khoản', border: OutlineInputBorder()),
-          onChanged: (val) => _bankDetails['account_holder'] = val.trim(),
         ),
         const SizedBox(height: AppSpacing.lg),
         FilledButton(

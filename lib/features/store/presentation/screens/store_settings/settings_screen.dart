@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../../core/providers/supabase_providers.dart';
 import '../../../../../core/router/route_names.dart';
@@ -90,10 +91,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
     }
   }
 
-  void _showUnsupported(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature chưa được hỗ trợ trong bản này.')),
-    );
+  dynamic _currentReg;
+
+  Future<void> _saveMetadata(Map<String, dynamic> updates) async {
+    if (_currentReg == null) return;
+    try {
+      final supabase = ref.read(supabaseClientProvider);
+      final existing = Map<String, dynamic>.from(_currentReg.metadata);
+      existing.addAll(updates);
+      await supabase.from('shop_registrations').update({'metadata': existing}).eq('id', _currentReg.id);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã lưu!')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+    }
+  }
+
+  void _showPolicyEditor() {
+    final ctrl = TextEditingController(text: _currentReg?.metadata?['return_policy'] ?? '');
+    showDialog(context: context, builder: (_) => AlertDialog(
+      title: const Text('Chính sách đổi trả'),
+      content: SizedBox(width: 400, child: TextField(
+        controller: ctrl, maxLines: 8,
+        decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Nhập chính sách đổi trả...'),
+      )),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+        FilledButton(onPressed: () {
+          Navigator.pop(context);
+          _saveMetadata({'return_policy': ctrl.text});
+        }, child: const Text('Lưu')),
+      ],
+    ));
+  }
+
+  void _showHoursEditor() {
+    final openCtrl = TextEditingController(text: _currentReg?.metadata?['open_time'] ?? '08:00');
+    final closeCtrl = TextEditingController(text: _currentReg?.metadata?['close_time'] ?? '22:00');
+    showDialog(context: context, builder: (_) => AlertDialog(
+      title: const Text('Giờ hoạt động'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(controller: openCtrl, decoration: const InputDecoration(labelText: 'Giờ mở cửa (HH:MM)', border: OutlineInputBorder())),
+        const SizedBox(height: 8),
+        TextField(controller: closeCtrl, decoration: const InputDecoration(labelText: 'Giờ đóng cửa (HH:MM)', border: OutlineInputBorder())),
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+        FilledButton(onPressed: () {
+          Navigator.pop(context);
+          _saveMetadata({'open_time': openCtrl.text, 'close_time': closeCtrl.text});
+        }, child: const Text('Lưu')),
+      ],
+    ));
   }
 
   @override
@@ -114,6 +162,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
               data: (reg) {
                 if (reg != null) {
                   _initFields(reg);
+                  _currentReg = reg;
                 }
                 return TabBarView(
                   controller: _tabCtrl,
@@ -197,18 +246,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
           child: Column(
             children: [
               ListTile(
-                leading: const Icon(Icons.chat_bubble_outline),
-                title: Text('Tin nhắn realtime', style: AppTextStyles.bodyMedium),
-                subtitle: Text('Chat với admin và khách hàng', style: AppTextStyles.bodySmall),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push(RouteNames.storeChatPath),
-              ),
-              const Divider(height: 1, indent: 16, endIndent: 16),
-              ListTile(
                 leading: const Icon(Icons.description_outlined),
                 title: Text('Chính sách đổi trả', style: AppTextStyles.bodyMedium),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showUnsupported('Chính sách đổi trả'),
+                onTap: () => _showPolicyEditor(),
               ),
               const Divider(height: 1, indent: 16, endIndent: 16),
               ListTile(
@@ -216,7 +257,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
                 title: Text('Giờ hoạt động', style: AppTextStyles.bodyMedium),
                 subtitle: Text('T2-CN: 08:00 - 22:00', style: AppTextStyles.bodySmall),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showUnsupported('Giờ hoạt động'),
+                onTap: () => _showHoursEditor(),
               ),
             ],
           ),
@@ -230,22 +271,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
               SwitchListTile(
                 secondary: const Icon(Icons.notifications),
                 title: Text('Đơn hàng mới', style: AppTextStyles.bodyMedium),
-                value: true,
-                onChanged: (_) => _showUnsupported('Thông báo đơn hàng mới'),
+                value: _currentReg?.metadata?['notify_new_order'] ?? true,
+                onChanged: (v) => _saveMetadata({'notify_new_order': v}),
               ),
               const Divider(height: 1, indent: 16, endIndent: 16),
               SwitchListTile(
                 secondary: const Icon(Icons.inventory),
                 title: Text('Cảnh báo hết hàng', style: AppTextStyles.bodyMedium),
-                value: true,
-                onChanged: (_) => _showUnsupported('Cảnh báo hết hàng'),
+                value: _currentReg?.metadata?['notify_low_stock'] ?? true,
+                onChanged: (v) => _saveMetadata({'notify_low_stock': v}),
               ),
               const Divider(height: 1, indent: 16, endIndent: 16),
               SwitchListTile(
                 secondary: const Icon(Icons.rate_review),
                 title: Text('Đánh giá mới', style: AppTextStyles.bodyMedium),
-                value: false,
-                onChanged: (_) => _showUnsupported('Thông báo đánh giá mới'),
+                value: _currentReg?.metadata?['notify_new_review'] ?? false,
+                onChanged: (v) => _saveMetadata({'notify_new_review': v}),
               ),
             ],
           ),
@@ -497,7 +538,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
           : supabase
               .from('reviews')
               .select('*, profiles(full_name), products!inner(name, seller_id)')
-              .eq('products.seller_id', userId),
+              .eq('products.seller_id', userId)
+              .order('created_at', ascending: false),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -516,6 +558,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
             final profile = review['profiles'] as Map<String, dynamic>?;
             final product = review['products'] as Map<String, dynamic>?;
             final rating = review['rating'] as int? ?? 5;
+            final sellerReply = review['seller_reply']?.toString();
+            final content = review['comment']?.toString() ?? review['body']?.toString() ?? review['content']?.toString() ?? '';
 
             return Card(
               child: Padding(
@@ -550,7 +594,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
                       style: AppTextStyles.labelSmall.copyWith(color: AppColors.onSurfaceVariant),
                     ),
                     const SizedBox(height: 4),
-                    Text(review['content']?.toString() ?? '', style: AppTextStyles.bodySmall),
+                    Text(content, style: AppTextStyles.bodySmall),
+                    if (sellerReply != null && sellerReply.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainerHighest.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.outlineVariant),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Phản hồi của Shop:', style: AppTextStyles.labelMedium.copyWith(color: AppColors.primary)),
+                            const SizedBox(height: 4),
+                            Text(sellerReply, style: AppTextStyles.bodySmall),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: () => _showReplyDialog(review['id'].toString(), supabase),
+                          icon: const Icon(Icons.reply, size: 18),
+                          label: const Text('Phản hồi'),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -558,6 +631,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
           },
         );
       },
+    );
+  }
+
+  Future<void> _showReplyDialog(String reviewId, SupabaseClient supabase) async {
+    final replyCtrl = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Phản hồi đánh giá'),
+        content: TextField(
+          controller: replyCtrl,
+          decoration: const InputDecoration(
+            hintText: 'Nhập câu trả lời của bạn...',
+            border: OutlineInputBorder(),
+          ),
+          maxLines: 4,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final text = replyCtrl.text.trim();
+              if (text.isEmpty) return;
+              try {
+                await supabase.from('reviews').update({
+                  'seller_reply': text,
+                  'replied_at': DateTime.now().toIso8601String(),
+                }).eq('id', reviewId);
+                if (mounted) setState(() {});
+              } catch (e) {
+                // handle error
+              }
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Gửi'),
+          ),
+        ],
+      ),
     );
   }
 }

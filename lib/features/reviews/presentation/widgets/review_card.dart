@@ -11,7 +11,7 @@ class ReviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = review.user?.fullName?.trim().isNotEmpty == true
         ? review.user!.fullName!
-        : 'GymFit customer';
+        : 'Khách hàng';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -40,7 +40,7 @@ class ReviewCard extends StatelessWidget {
               ),
               if (review.isVerifiedPurchase)
                 const Chip(
-                  label: Text('Verified'),
+                  label: Text('Đã mua hàng'),
                   visualDensity: VisualDensity.compact,
                 ),
             ],

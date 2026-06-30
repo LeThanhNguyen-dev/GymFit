@@ -11,7 +11,10 @@ class ProductRepository {
   static const String _productSelect =
       'id, category_id, seller_id, brand_id, name, slug, sku, short_description, description, base_price, compare_at_price, cost_price, status, is_featured, is_digital, requires_shipping, weight_grams, length_cm, width_cm, height_cm, tags, attributes, seo_title, seo_description, average_rating, total_reviews, total_sold, view_count, metadata, created_at, updated_at, category:categories(id, name, slug), brand:brands(id, name, slug), images:product_images(*), variants:product_variants(*)';
 
-  Future<List<ProductModel>> getStoreProducts({required String sellerId, String? search}) async {
+  Future<List<ProductModel>> getStoreProducts({
+    required String sellerId,
+    String? search,
+  }) async {
     final rows = await _client
         .from(AppConstants.productsTable)
         .select(_productSelect)
@@ -30,7 +33,6 @@ class ProductRepository {
         )
         .toList();
   }
-
 
   static const String _adminProductSelect = _productSelect;
 
@@ -89,7 +91,9 @@ class ProductRepository {
       );
     }
 
-    final orderBy = (sortBy != null && sortBy.isNotEmpty) ? sortBy : 'created_at';
+    final orderBy = (sortBy != null && sortBy.isNotEmpty)
+        ? sortBy
+        : 'created_at';
     final rows = await q.order(orderBy, ascending: ascending).range(from, to);
 
     return rows
@@ -130,10 +134,30 @@ class ProductRepository {
   }
 
   Future<List<ProductModel>> getRecommendedProducts({int limit = 10}) async {
+    try {
+      final user = _client.auth.currentUser;
+      if (user != null) {
+        final response = await _client.functions.invoke(
+          'ai-recommendations',
+          body: {'user_id': user.id, 'limit': limit},
+        );
+        if (response.status == 200 && response.data is List) {
+          final ids = (response.data as List).map((e) => e.toString()).toList();
+          if (ids.isNotEmpty) {
+            final rows = await _client
+                .from(AppConstants.productsTable)
+                .select(_productSelect)
+                .inFilter('id', ids);
+            return rows.map((row) => ProductModel.fromJson(row)).toList();
+          }
+        }
+      }
+    } catch (_) {}
+
+    // Fallback to top rated if no user or AI fails
     final rows = await _client
         .from(AppConstants.productsTable)
         .select(_productSelect)
-        // using average_rating instead of avg_rating as per other methods
         .order('average_rating', ascending: false)
         .limit(limit);
 
@@ -169,27 +193,51 @@ class ProductRepository {
   Future<List<ProductModel>> searchProducts(String text) async {
     if (text.trim().isEmpty) return [];
     final keyword = text.trim();
+    final formattedKeyword = keyword.split(' ').join(' | ');
     final rows = await _client
         .from(AppConstants.productsTable)
         .select(_productSelect)
         .inFilter('status', ['active', 'out_of_stock'])
-        .or(
-          'name.ilike.%$keyword%,sku.ilike.%$keyword%,short_description.ilike.%$keyword%',
-        )
+        .textSearch('name', formattedKeyword, config: 'english')
         .order('total_sold', ascending: false)
         .limit(50);
 
     return rows.map((row) => ProductModel.fromJson(row)).toList();
   }
 
-  Future<List<String>> getSearchSuggestions(String text) async {
+  Future<List<String>> getSearchSuggestions(
+    String text, {
+    List<String> recentSearches = const [],
+  }) async {
     if (text.trim().isEmpty) return [];
     final keyword = text.trim();
+    try {
+      final response = await _client.functions.invoke(
+        'ai-search-suggestions',
+        body: {
+          'query': keyword,
+          'recent_searches': recentSearches.take(5).toList(),
+        },
+      );
+      if (response.status == 200) {
+        final data = response.data;
+        if (data is List) {
+          return data.map((e) => e.toString()).toList();
+        }
+        if (data is Map && data['suggestions'] is List) {
+          return (data['suggestions'] as List)
+              .map((e) => e.toString())
+              .toList();
+        }
+      }
+    } catch (_) {}
+
+    // Fallback if AI function fails or not deployed
     final rows = await _client
         .from(AppConstants.productsTable)
         .select('name')
         .inFilter('status', ['active', 'out_of_stock'])
-        .ilike('name', '%$keyword%')
+        .textSearch('name', keyword.split(' ').join(' | '), config: 'english')
         .limit(5);
 
     return rows.map((row) => row['name'] as String).toList();
@@ -205,13 +253,13 @@ class ProductRepository {
     int page = 1,
     int pageSize = 20,
   }) async {
-    var query = _client.from(AppConstants.productsTable).select(_adminProductSelect);
+    var query = _client
+        .from(AppConstants.productsTable)
+        .select(_adminProductSelect);
 
     if (search != null && search.isNotEmpty) {
       final keyword = search.toLowerCase().trim();
-      query = query.or(
-        'name.ilike.%$keyword%,sku.ilike.%$keyword%',
-      );
+      query = query.or('name.ilike.%$keyword%,sku.ilike.%$keyword%');
     }
     if (status != null) {
       query = query.eq('status', status);
@@ -225,15 +273,15 @@ class ProductRepository {
 
     final from = (page - 1) * pageSize;
     final to = from + pageSize - 1;
-    final rows = await query.order(sortBy, ascending: ascending).range(from, to);
+    final rows = await query
+        .order(sortBy, ascending: ascending)
+        .range(from, to);
     final items = rows.map((row) => ProductModel.fromJson(row)).toList();
 
     var countQuery = _client.from(AppConstants.productsTable).select('id');
     if (search != null && search.isNotEmpty) {
       final keyword = search.toLowerCase().trim();
-      countQuery = countQuery.or(
-        'name.ilike.%$keyword%,sku.ilike.%$keyword%',
-      );
+      countQuery = countQuery.or('name.ilike.%$keyword%,sku.ilike.%$keyword%');
     }
     if (status != null) {
       countQuery = countQuery.eq('status', status);
@@ -319,7 +367,9 @@ class ProductRepository {
 
     final from = (page - 1) * pageSize;
     final to = from + pageSize - 1;
-    final rows = await query.order(sortBy, ascending: ascending).range(from, to);
+    final rows = await query
+        .order(sortBy, ascending: ascending)
+        .range(from, to);
     final items = rows.map((row) => CategoryModel.fromJson(row)).toList();
 
     var countQuery = _client.from('categories').select('id');
@@ -351,9 +401,7 @@ class ProductRepository {
   Future<void> softDeleteCategory(String categoryId) async {
     await _client
         .from('categories')
-        .update({
-          'updated_at': DateTime.now().toIso8601String(),
-        })
+        .update({'updated_at': DateTime.now().toIso8601String()})
         .eq('id', categoryId);
   }
 
@@ -372,7 +420,9 @@ class ProductRepository {
 
     final from = (page - 1) * pageSize;
     final to = from + pageSize - 1;
-    final rows = await query.order(sortBy, ascending: ascending).range(from, to);
+    final rows = await query
+        .order(sortBy, ascending: ascending)
+        .range(from, to);
     final items = rows.map((row) => BrandModel.fromJson(row)).toList();
 
     var countQuery = _client.from('brands').select('id');
@@ -401,9 +451,7 @@ class ProductRepository {
   Future<void> softDeleteBrand(String brandId) async {
     await _client
         .from('brands')
-        .update({
-          'updated_at': DateTime.now().toIso8601String(),
-        })
+        .update({'updated_at': DateTime.now().toIso8601String()})
         .eq('id', brandId);
   }
 
