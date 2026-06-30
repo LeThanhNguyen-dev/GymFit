@@ -139,9 +139,9 @@ class AdminFinanceScreen extends ConsumerWidget {
             Expanded(
               child: TabBarView(
                 children: [
-                  _buildPayoutList(pending, supabase, ref),
-                  _buildPayoutList(approved, supabase, ref),
-                  _buildPayoutList(rejected, supabase, ref),
+                  _buildPayoutList(ctx, pending, supabase, ref),
+                  _buildPayoutList(ctx, approved, supabase, ref),
+                  _buildPayoutList(ctx, rejected, supabase, ref),
                 ],
               ),
             ),
@@ -151,7 +151,7 @@ class AdminFinanceScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPayoutList(List<dynamic> items, dynamic supabase, WidgetRef ref) {
+  Widget _buildPayoutList(BuildContext context, List<dynamic> items, dynamic supabase, WidgetRef ref) {
     if (items.isEmpty) return const Center(child: Text('Không có yêu cầu nào.'));
     return ListView.separated(
       padding: const EdgeInsets.all(AppSpacing.pageHorizontal),

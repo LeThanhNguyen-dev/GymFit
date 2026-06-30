@@ -18,6 +18,9 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
   final _bankNameCtrl = TextEditingController();
   final _accCtrl = TextEditingController();
   final _holderCtrl = TextEditingController();
+  final _amountCtrl = TextEditingController();
+  bool _isSubmitting = false;
+  Map<String, dynamic> _bankDetails = {};
 
   @override
   void initState() {
@@ -31,6 +34,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
     _bankNameCtrl.dispose();
     _accCtrl.dispose();
     _holderCtrl.dispose();
+    _amountCtrl.dispose();
     super.dispose();
   }
 
@@ -72,7 +76,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
           }
 
           final meta = reg.metadata;
-          final bankDetails = meta['bank'] != null ? Map<String, dynamic>.from(meta['bank']) : <String, dynamic>{};
+          _bankDetails = meta['bank'] != null ? Map<String, dynamic>.from(meta['bank']) : <String, dynamic>{};
 
           return FutureBuilder<Map<String, dynamic>>(
             future: userId == null
@@ -101,7 +105,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> with SingleTicker
                       _buildOverview(fmtRevenue, fmtWithdrawn, fmtBalance, stats['order_count']?.toString() ?? '0'),
                       _buildWithdraw(reg, balance, supabase),
                       _buildHistory(userId, supabase),
-                      _buildBankAccounts(reg, bankDetails),
+                      _buildBankAccounts(reg, _bankDetails),
                     ]),
                   ),
                 ],
