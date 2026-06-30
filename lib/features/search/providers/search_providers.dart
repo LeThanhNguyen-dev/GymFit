@@ -14,25 +14,39 @@ class _SearchQueryNotifier extends Notifier<String> {
   void clear() => state = '';
 }
 
-final searchQueryProvider = NotifierProvider.autoDispose<_SearchQueryNotifier, String>(
-  _SearchQueryNotifier.new,
-);
+final searchQueryProvider =
+    NotifierProvider.autoDispose<_SearchQueryNotifier, String>(
+      _SearchQueryNotifier.new,
+    );
 
 // Kết quả tìm kiếm từ Supabase
-final searchResultsProvider =
-    FutureProvider.autoDispose<List<ProductModel>>((ref) async {
+final searchResultsProvider = FutureProvider.autoDispose<List<ProductModel>>((
+  ref,
+) async {
   final query = ref.watch(searchQueryProvider);
   if (query.trim().isEmpty) return [];
   final repo = ref.watch(productRepositoryProvider);
   return repo.searchProducts(query);
 });
 
-final searchSuggestionsProvider =
-    FutureProvider.autoDispose<List<String>>((ref) async {
-  final query = ref.watch(searchQueryProvider);
-  if (query.trim().length < 2) return [];
+final searchSuggestionsProvider = FutureProvider.autoDispose<List<String>>((
+  ref,
+) async {
+  final query = ref.watch(searchQueryProvider).trim();
+  if (query.length < 2) return [];
+
+  var disposed = false;
+  ref.onDispose(() => disposed = true);
+
+  await Future<void>.delayed(const Duration(milliseconds: 450));
+  if (disposed) return [];
+
+  final latestQuery = ref.read(searchQueryProvider).trim();
+  if (latestQuery != query) return [];
+
+  final recentSearches = ref.read(searchHistoryProvider);
   final repo = ref.watch(productRepositoryProvider);
-  return repo.getSearchSuggestions(query);
+  return repo.getSearchSuggestions(query, recentSearches: recentSearches);
 });
 
 // ── Search History Notifier (Riverpod 3.x) ────────────────────────────────────
@@ -58,12 +72,12 @@ class SearchHistoryNotifier extends Notifier<List<String>> {
   void addSearchTerm(String term) {
     final trimmed = term.trim();
     if (trimmed.isEmpty) return;
-    
+
     final newState = [
       trimmed,
       ...state.where((item) => item != trimmed),
     ].take(10).toList();
-    
+
     state = newState;
     _prefs?.setStringList(_key, newState);
   }
@@ -82,5 +96,5 @@ class SearchHistoryNotifier extends Notifier<List<String>> {
 
 final searchHistoryProvider =
     NotifierProvider<SearchHistoryNotifier, List<String>>(
-  SearchHistoryNotifier.new,
-);
+      SearchHistoryNotifier.new,
+    );
