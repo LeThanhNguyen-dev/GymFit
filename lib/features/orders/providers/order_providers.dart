@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/providers/supabase_providers.dart';
 import '../../../shared/enums/database_enums.dart';
@@ -18,8 +19,34 @@ final orderListProvider =
 final orderDetailProvider = FutureProvider.family<OrderModel?, String>((
   ref,
   orderId,
-) {
-  return ref.watch(orderRepositoryProvider).getOrderById(orderId);
+) async {
+  final repo = ref.watch(orderRepositoryProvider);
+  final client = ref.watch(supabaseClientProvider);
+
+  // Listen to realtime updates on this specific order
+  final channel = client
+      .channel('public:orders:id=eq.$orderId')
+      .onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'orders',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'id',
+          value: orderId,
+        ),
+        callback: (payload) {
+          // Invalidate to trigger refetch
+          ref.invalidateSelf();
+        },
+      )
+      .subscribe();
+
+  ref.onDispose(() {
+    client.removeChannel(channel);
+  });
+
+  return repo.getOrderById(orderId);
 });
 
 final orderStatusHistoryProvider =

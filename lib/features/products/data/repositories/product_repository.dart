@@ -130,10 +130,30 @@ class ProductRepository {
   }
 
   Future<List<ProductModel>> getRecommendedProducts({int limit = 10}) async {
+    try {
+      final user = _client.auth.currentUser;
+      if (user != null) {
+        final response = await _client.functions.invoke(
+          'ai-recommendations',
+          body: {'user_id': user.id, 'limit': limit},
+        );
+        if (response.status == 200 && response.data is List) {
+          final ids = (response.data as List).map((e) => e.toString()).toList();
+          if (ids.isNotEmpty) {
+            final rows = await _client
+                .from(AppConstants.productsTable)
+                .select(_productSelect)
+                .inFilter('id', ids);
+            return rows.map((row) => ProductModel.fromJson(row)).toList();
+          }
+        }
+      }
+    } catch (_) {}
+
+    // Fallback to top rated if no user or AI fails
     final rows = await _client
         .from(AppConstants.productsTable)
         .select(_productSelect)
-        // using average_rating instead of avg_rating as per other methods
         .order('average_rating', ascending: false)
         .limit(limit);
 
@@ -169,13 +189,12 @@ class ProductRepository {
   Future<List<ProductModel>> searchProducts(String text) async {
     if (text.trim().isEmpty) return [];
     final keyword = text.trim();
+    final formattedKeyword = keyword.split(' ').join(' | ');
     final rows = await _client
         .from(AppConstants.productsTable)
         .select(_productSelect)
         .inFilter('status', ['active', 'out_of_stock'])
-        .or(
-          'name.ilike.%$keyword%,sku.ilike.%$keyword%,short_description.ilike.%$keyword%',
-        )
+        .textSearch('name', formattedKeyword, config: 'english')
         .order('total_sold', ascending: false)
         .limit(50);
 
@@ -185,11 +204,22 @@ class ProductRepository {
   Future<List<String>> getSearchSuggestions(String text) async {
     if (text.trim().isEmpty) return [];
     final keyword = text.trim();
+    try {
+      final response = await _client.functions.invoke(
+        'ai-search-suggestions',
+        body: {'query': keyword},
+      );
+      if (response.status == 200 && response.data is List) {
+        return (response.data as List).map((e) => e.toString()).toList();
+      }
+    } catch (_) {}
+
+    // Fallback if AI function fails or not deployed
     final rows = await _client
         .from(AppConstants.productsTable)
         .select('name')
         .inFilter('status', ['active', 'out_of_stock'])
-        .ilike('name', '%$keyword%')
+        .textSearch('name', keyword.split(' ').join(' | '), config: 'english')
         .limit(5);
 
     return rows.map((row) => row['name'] as String).toList();

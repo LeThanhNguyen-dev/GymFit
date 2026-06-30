@@ -335,7 +335,13 @@ BEGIN
     IF v_shop_voucher.max_discount_amount IS NOT NULL THEN
       v_shop_discount := LEAST(v_shop_discount, v_shop_voucher.max_discount_amount);
     END IF;
+
+    -- FIX: Shop discount cannot exceed the shop's subtotal in the cart
+    v_shop_discount := LEAST(v_shop_discount, v_shop_subtotal);
   END IF;
+
+  -- FIX: Admin discount shouldn't exceed subtotal
+  v_admin_discount := LEAST(v_admin_discount, v_subtotal);
 
   v_discount_amount := LEAST(v_admin_discount + v_shop_discount, v_subtotal);
   v_shipping_fee := CASE

@@ -102,9 +102,9 @@ class VoucherModel {
         ? orderAmount * (discountValue / 100)
         : discountValue;
     if (maxDiscountAmount != null && discount > maxDiscountAmount!) {
-      return maxDiscountAmount!;
+      return maxDiscountAmount! > orderAmount ? orderAmount : maxDiscountAmount!;
     }
-    return discount;
+    return discount > orderAmount ? orderAmount : discount;
   }
 }
 
