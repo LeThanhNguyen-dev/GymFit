@@ -65,15 +65,15 @@ class ChatRepository {
         .from(AppConstants.chatMessagesTable)
         .stream(primaryKey: ['id'])
         .eq('conversation_id', conversationId)
-        .order('created_at')
+        .order('created_at', ascending: false)
         .map(
-          (rows) => rows
-              .map((row) => ChatMessageModel.fromJson({
-                    ...row,
-                    'local_id': row['id'].toString(),
-                    'status': 'sent',
-                  }))
-              .toList(growable: false),
+          (rows) {
+            final items = rows
+                .map((row) => ChatMessageModel.fromJson(row))
+                .toList();
+            items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            return items;
+          },
         );
   }
 

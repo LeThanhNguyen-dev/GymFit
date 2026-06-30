@@ -40,6 +40,9 @@ dependencies:
   http: ^1.6.0
   crypto: ^3.0.7
   qr_flutter: ^4.1.0
+  firebase_core: ^4.11.0
+  firebase_messaging: ^16.4.1
+  flutter_local_notifications: ^22.0.1
 
   # Local Database
   sqflite: ^2.3.0

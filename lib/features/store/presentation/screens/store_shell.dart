@@ -13,9 +13,14 @@ class StoreShell extends StatelessWidget {
     final index = _tabIndex(context);
     return Scaffold(
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (i) {
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: index,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Theme.of(context).colorScheme.primary,
+        unselectedItemColor: Theme.of(context).colorScheme.onSurfaceVariant,
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
+        onTap: (i) {
           switch (i) {
             case 0:
               GoRouter.of(context).go(RouteNames.storeDashboardPath);
@@ -26,33 +31,40 @@ class StoreShell extends StatelessWidget {
             case 3:
               GoRouter.of(context).go(RouteNames.storeFinancePath);
             case 4:
+              GoRouter.of(context).go(RouteNames.storeChatPath);
+            case 5:
               GoRouter.of(context).go(RouteNames.storeSettingsPath);
           }
         },
-        destinations: const [
-          NavigationDestination(
+        items: const [
+          BottomNavigationBarItem(
             icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
+            activeIcon: Icon(Icons.dashboard),
             label: 'Tổng quan',
           ),
-          NavigationDestination(
+          BottomNavigationBarItem(
             icon: Icon(Icons.inventory_2_outlined),
-            selectedIcon: Icon(Icons.inventory_2),
+            activeIcon: Icon(Icons.inventory_2),
             label: 'Sản phẩm',
           ),
-          NavigationDestination(
+          BottomNavigationBarItem(
             icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
+            activeIcon: Icon(Icons.receipt_long),
             label: 'Đơn hàng',
           ),
-          NavigationDestination(
+          BottomNavigationBarItem(
             icon: Icon(Icons.account_balance_outlined),
-            selectedIcon: Icon(Icons.account_balance),
+            activeIcon: Icon(Icons.account_balance),
             label: 'Tài chính',
           ),
-          NavigationDestination(
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble_outline),
+            activeIcon: Icon(Icons.chat_bubble),
+            label: 'Tin nhắn',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
+            activeIcon: Icon(Icons.settings),
             label: 'Cài đặt',
           ),
         ],
@@ -72,11 +84,13 @@ class StoreShell extends StatelessWidget {
       return 2;
     }
     if (loc == RouteNames.storeFinancePath) return 3;
-    if (loc == RouteNames.storeSettingsPath ||
-        loc == RouteNames.storeChatPath ||
+    if (loc == RouteNames.storeChatPath ||
         loc == RouteNames.storeChatNewPath ||
         loc == RouteNames.storeChatDetailPath) {
       return 4;
+    }
+    if (loc == RouteNames.storeSettingsPath) {
+      return 5;
     }
     return 0;
   }

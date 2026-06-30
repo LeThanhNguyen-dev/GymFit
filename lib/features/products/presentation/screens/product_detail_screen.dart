@@ -5,12 +5,14 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/providers/supabase_providers.dart';
+import '../../../auth/providers/auth_providers.dart';
 import '../../../cart/data/models/cart_model.dart';
 import '../../../cart/providers/cart_providers.dart';
 import '../../../checkout/data/models/checkout_model.dart';
 import '../../../reviews/presentation/widgets/review_list_widget.dart';
 import '../../../reviews/providers/review_providers.dart';
 import '../../../wishlist/providers/wishlist_providers.dart';
+import '../../../chat/providers/chat_providers.dart';
 import '../../data/models/product_model.dart';
 import '../../providers/product_providers.dart';
 import '../../providers/comparison_providers.dart';
@@ -316,6 +318,37 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                               ],
                             ),
                           ),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final auth = ref.read(authProvider);
+                              if (auth.user == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng đăng nhập để chat với Shop')));
+                                return;
+                              }
+                              if (auth.user!.id == product.sellerId) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đây là shop của bạn')));
+                                return;
+                              }
+                              
+                              try {
+                                final conversationId = await ref.read(chatRepositoryProvider).createOrGetDirectConversation(product.sellerId!);
+                                if (mounted) {
+                                  context.pushNamed(RouteNames.chatDetail, pathParameters: {'id': conversationId});
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Không thể tạo chat: $e')));
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.chat_bubble_outline, size: 16),
+                            label: const Text('Chat'),
+                            style: OutlinedButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           Icon(Icons.chevron_right_rounded, size: 20, color: colorScheme.outline),
                         ],
                       ),
@@ -894,6 +927,42 @@ class ProductDetailBottomBar extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  onPressed: () async {
+                    final auth = ref.read(authProvider);
+                    if (auth.user == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng đăng nhập để chat')));
+                      return;
+                    }
+                    if (product.sellerId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sản phẩm này không thuộc Shop nào.')));
+                      return;
+                    }
+                    if (auth.user!.id == product.sellerId) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đây là sản phẩm của bạn')));
+                      return;
+                    }
+                    try {
+                      final conversationId = await ref.read(chatRepositoryProvider).createOrGetDirectConversation(product.sellerId!);
+                      if (context.mounted) {
+                        context.pushNamed(RouteNames.chatDetail, pathParameters: {'id': conversationId});
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Không thể tạo chat: $e')));
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.chat_bubble_outline),
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                Text('Chat', style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.primary)),
+              ],
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: isOutOfStock

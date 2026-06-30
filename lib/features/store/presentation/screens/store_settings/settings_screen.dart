@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../../core/providers/supabase_providers.dart';
 import '../../../../../core/router/route_names.dart';
@@ -244,14 +245,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
         Card(
           child: Column(
             children: [
-              ListTile(
-                leading: const Icon(Icons.chat_bubble_outline),
-                title: Text('Tin nhắn realtime', style: AppTextStyles.bodyMedium),
-                subtitle: Text('Chat với admin và khách hàng', style: AppTextStyles.bodySmall),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push(RouteNames.storeChatPath),
-              ),
-              const Divider(height: 1, indent: 16, endIndent: 16),
               ListTile(
                 leading: const Icon(Icons.description_outlined),
                 title: Text('Chính sách đổi trả', style: AppTextStyles.bodyMedium),
@@ -545,7 +538,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
           : supabase
               .from('reviews')
               .select('*, profiles(full_name), products!inner(name, seller_id)')
-              .eq('products.seller_id', userId),
+              .eq('products.seller_id', userId)
+              .order('created_at', ascending: false),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -564,6 +558,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
             final profile = review['profiles'] as Map<String, dynamic>?;
             final product = review['products'] as Map<String, dynamic>?;
             final rating = review['rating'] as int? ?? 5;
+            final sellerReply = review['seller_reply']?.toString();
+            final content = review['comment']?.toString() ?? review['body']?.toString() ?? review['content']?.toString() ?? '';
 
             return Card(
               child: Padding(
@@ -598,7 +594,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
                       style: AppTextStyles.labelSmall.copyWith(color: AppColors.onSurfaceVariant),
                     ),
                     const SizedBox(height: 4),
-                    Text(review['content']?.toString() ?? '', style: AppTextStyles.bodySmall),
+                    Text(content, style: AppTextStyles.bodySmall),
+                    if (sellerReply != null && sellerReply.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainerHighest.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.outlineVariant),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Phản hồi của Shop:', style: AppTextStyles.labelMedium.copyWith(color: AppColors.primary)),
+                            const SizedBox(height: 4),
+                            Text(sellerReply, style: AppTextStyles.bodySmall),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: () => _showReplyDialog(review['id'].toString(), supabase),
+                          icon: const Icon(Icons.reply, size: 18),
+                          label: const Text('Phản hồi'),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -606,6 +631,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
           },
         );
       },
+    );
+  }
+
+  Future<void> _showReplyDialog(String reviewId, SupabaseClient supabase) async {
+    final replyCtrl = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Phản hồi đánh giá'),
+        content: TextField(
+          controller: replyCtrl,
+          decoration: const InputDecoration(
+            hintText: 'Nhập câu trả lời của bạn...',
+            border: OutlineInputBorder(),
+          ),
+          maxLines: 4,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final text = replyCtrl.text.trim();
+              if (text.isEmpty) return;
+              try {
+                await supabase.from('reviews').update({
+                  'seller_reply': text,
+                  'replied_at': DateTime.now().toIso8601String(),
+                }).eq('id', reviewId);
+                if (mounted) setState(() {});
+              } catch (e) {
+                // handle error
+              }
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Gửi'),
+          ),
+        ],
+      ),
     );
   }
 }

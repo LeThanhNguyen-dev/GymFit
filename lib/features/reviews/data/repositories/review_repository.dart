@@ -196,6 +196,16 @@ class ReviewRepository {
         .eq('id', reviewId);
   }
 
+  Future<void> replyToReview(String reviewId, String reply) async {
+    await _client
+        .from(AppConstants.reviewsTable)
+        .update({
+          'seller_reply': reply,
+          'replied_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', reviewId);
+  }
+
   Future<({String orderId, String orderItemId})?> getDeliveredOrderItem(
     String userId,
     String productId,
