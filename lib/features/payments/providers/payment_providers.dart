@@ -16,6 +16,13 @@ final paymentProvider = FutureProvider.family<PaymentModel?, String>((
   return ref.watch(paymentRepositoryProvider).getPaymentByOrderId(orderId);
 });
 
+final paymentRealtimeProvider = StreamProvider.autoDispose
+    .family<PaymentModel?, String>((ref, orderId) {
+      return ref
+          .watch(paymentRepositoryProvider)
+          .watchPaymentByOrderId(orderId);
+    });
+
 final paymentHistoryProvider = FutureProvider<List<PaymentModel>>((ref) {
   final user = ref.watch(supabaseClientProvider).auth.currentUser;
   if (user == null) return const <PaymentModel>[];

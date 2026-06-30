@@ -18,7 +18,9 @@ final productRepositoryProvider = Provider<ProductRepository>((ref) {
   return ProductRepository(ref.watch(supabaseClientProvider));
 });
 
-final storeProductsProvider = FutureProvider.autoDispose<List<ProductModel>>((ref) async {
+final storeProductsProvider = FutureProvider.autoDispose<List<ProductModel>>((
+  ref,
+) async {
   final repo = ref.watch(productRepositoryProvider);
   final client = ref.watch(supabaseClientProvider);
   final userId = client.auth.currentUser?.id;
@@ -26,32 +28,35 @@ final storeProductsProvider = FutureProvider.autoDispose<List<ProductModel>>((re
   return repo.getStoreProducts(sellerId: userId);
 });
 
-final featuredProductsProvider =
-    FutureProvider.autoDispose<List<ProductModel>>((ref) async {
-  final repo = ref.watch(productRepositoryProvider);
-  final cacheService = ref.watch(productCacheServiceProvider);
-  
-  if (await cacheService.isOffline()) {
-    final cached = cacheService.getFeatured();
-    if (cached != null) return cached;
-  }
-  
-  final products = await repo.getFeaturedProducts(limit: 10);
-  await cacheService.saveFeatured(products);
-  return products;
-});
+final featuredProductsProvider = FutureProvider.autoDispose<List<ProductModel>>(
+  (ref) async {
+    final repo = ref.watch(productRepositoryProvider);
+    final cacheService = ref.watch(productCacheServiceProvider);
 
-final bestSellersProvider =
-    FutureProvider.autoDispose<List<ProductModel>>((ref) async {
+    if (await cacheService.isOffline()) {
+      final cached = cacheService.getFeatured();
+      if (cached != null) return cached;
+    }
+
+    final products = await repo.getFeaturedProducts(limit: 10);
+    await cacheService.saveFeatured(products);
+    return products;
+  },
+);
+
+final bestSellersProvider = FutureProvider.autoDispose<List<ProductModel>>((
+  ref,
+) async {
   final repo = ref.watch(productRepositoryProvider);
   return repo.getBestSellers(limit: 10);
 });
 
-final newArrivalsProvider =
-    FutureProvider.autoDispose<List<ProductModel>>((ref) async {
+final newArrivalsProvider = FutureProvider.autoDispose<List<ProductModel>>((
+  ref,
+) async {
   final repo = ref.watch(productRepositoryProvider);
   final cacheService = ref.watch(productCacheServiceProvider);
-  
+
   if (await cacheService.isOffline()) {
     final cached = cacheService.getNewArrivals();
     if (cached != null) return cached;
@@ -64,44 +69,70 @@ final newArrivalsProvider =
 
 final recommendedProductsProvider =
     FutureProvider.autoDispose<List<ProductModel>>((ref) async {
-  final repo = ref.watch(productRepositoryProvider);
-  final cacheService = ref.watch(productCacheServiceProvider);
-  
-  if (await cacheService.isOffline()) {
-    final cached = cacheService.getRecommended();
-    if (cached != null) return cached;
-  }
+      final repo = ref.watch(productRepositoryProvider);
+      final cacheService = ref.watch(productCacheServiceProvider);
 
-  final products = await repo.getRecommendedProducts(limit: 10);
-  await cacheService.saveRecommended(products);
-  return products;
-});
+      if (await cacheService.isOffline()) {
+        final cached = cacheService.getRecommended();
+        if (cached != null) return cached;
+      }
+
+      final products = await repo.getRecommendedProducts(limit: 10);
+      await cacheService.saveRecommended(products);
+      return products;
+    });
 
 final flashSaleProductsProvider =
     FutureProvider.autoDispose<List<ProductModel>>((ref) async {
-  final repo = ref.watch(productRepositoryProvider);
-  final products = await repo.getFeaturedProducts(limit: 20);
-  final onSale = products.where((p) =>
-    p.compareAtPrice != null &&
-    p.compareAtPrice! > p.basePrice &&
-    p.status == ProductStatus.active
-  ).toList();
-  onSale.sort((a, b) => ((b.compareAtPrice! - b.basePrice) / b.compareAtPrice! * 100)
-      .compareTo(((a.compareAtPrice! - a.basePrice) / a.compareAtPrice! * 100)));
-  return onSale.take(8).toList();
-});
+      final repo = ref.watch(productRepositoryProvider);
+      final products = await repo.getFeaturedProducts(limit: 20);
+      final onSale = products
+          .where(
+            (p) =>
+                p.compareAtPrice != null &&
+                p.compareAtPrice! > p.basePrice &&
+                p.status == ProductStatus.active,
+          )
+          .toList();
+      onSale.sort(
+        (a, b) => ((b.compareAtPrice! - b.basePrice) / b.compareAtPrice! * 100)
+            .compareTo(
+              ((a.compareAtPrice! - a.basePrice) / a.compareAtPrice! * 100),
+            ),
+      );
+      return onSale.take(8).toList();
+    });
 
-final recommendedMoreProvider =
-    FutureProvider.autoDispose<List<ProductModel>>((ref) async {
+final recommendedMoreProvider = FutureProvider.autoDispose<List<ProductModel>>((
+  ref,
+) async {
   final repo = ref.watch(productRepositoryProvider);
   return repo.getRecommendedProducts(limit: 20);
 });
 
 final productDetailProvider = FutureProvider.family
     .autoDispose<ProductModel?, String>((ref, id) async {
-  final repo = ref.watch(productRepositoryProvider);
-  return repo.getProductById(id);
-});
+      final repo = ref.watch(productRepositoryProvider);
+      return repo.getProductById(id);
+    });
+
+final productVariantsRealtimeProvider = StreamProvider.autoDispose
+    .family<List<Map<String, dynamic>>, String>((ref, productId) {
+      return ref
+          .watch(supabaseClientProvider)
+          .from('product_variants')
+          .stream(primaryKey: ['id'])
+          .eq('product_id', productId);
+    });
+
+final productReviewsRealtimeProvider = StreamProvider.autoDispose
+    .family<List<Map<String, dynamic>>, String>((ref, productId) {
+      return ref
+          .watch(supabaseClientProvider)
+          .from('reviews')
+          .stream(primaryKey: ['id'])
+          .eq('product_id', productId);
+    });
 
 class RelatedProductsArgs {
   const RelatedProductsArgs({
@@ -125,9 +156,9 @@ class RelatedProductsArgs {
 
 final relatedProductsProvider = FutureProvider.family
     .autoDispose<List<ProductModel>, RelatedProductsArgs>((ref, args) async {
-  final repo = ref.watch(productRepositoryProvider);
-  return repo.getRelatedProducts(args.productId, args.categoryId, limit: 6);
-});
+      final repo = ref.watch(productRepositoryProvider);
+      return repo.getRelatedProducts(args.productId, args.categoryId, limit: 6);
+    });
 
 // ── Product List State ─────────────────────────────────────────────────────────
 
@@ -281,10 +312,7 @@ class ProductListNotifier extends Notifier<ProductListState> {
   }
 
   void updatePriceRange(double? minPrice, double? maxPrice) {
-    state = state.copyWith(
-      minPrice: () => minPrice,
-      maxPrice: () => maxPrice,
-    );
+    state = state.copyWith(minPrice: () => minPrice, maxPrice: () => maxPrice);
     loadProducts();
   }
 
@@ -314,5 +342,5 @@ class ProductListNotifier extends Notifier<ProductListState> {
 
 final productListProvider =
     NotifierProvider.autoDispose<ProductListNotifier, ProductListState>(
-  ProductListNotifier.new,
-);
+      ProductListNotifier.new,
+    );

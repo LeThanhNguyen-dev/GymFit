@@ -22,9 +22,17 @@ class PaymentScreen extends ConsumerStatefulWidget {
 
 class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   String? _payOsRequestedPaymentId;
+  String? _handledTerminalPaymentId;
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<PaymentModel?>>(
+      paymentRealtimeProvider(widget.orderId),
+      (previous, next) {
+        next.whenData(_handleRealtimePayment);
+      },
+    );
+
     final payment = ref.watch(paymentProvider(widget.orderId));
     final processing = ref.watch(paymentProcessingProvider);
     final payOsSession = ref.watch(payOsPaymentProvider);
@@ -82,7 +90,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       ),
                       data: (session) => session == null
                           ? Center(
-                              child                              : FilledButton.icon(
+                              child: FilledButton.icon(
                                 onPressed: () => _createPayOsSession(payment),
                                 icon: const Icon(Icons.qr_code_2),
                                 label: const Text('Tạo mã QR payOS'),
@@ -120,7 +128,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                           dimension: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                       : Text(
+                      : Text(
                           payment.method == PaymentMethod.payos
                               ? 'Tôi đã thanh toán'
                               : 'Xác nhận',
@@ -147,6 +155,23 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         _createPayOsSession(payment);
       }
     });
+  }
+
+  void _handleRealtimePayment(PaymentModel? payment) {
+    if (payment == null || !mounted) return;
+
+    ref.invalidate(paymentProvider(widget.orderId));
+
+    final isTerminal =
+        payment.status == PaymentStatus.paid ||
+        payment.status == PaymentStatus.failed;
+    if (!isTerminal || _handledTerminalPaymentId == payment.id) return;
+
+    _handledTerminalPaymentId = payment.id;
+    context.pushReplacementNamed(
+      RouteNames.paymentStatus,
+      extra: {'payment': payment, 'orderId': widget.orderId},
+    );
   }
 
   Future<void> _createPayOsSession(PaymentModel payment) async {

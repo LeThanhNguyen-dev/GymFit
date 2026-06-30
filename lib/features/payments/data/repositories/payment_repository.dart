@@ -61,6 +61,14 @@ class PaymentRepository {
     return row == null ? null : PaymentModel.fromJson(row);
   }
 
+  Stream<PaymentModel?> watchPaymentByOrderId(String orderId) {
+    return _client
+        .from(AppConstants.paymentsTable)
+        .stream(primaryKey: ['id'])
+        .eq('order_id', orderId)
+        .map((rows) => rows.isEmpty ? null : PaymentModel.fromJson(rows.first));
+  }
+
   Future<List<PaymentModel>> getPaymentHistory(String userId) async {
     final rows = await _client
         .from(AppConstants.paymentsTable)
