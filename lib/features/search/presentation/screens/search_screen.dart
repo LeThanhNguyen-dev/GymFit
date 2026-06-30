@@ -128,13 +128,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       },
                     )
                   : (!_hasSubmitted
-                      ? _SearchSuggestionsSection(
-                          onTapSuggestion: (term) {
-                            _searchController.text = term;
-                            _onSearchSubmitted(term);
-                          },
-                        )
-                      : _SearchResultsSection(searchResults: searchResults)),
+                        ? _SearchSuggestionsSection(
+                            onTapSuggestion: (term) {
+                              _searchController.text = term;
+                              _onSearchSubmitted(term);
+                            },
+                          )
+                        : _SearchResultsSection(searchResults: searchResults)),
             ),
           ],
         ),
@@ -159,16 +159,50 @@ class _SearchSuggestionsSection extends ConsumerWidget {
         if (suggestions.isEmpty) {
           return const Center(child: Text('Không tìm thấy gợi ý nào.'));
         }
-        return ListView.builder(
-          itemCount: suggestions.length,
-          itemBuilder: (context, index) {
-            final term = suggestions[index];
-            return ListTile(
-              leading: const Icon(Icons.search, color: Colors.grey),
-              title: Text(term),
-              onTap: () => onTapSuggestion(term),
-            );
-          },
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.auto_awesome_rounded,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Gợi ý AI',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Các từ khóa được Groq gợi ý theo catalog GymFit',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...suggestions.map(
+              (term) => Card(
+                elevation: 0,
+                margin: const EdgeInsets.only(bottom: 8),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: ListTile(
+                  leading: Icon(
+                    Icons.search_rounded,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  title: Text(term),
+                  trailing: const Icon(Icons.north_west_rounded, size: 18),
+                  onTap: () => onTapSuggestion(term),
+                ),
+              ),
+            ),
+          ],
         );
       },
     );

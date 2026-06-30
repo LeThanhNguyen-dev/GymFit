@@ -1,6 +1,26 @@
-# payOS Edge Functions
+# Supabase Edge Functions
 
-These functions keep payOS credentials out of the Flutter app.
+These functions keep provider credentials out of the Flutter app.
+
+## AI Search Suggestions (Groq)
+
+Required Supabase secrets:
+
+```bash
+supabase secrets set GROQ_API_KEY=your_groq_api_key
+supabase secrets set GROQ_MODEL=llama-3.1-8b-instant
+```
+
+Deploy:
+
+```bash
+supabase functions deploy ai-search-suggestions
+```
+
+Flutter calls this function from the catalog search flow. If the function is not
+deployed or Groq fails, the app falls back to Supabase product-name suggestions.
+
+## payOS
 
 Required Supabase secrets:
 
