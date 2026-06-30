@@ -359,7 +359,7 @@ class _AdminCouponsScreenState extends ConsumerState<AdminCouponsScreen> {
       children: [
         Expanded(
           child: DropdownButtonFormField<bool?>(
-            value: _isActive,
+            initialValue: _isActive,
             isExpanded: true,
             decoration: const InputDecoration(
               labelText: 'Trạng thái',
@@ -383,7 +383,7 @@ class _AdminCouponsScreenState extends ConsumerState<AdminCouponsScreen> {
         const SizedBox(width: 8),
         Expanded(
           child: DropdownButtonFormField<String?>(
-            value: _discountType,
+            initialValue: _discountType,
             isExpanded: true,
             decoration: const InputDecoration(
               labelText: 'Loại giảm giá',
@@ -607,7 +607,7 @@ class _AdminCouponsScreenState extends ConsumerState<AdminCouponsScreen> {
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: limitPercent,
-                    backgroundColor: theme.colorScheme.surfaceVariant,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       limitPercent > 0.85 ? Colors.orange : theme.colorScheme.primary,
                     ),
@@ -730,7 +730,7 @@ class _AdminCouponsScreenState extends ConsumerState<AdminCouponsScreen> {
         title: const Row(
           children: [
             Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Text('Vô hiệu hóa voucher?'),
           ],
         ),
@@ -883,7 +883,7 @@ class _AdminCouponsScreenState extends ConsumerState<AdminCouponsScreen> {
                       return Column(
                         children: [
                           DropdownButtonFormField<String>(
-                            value: discountType,
+                            initialValue: discountType,
                             decoration: const InputDecoration(
                               labelText: 'Loại giảm giá',
                               border: OutlineInputBorder(),

@@ -83,7 +83,7 @@ class _AdminShopsScreenState extends ConsumerState<AdminShopsScreen> with Single
         return ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageHorizontal),
           itemCount: filtered.length,
-          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
           itemBuilder: (_, i) => _ShopCard(
             data: filtered[i],
             onTap: () => context.go('/admin/shops/${filtered[i]['id']}'),
@@ -102,7 +102,7 @@ class _AdminShopsScreenState extends ConsumerState<AdminShopsScreen> with Single
         return ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageHorizontal),
           itemCount: items.length,
-          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
           itemBuilder: (_, i) => Card(
             child: ListTile(
               leading: Container(width: 48, height: 48, decoration: BoxDecoration(color: AppColors.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.image)),
@@ -152,7 +152,7 @@ class _AdminShopsScreenState extends ConsumerState<AdminShopsScreen> with Single
             await supabase.from('products').update({'status': 'active'}).eq('id', item['id']);
             ref.invalidate(_pendingProductsProvider);
             if (context.mounted) Navigator.pop(context);
-          }, child: const Text('Duyệt'), style: FilledButton.styleFrom(backgroundColor: AppColors.success))),
+          }, style: FilledButton.styleFrom(backgroundColor: AppColors.success), child: const Text('Duyệt'))),
           const SizedBox(width: AppSpacing.sm),
           Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Đóng'))),
         ]),

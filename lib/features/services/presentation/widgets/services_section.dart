@@ -16,7 +16,7 @@ class ServicesSection extends ConsumerWidget {
 
     return servicesAsync.when(
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
       data: (services) {
         if (services.isEmpty) return const SizedBox.shrink();
         return Padding(
@@ -37,7 +37,7 @@ class ServicesSection extends ConsumerWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                   itemCount: services.length,
-                  separatorBuilder: (_, __) =>
+                  separatorBuilder: (_, _) =>
                       const SizedBox(width: AppSpacing.md),
                   itemBuilder: (context, index) {
                     final service = services[index];

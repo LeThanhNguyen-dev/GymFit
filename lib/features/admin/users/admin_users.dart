@@ -82,7 +82,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                   },
                   child: ListView.separated(
                     itemCount: users.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (context, index) =>
                         _buildUserTile(users[index]),
                   ),
@@ -127,7 +127,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
         children: [
           Expanded(
             child: DropdownButtonFormField<String?>(
-              value: _roleFilter,
+              initialValue: _roleFilter,
               decoration: const InputDecoration(
                 labelText: 'Role',
                 border: OutlineInputBorder(),
@@ -152,7 +152,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: DropdownButtonFormField<String?>(
-              value: _sellerStatusFilter,
+              initialValue: _sellerStatusFilter,
               decoration: const InputDecoration(
                 labelText: 'Seller',
                 border: OutlineInputBorder(),
@@ -177,7 +177,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: DropdownButtonFormField<String?>(
-              value: _bannedFilter == null
+              initialValue: _bannedFilter == null
                   ? null
                   : _bannedFilter!
                       ? 'banned'
@@ -542,7 +542,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     void Function(void Function()) setLocalState,
   ) {
     return DropdownButtonFormField<String>(
-      value: user.role,
+      initialValue: user.role,
       decoration: const InputDecoration(
         labelText: 'Vai trò',
         border: OutlineInputBorder(),
@@ -723,7 +723,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
       if (context.mounted) {
         showAppSnackbar(
           context,
-          message: 'Đã ${action} yêu cầu bán hàng',
+          message: 'Đã $action yêu cầu bán hàng',
           type: SnackbarType.success,
         );
       }

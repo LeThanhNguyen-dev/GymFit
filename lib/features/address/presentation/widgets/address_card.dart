@@ -89,6 +89,7 @@ class AddressCard extends StatelessWidget {
                 PopupMenuButton(
                   itemBuilder: (context) => [
                     PopupMenuItem(
+                      onTap: onEdit,
                       child: const Row(
                         children: [
                           Icon(Icons.edit, size: 18),
@@ -96,9 +97,9 @@ class AddressCard extends StatelessWidget {
                           Text('Sửa'),
                         ],
                       ),
-                      onTap: onEdit,
                     ),
                     PopupMenuItem(
+                      onTap: onDelete,
                       child: const Row(
                         children: [
                           Icon(Icons.delete, size: 18, color: Colors.red),
@@ -106,7 +107,6 @@ class AddressCard extends StatelessWidget {
                           Text('Xóa', style: TextStyle(color: Colors.red)),
                         ],
                       ),
-                      onTap: onDelete,
                     ),
                   ],
                 ),

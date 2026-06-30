@@ -286,7 +286,7 @@ class AuthRepository implements IAuthRepository {
     await _databaseService.upsert(_profileTable, {
       'id': id,
       'email': email,
-      if (fullName != null) 'full_name': fullName,
+      'full_name': ?fullName,
       'role': 'customer',
       'seller_status': 'none',
       'last_login_at': lastLoginAt ?? now,

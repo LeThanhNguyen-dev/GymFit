@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/add_to_cart_sheet.dart';
+import '../../../cart/providers/cart_providers.dart';
 import '../../../wishlist/providers/wishlist_providers.dart';
 import '../../data/models/product_model.dart';
 import '../../../../core/providers/supabase_providers.dart';
@@ -59,6 +61,24 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     } catch (_) {
       if (mounted) setState(() => _hasFetched = true);
     }
+  }
+
+  void _showAddToCartSheet() {
+    AddToCartSheet.show(
+      context,
+      product: widget.product,
+      onAddToCart: (variantId, quantity) async {
+        final messenger = ScaffoldMessenger.of(context);
+        await ref.read(cartItemsProvider.notifier).addToCart(
+              widget.product.id,
+              variantId,
+              quantity,
+            );
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Đã thêm vào giỏ hàng.')),
+        );
+      },
+    );
   }
 
   @override
@@ -158,37 +178,6 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                             ),
                           ),
                           SizedBox(height: compact ? 2 : AppSpacing.xxs),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 2,
-                            children: [
-                              Text(
-                                formatCurrency(widget.product.basePrice),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  color: widget.product.compareAtPrice != null &&
-                                          widget.product.compareAtPrice! >
-                                              widget.product.basePrice
-                                      ? colorScheme.error
-                                      : colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              if (widget.product.compareAtPrice != null &&
-                                  widget.product.compareAtPrice! > widget.product.basePrice)
-                                Text(
-                                  formatCurrency(widget.product.compareAtPrice!),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    decoration: TextDecoration.lineThrough,
-                                    color: colorScheme.outline,
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const Spacer(),
                           Row(
                             children: [
                               if (widget.product.averageRating > 0) ...[
@@ -221,6 +210,54 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                   style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.outline),
                                 ),
                               ],
+                            ],
+                          ),
+                          const Spacer(),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      formatCurrency(widget.product.basePrice),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.titleSmall?.copyWith(
+                                        color: widget.product.compareAtPrice != null &&
+                                                widget.product.compareAtPrice! >
+                                                    widget.product.basePrice
+                                            ? colorScheme.error
+                                            : colorScheme.primary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    if (widget.product.compareAtPrice != null &&
+                                        widget.product.compareAtPrice! > widget.product.basePrice)
+                                      Text(
+                                        formatCurrency(widget.product.compareAtPrice!),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          decoration: TextDecoration.lineThrough,
+                                          color: colorScheme.outline,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(
+                                width: 30,
+                                height: 30,
+                                child: IconButton(
+                                  onPressed: _showAddToCartSheet,
+                                  icon: const Icon(Icons.add_shopping_cart_outlined, size: 16),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  splashRadius: 15,
+                                  tooltip: 'Thêm vào giỏ',
+                                ),
+                              ),
                             ],
                           ),
                         ],

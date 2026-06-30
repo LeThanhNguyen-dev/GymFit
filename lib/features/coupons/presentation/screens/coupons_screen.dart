@@ -84,7 +84,7 @@ class _CouponsScreenState extends ConsumerState<CouponsScreen> {
                   ),
                   sliver: SliverList.separated(
                     itemCount: vouchers.length,
-                    separatorBuilder: (_, __) =>
+                    separatorBuilder: (_, _) =>
                         const SizedBox(height: AppSpacing.md),
                     itemBuilder: (context, index) => CouponCard(
                       coupon: vouchers[index],

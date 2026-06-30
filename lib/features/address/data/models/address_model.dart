@@ -45,11 +45,11 @@ class AddressModel {
   String get fullAddress {
     final parts = <String>[
       addressLine1,
-      if (addressLine2 != null) addressLine2!,
-      if (ward != null) ward!,
-      if (district != null) district!,
+      ?addressLine2,
+      ?ward,
+      ?district,
       city,
-      if (province != null) province!,
+      ?province,
     ];
     return parts.join(', ');
   }

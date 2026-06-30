@@ -21,9 +21,9 @@ class AdminUserRepository {
     try {
       final result = await _client.rpc('admin_list_profiles', params: {
         if (search != null && search.isNotEmpty) 'search_text': search,
-        if (role != null) 'role_filter': role,
-        if (sellerStatus != null) 'seller_status_filter': sellerStatus,
-        if (banned != null) 'banned_filter': banned,
+        'role_filter': ?role,
+        'seller_status_filter': ?sellerStatus,
+        'banned_filter': ?banned,
         'sort_col': sortBy,
         'sort_asc': ascending,
         'page_num': page,
@@ -73,7 +73,7 @@ class AdminUserRepository {
       await _client.rpc('admin_toggle_ban', params: {
         'target_id': userId,
         'set_banned': banned,
-        if (reason != null) 'reason_text': reason,
+        'reason_text': ?reason,
       });
     } catch (e) {
       throw handleSupabaseError(e);
